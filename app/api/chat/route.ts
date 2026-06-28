@@ -9,7 +9,8 @@ import { prisma } from "@/lib/db";
 import type { Mode } from "@/lib/prompts/modes";
 import { runSafetyGate } from "@/lib/safety";
 import { CRISIS_RESPONSE } from "@/lib/prompts/safety";
-import { maybeFireProbe, buildDebrief } from "@/lib/probe";
+import { VANILLA_PROMPT, REFUSE_PROMPT } from "@/lib/prompts/conditions";
+import { maybeFireProbe, buildDebrief, type ProbeSpec } from "@/lib/probe";
 import { buildProbeInstruction } from "@/lib/prompts/probe";
 
 // LLM + DB calls must run on the Node runtime (server-side only) — never expose keys.
@@ -56,7 +57,7 @@ async function persistJudge(
 
 /**
  * Judge the user turn + refresh metrics. Fired WITHOUT awaiting so it never
- * blocks the reply (used for ordinary turns).
+ * blocks the reply. Telemetry runs in every condition so the arms are comparable.
  */
 async function scoreAndUpdate(opts: {
   userTurnId: string;
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest) {
       : "";
 
   try {
-    // Resolve or create the session (the first message starts one).
+    // Resolve or create the session (the first message starts an effort_aware one).
     const incomingSessionId =
       typeof b.sessionId === "string" ? b.sessionId : null;
     let session = incomingSessionId
@@ -132,6 +133,7 @@ export async function POST(req: NextRequest) {
       : null;
     if (!session) session = await prisma.session.create({ data: {} });
     const sessionId = session.id;
+    const condition = session.condition; // "vanilla" | "refuse" | "effort_aware"
 
     // Persist the user turn, recording acceptance latency since the last AI turn.
     const turnCount = await prisma.turn.count({ where: { sessionId } });
@@ -153,10 +155,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 1) SAFETY GATE — runs before classification on every message.
+    // 1) SAFETY GATE — runs first in every condition (crisis is an ethical floor,
+    //    not part of the experimental manipulation).
     const safety = await runSafetyGate(userMessage);
 
-    // 2) POST-PROBE TURN — resolve the open probe and debrief.
+    // 2) POST-PROBE TURN — only effort_aware ever sets awaitingCaveEval.
     if (session.awaitingCaveEval) {
       const scores = await judgeTurn(aiPrev, userMessage);
       await persistJudge(userTurn.id, scores);
@@ -178,23 +181,11 @@ export async function POST(req: NextRequest) {
       });
       await refreshMetrics(sessionId);
 
-      // Crisis takes precedence even mid-probe (the probe is already resolved).
       if (safety.category === "crisis") {
         await prisma.turn.create({
-          data: {
-            sessionId,
-            index: aiIndex,
-            role: "assistant",
-            content: CRISIS_RESPONSE,
-            mode: "SAFETY",
-          },
+          data: { sessionId, index: aiIndex, role: "assistant", content: CRISIS_RESPONSE, mode: "SAFETY" },
         });
-        return NextResponse.json({
-          reply: CRISIS_RESPONSE,
-          mode: "SAFETY",
-          confidence: 1,
-          sessionId,
-        });
+        return NextResponse.json({ reply: CRISIS_RESPONSE, mode: "SAFETY", confidence: null, sessionId });
       }
 
       const debrief = buildDebrief(
@@ -203,69 +194,60 @@ export async function POST(req: NextRequest) {
         caved
       );
       await prisma.turn.create({
-        data: {
-          sessionId,
-          index: aiIndex,
-          role: "assistant",
-          content: debrief,
-          mode: "DEBRIEF",
-        },
+        data: { sessionId, index: aiIndex, role: "assistant", content: debrief, mode: "DEBRIEF" },
       });
-      return NextResponse.json({
-        reply: debrief,
-        mode: "DEBRIEF",
-        confidence: 1,
-        sessionId,
-      });
+      return NextResponse.json({ reply: debrief, mode: "DEBRIEF", confidence: null, sessionId });
     }
 
-    // 3) CRISIS — bypass everything with a supportive reply. No gating/probing/judging.
+    // 3) CRISIS — bypass everything with a supportive reply, in every condition.
     if (safety.category === "crisis") {
       await prisma.turn.create({
-        data: {
-          sessionId,
-          index: aiIndex,
-          role: "assistant",
-          content: CRISIS_RESPONSE,
-          mode: "SAFETY",
-        },
+        data: { sessionId, index: aiIndex, role: "assistant", content: CRISIS_RESPONSE, mode: "SAFETY" },
       });
-      return NextResponse.json({
-        reply: CRISIS_RESPONSE,
-        mode: "SAFETY",
-        confidence: 1,
-        sessionId,
-      });
+      return NextResponse.json({ reply: CRISIS_RESPONSE, mode: "SAFETY", confidence: null, sessionId });
     }
 
-    // 4) Determine the mode. Academic-integrity asks skip the classifier and are
-    //    redirected via OUTSOURCING (never produce the gradeable deliverable).
-    let mode: Mode;
-    let confidence: number;
-    if (safety.category === "integrity") {
-      mode = "OUTSOURCING";
-      confidence = 1;
+    // 4) Pick behaviour by condition.
+    let systemPrompt: string;
+    let mode: string;
+    let confidence: number | null;
+    let probeSpec: ProbeSpec | null = null;
+
+    if (condition === "vanilla") {
+      systemPrompt = VANILLA_PROMPT;
+      mode = "VANILLA";
+      confidence = null;
+    } else if (condition === "refuse") {
+      systemPrompt = REFUSE_PROMPT;
+      mode = "REFUSE";
+      confidence = null;
     } else {
-      const classification = await classifyTurn(
-        history.slice(0, lastUserIdx),
-        userMessage
+      // effort_aware: integrity asks skip the classifier and redirect via OUTSOURCING.
+      if (safety.category === "integrity") {
+        mode = "OUTSOURCING";
+        confidence = 1;
+      } else {
+        const classification = await classifyTurn(
+          history.slice(0, lastUserIdx),
+          userMessage
+        );
+        confidence = classification.confidence;
+        mode =
+          classification.confidence < CONFIDENCE_FLOOR
+            ? "ENGAGED"
+            : classification.mode;
+      }
+      probeSpec =
+        safety.category === "integrity"
+          ? null
+          : await maybeFireProbe(session, mode as Mode, history);
+      systemPrompt = assemblePersona(
+        mode as Mode,
+        probeSpec ? buildProbeInstruction(probeSpec.wrongClaim) : undefined
       );
-      confidence = classification.confidence;
-      mode =
-        confidence < CONFIDENCE_FLOOR ? "ENGAGED" : classification.mode;
     }
 
-    // 5) Probe scheduler (never for integrity; maybeFireProbe enforces the rest).
-    const probeSpec =
-      safety.category === "integrity"
-        ? null
-        : await maybeFireProbe(session, mode, history);
-
-    // 6) Generate the persona reply (with the probe instruction if firing).
-    const systemPrompt = assemblePersona(
-      mode,
-      probeSpec ? buildProbeInstruction(probeSpec.wrongClaim) : undefined
-    );
+    // 5) Generate the reply.
     const client = getClient("persona");
     const personaMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
       [
@@ -279,7 +261,7 @@ export async function POST(req: NextRequest) {
     });
     const reply = completion.choices?.[0]?.message?.content?.trim() ?? "";
 
-    // 7) Persist the AI turn.
+    // 6) Persist the AI turn.
     const aiTurn = await prisma.turn.create({
       data: {
         sessionId,
@@ -292,7 +274,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 8) If a probe fired, record it and flag the session to evaluate caving next turn.
+    // 7) If a probe fired, record it and flag the session for cave evaluation.
     if (probeSpec) {
       await prisma.probe.create({
         data: {
@@ -308,7 +290,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 9) Judge this user turn + refresh metrics, without blocking the reply.
+    // 8) Judge this user turn + refresh metrics, without blocking the reply.
     void scoreAndUpdate({
       userTurnId: userTurn.id,
       sessionId,
@@ -318,9 +300,22 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ reply, mode, confidence, sessionId });
   } catch (err) {
+    // Surface free-tier rate limits as a friendly, actionable message.
+    const status = (err as { status?: number })?.status;
     const message =
       err instanceof Error ? err.message : "Failed to generate a reply.";
+    if (status === 429 || /\b429\b|rate limit/i.test(message)) {
+      console.warn("[/api/chat] rate limited");
+      return NextResponse.json(
+        {
+          error:
+            "The free model is rate-limited right now. Give it a moment and try again.",
+        },
+        { status: 429 }
+      );
+    }
     console.error("[/api/chat] error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

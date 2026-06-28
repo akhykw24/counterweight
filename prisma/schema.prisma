@@ -22,6 +22,7 @@ model Session {
   id               String    @id @default(cuid())
   userId           String?
   user             User?     @relation(fields: [userId], references: [id])
+  participantId    String? // research mode (Day 6)
   condition        String    @default("effort_aware") // vanilla | refuse | effort_aware (Day 6)
   consentFlags     String? // JSON blob (Day 6)
   awaitingCaveEval Boolean   @default(false) // probe bookkeeping (Day 5)
