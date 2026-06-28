@@ -23,7 +23,7 @@ yarn-error.log*
 dev.log
 
 # local env files (NEVER commit secrets)
-.env
+# .env holds only the non-secret DATABASE_URL and IS committed; secrets stay in .env.local
 .env.local
 .env.development.local
 .env.test.local

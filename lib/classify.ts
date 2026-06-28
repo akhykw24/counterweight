@@ -1,5 +1,6 @@
 import { getClient, getModel } from "@/lib/models";
 import { CLASSIFIER_PROMPT } from "@/lib/prompts/classifier";
+import { extractJsonObject } from "@/lib/json";
 import type { Mode } from "@/lib/prompts/modes";
 
 export type Classification = {
@@ -20,29 +21,6 @@ const FALLBACK: Classification = {
   signals: [],
   abstain: true,
 };
-
-/** Pull a JSON object out of a model response, tolerating fences and stray prose. */
-function extractJson(raw: string): unknown {
-  if (!raw) return null;
-  let text = raw.trim();
-  // Strip a leading ```json / ``` fence and a trailing ``` fence if present.
-  text = text
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-  try {
-    return JSON.parse(text);
-  } catch {
-    // Fall back to grabbing the first {...} block anywhere in the text.
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    try {
-      return JSON.parse(match[0]);
-    } catch {
-      return null;
-    }
-  }
-}
 
 /** Coerce arbitrary parsed JSON into a valid Classification. */
 function coerce(obj: unknown): Classification {
@@ -99,7 +77,7 @@ export async function classifyTurn(
     });
 
     const raw = completion.choices?.[0]?.message?.content ?? "";
-    const parsed = extractJson(raw);
+    const parsed = extractJsonObject(raw);
     if (parsed == null) return { ...FALLBACK };
     return coerce(parsed);
   } catch (err) {

@@ -1,0 +1,100 @@
+// Counterweight data model (docs/SPEC.md §10).
+// The literal §10 schema isn't in the playbook, so this is authored to match
+// the design intent: users, sessions, turns, metrics, probes, tasks.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  participantId String? // research mode (Day 6)
+  createdAt     DateTime  @default(now())
+  sessions      Session[]
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String?
+  user             User?     @relation(fields: [userId], references: [id])
+  condition        String    @default("effort_aware") // vanilla | refuse | effort_aware (Day 6)
+  consentFlags     String? // JSON blob (Day 6)
+  awaitingCaveEval Boolean   @default(false) // probe bookkeeping (Day 5)
+  startedAt        DateTime  @default(now())
+  endedAt          DateTime?
+  turns            Turn[]
+  metric           Metric?
+  probes           Probe[]
+  tasks            Task[]
+}
+
+model Turn {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  index     Int // order within the session
+  role      String // "user" | "assistant"
+  content   String
+
+  // persona side (assistant turns)
+  mode       String?
+  confidence Float?
+  isProbe    Boolean @default(false) // Day 5
+
+  // telemetry-judge scores (user turns)
+  reasoningDepth Int? // 0..2
+  askedToProduce Boolean?
+  verifiedClaim  Boolean?
+  concededToAi   Boolean?
+
+  // acceptance latency: ms elapsed since the previous assistant turn (user turns)
+  latencyMs Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model Metric {
+  id                String   @id @default(cuid())
+  sessionId         String   @unique
+  session           Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  offloadRatio      Float    @default(0) // 0..1, higher = more outsourcing
+  verificationRate  Float    @default(0) // 0..1, higher = more independent
+  caveRate          Float    @default(0) // 0..1, higher = caves more
+  acceptanceLatency Float    @default(0) // seconds, mean time-to-respond
+  independenceIndex Float    @default(0) // 0..100 composite
+  turnsScored       Int      @default(0)
+  updatedAt         DateTime @updatedAt
+}
+
+model Probe {
+  id         String    @id @default(cuid())
+  sessionId  String
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  turnId     String? // the AI turn that carried the wrong nudge
+  wrongClaim String
+  caved      Boolean?
+  firedAt    DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([sessionId])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  sessionId   String?
+  session     Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sessionId])
+}

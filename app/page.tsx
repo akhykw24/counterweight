@@ -17,6 +17,7 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sessionIdRef = useRef<string | null>(null);
 
   // Keep the latest message in view.
   useEffect(() => {
@@ -40,13 +41,16 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: next, sessionId: sessionIdRef.current }),
       });
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data?.error ?? "Something went wrong.");
       }
+
+      // Remember the session so later turns persist to the same row.
+      if (data.sessionId) sessionIdRef.current = data.sessionId;
 
       setMessages((prev) => [
         ...prev,
