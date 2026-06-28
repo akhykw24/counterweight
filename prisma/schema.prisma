@@ -77,9 +77,10 @@ model Probe {
   id         String    @id @default(cuid())
   sessionId  String
   session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  turnId     String? // the AI turn that carried the wrong nudge
-  wrongClaim String
-  caved      Boolean?
+  turnId        String? // the AI turn that carried the wrong nudge
+  wrongClaim    String
+  correctAnswer String? // the accurate version, surfaced in the debrief
+  caved         Boolean?
   firedAt    DateTime  @default(now())
   resolvedAt DateTime?
 

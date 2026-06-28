@@ -7,6 +7,10 @@ import { judgeTurn } from "@/lib/judge";
 import { computeMetrics } from "@/lib/metrics";
 import { prisma } from "@/lib/db";
 import type { Mode } from "@/lib/prompts/modes";
+import { runSafetyGate } from "@/lib/safety";
+import { CRISIS_RESPONSE } from "@/lib/prompts/safety";
+import { maybeFireProbe, buildDebrief } from "@/lib/probe";
+import { buildProbeInstruction } from "@/lib/prompts/probe";
 
 // LLM + DB calls must run on the Node runtime (server-side only) — never expose keys.
 export const runtime = "nodejs";
@@ -20,9 +24,39 @@ type IncomingMessage = {
 // Below this confidence the classifier isn't trusted; default to ENGAGED.
 const CONFIDENCE_FLOOR = 0.6;
 
+/** Recompute the four metrics + Independence Index and persist them. */
+async function refreshMetrics(sessionId: string) {
+  const turns = await prisma.turn.findMany({
+    where: { sessionId },
+    orderBy: { index: "asc" },
+  });
+  const m = computeMetrics(turns);
+  await prisma.metric.upsert({
+    where: { sessionId },
+    create: { sessionId, ...m },
+    update: { ...m },
+  });
+}
+
+/** Persist judge scores onto a user turn. */
+async function persistJudge(
+  userTurnId: string,
+  scores: Awaited<ReturnType<typeof judgeTurn>>
+) {
+  await prisma.turn.update({
+    where: { id: userTurnId },
+    data: {
+      reasoningDepth: scores.reasoning_depth,
+      askedToProduce: scores.asked_to_produce,
+      verifiedClaim: scores.verified_claim,
+      concededToAi: scores.conceded_to_ai,
+    },
+  });
+}
+
 /**
- * Score the user turn with the telemetry judge and refresh the session metrics.
- * Fired WITHOUT awaiting so it never blocks the reply to the user.
+ * Judge the user turn + refresh metrics. Fired WITHOUT awaiting so it never
+ * blocks the reply (used for ordinary turns).
  */
 async function scoreAndUpdate(opts: {
   userTurnId: string;
@@ -32,26 +66,8 @@ async function scoreAndUpdate(opts: {
 }) {
   try {
     const scores = await judgeTurn(opts.aiPrev, opts.userContent);
-    await prisma.turn.update({
-      where: { id: opts.userTurnId },
-      data: {
-        reasoningDepth: scores.reasoning_depth,
-        askedToProduce: scores.asked_to_produce,
-        verifiedClaim: scores.verified_claim,
-        concededToAi: scores.conceded_to_ai,
-      },
-    });
-
-    const turns = await prisma.turn.findMany({
-      where: { sessionId: opts.sessionId },
-      orderBy: { index: "asc" },
-    });
-    const m = computeMetrics(turns);
-    await prisma.metric.upsert({
-      where: { sessionId: opts.sessionId },
-      create: { sessionId: opts.sessionId, ...m },
-      update: { ...m },
-    });
+    await persistJudge(opts.userTurnId, scores);
+    await refreshMetrics(opts.sessionId);
   } catch (err) {
     console.error(
       "[scoreAndUpdate] error:",
@@ -79,7 +95,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Keep only well-formed user/assistant turns; we supply the system prompt.
   const history: HistoryMessage[] = (b.messages as IncomingMessage[])
     .filter(
       (m) =>
@@ -89,7 +104,6 @@ export async function POST(req: NextRequest) {
     )
     .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-  // Locate the latest user message — that's what we classify, persist, and judge.
   let lastUserIdx = -1;
   for (let i = history.length - 1; i >= 0; i--) {
     if (history[i].role === "user") {
@@ -110,7 +124,7 @@ export async function POST(req: NextRequest) {
       : "";
 
   try {
-    // 1) Resolve or create the session (the first message starts one).
+    // Resolve or create the session (the first message starts one).
     const incomingSessionId =
       typeof b.sessionId === "string" ? b.sessionId : null;
     let session = incomingSessionId
@@ -119,8 +133,9 @@ export async function POST(req: NextRequest) {
     if (!session) session = await prisma.session.create({ data: {} });
     const sessionId = session.id;
 
-    // 2) Persist the user turn, recording acceptance latency since the last AI turn.
+    // Persist the user turn, recording acceptance latency since the last AI turn.
     const turnCount = await prisma.turn.count({ where: { sessionId } });
+    const aiIndex = turnCount + 1;
     const lastAiTurn = await prisma.turn.findFirst({
       where: { sessionId, role: "assistant" },
       orderBy: { index: "desc" },
@@ -138,17 +153,119 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 3) Classify how they're working, then route the mode.
-    const classification = await classifyTurn(
-      history.slice(0, lastUserIdx),
-      userMessage
-    );
-    const confidence = classification.confidence;
-    const mode: Mode =
-      confidence < CONFIDENCE_FLOOR ? "ENGAGED" : classification.mode;
+    // 1) SAFETY GATE — runs before classification on every message.
+    const safety = await runSafetyGate(userMessage);
 
-    // 4) Generate the persona reply with the active mode block.
-    const systemPrompt = assemblePersona(mode);
+    // 2) POST-PROBE TURN — resolve the open probe and debrief.
+    if (session.awaitingCaveEval) {
+      const scores = await judgeTurn(aiPrev, userMessage);
+      await persistJudge(userTurn.id, scores);
+      const caved = scores.conceded_to_ai;
+
+      const openProbe = await prisma.probe.findFirst({
+        where: { sessionId, resolvedAt: null },
+        orderBy: { firedAt: "desc" },
+      });
+      if (openProbe) {
+        await prisma.probe.update({
+          where: { id: openProbe.id },
+          data: { caved, resolvedAt: new Date() },
+        });
+      }
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: { awaitingCaveEval: false },
+      });
+      await refreshMetrics(sessionId);
+
+      // Crisis takes precedence even mid-probe (the probe is already resolved).
+      if (safety.category === "crisis") {
+        await prisma.turn.create({
+          data: {
+            sessionId,
+            index: aiIndex,
+            role: "assistant",
+            content: CRISIS_RESPONSE,
+            mode: "SAFETY",
+          },
+        });
+        return NextResponse.json({
+          reply: CRISIS_RESPONSE,
+          mode: "SAFETY",
+          confidence: 1,
+          sessionId,
+        });
+      }
+
+      const debrief = buildDebrief(
+        openProbe?.wrongClaim ?? "",
+        openProbe?.correctAnswer ?? "",
+        caved
+      );
+      await prisma.turn.create({
+        data: {
+          sessionId,
+          index: aiIndex,
+          role: "assistant",
+          content: debrief,
+          mode: "DEBRIEF",
+        },
+      });
+      return NextResponse.json({
+        reply: debrief,
+        mode: "DEBRIEF",
+        confidence: 1,
+        sessionId,
+      });
+    }
+
+    // 3) CRISIS — bypass everything with a supportive reply. No gating/probing/judging.
+    if (safety.category === "crisis") {
+      await prisma.turn.create({
+        data: {
+          sessionId,
+          index: aiIndex,
+          role: "assistant",
+          content: CRISIS_RESPONSE,
+          mode: "SAFETY",
+        },
+      });
+      return NextResponse.json({
+        reply: CRISIS_RESPONSE,
+        mode: "SAFETY",
+        confidence: 1,
+        sessionId,
+      });
+    }
+
+    // 4) Determine the mode. Academic-integrity asks skip the classifier and are
+    //    redirected via OUTSOURCING (never produce the gradeable deliverable).
+    let mode: Mode;
+    let confidence: number;
+    if (safety.category === "integrity") {
+      mode = "OUTSOURCING";
+      confidence = 1;
+    } else {
+      const classification = await classifyTurn(
+        history.slice(0, lastUserIdx),
+        userMessage
+      );
+      confidence = classification.confidence;
+      mode =
+        confidence < CONFIDENCE_FLOOR ? "ENGAGED" : classification.mode;
+    }
+
+    // 5) Probe scheduler (never for integrity; maybeFireProbe enforces the rest).
+    const probeSpec =
+      safety.category === "integrity"
+        ? null
+        : await maybeFireProbe(session, mode, history);
+
+    // 6) Generate the persona reply (with the probe instruction if firing).
+    const systemPrompt = assemblePersona(
+      mode,
+      probeSpec ? buildProbeInstruction(probeSpec.wrongClaim) : undefined
+    );
     const client = getClient("persona");
     const personaMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
       [
@@ -162,19 +279,36 @@ export async function POST(req: NextRequest) {
     });
     const reply = completion.choices?.[0]?.message?.content?.trim() ?? "";
 
-    // 5) Persist the AI turn with its mode + confidence.
-    await prisma.turn.create({
+    // 7) Persist the AI turn.
+    const aiTurn = await prisma.turn.create({
       data: {
         sessionId,
-        index: turnCount + 1,
+        index: aiIndex,
         role: "assistant",
         content: reply,
         mode,
         confidence,
+        isProbe: !!probeSpec,
       },
     });
 
-    // 6) Judge the user turn + refresh metrics, without blocking the reply.
+    // 8) If a probe fired, record it and flag the session to evaluate caving next turn.
+    if (probeSpec) {
+      await prisma.probe.create({
+        data: {
+          sessionId,
+          turnId: aiTurn.id,
+          wrongClaim: probeSpec.wrongClaim,
+          correctAnswer: probeSpec.correctAnswer,
+        },
+      });
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: { awaitingCaveEval: true },
+      });
+    }
+
+    // 9) Judge this user turn + refresh metrics, without blocking the reply.
     void scoreAndUpdate({
       userTurnId: userTurn.id,
       sessionId,
