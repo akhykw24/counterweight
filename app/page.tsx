@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 
 type Role = "user" | "assistant";
-type Message = { role: Role; content: string };
+type Message = {
+  role: Role;
+  content: string;
+  mode?: string;
+  confidence?: number;
+};
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -45,7 +50,12 @@ export default function ChatPage() {
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.reply || "(no reply)" },
+        {
+          role: "assistant",
+          content: data.reply || "(no reply)",
+          mode: data.mode,
+          confidence: data.confidence,
+        },
       ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -85,22 +95,29 @@ export default function ChatPage() {
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={m.role === "user" ? "flex justify-end" : "flex justify-start"}
-          >
-            <div
-              className={
-                m.role === "user"
-                  ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-ink px-4 py-2.5 text-sm text-paper"
-                  : "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-black/[0.04] px-4 py-2.5 text-sm text-ink"
-              }
-            >
-              {m.content}
+        {messages.map((m, i) =>
+          m.role === "user" ? (
+            <div key={i} className="flex justify-end">
+              <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-ink px-4 py-2.5 text-sm text-paper">
+                {m.content}
+              </div>
             </div>
-          </div>
-        ))}
+          ) : (
+            <div key={i} className="flex flex-col items-start">
+              <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-black/[0.04] px-4 py-2.5 text-sm text-ink">
+                {m.content}
+              </div>
+              {m.mode && (
+                <span className="mt-1 pl-1 font-mono text-[11px] uppercase tracking-wide text-black/35">
+                  {m.mode}
+                  {typeof m.confidence === "number"
+                    ? ` · ${Math.round(m.confidence * 100)}%`
+                    : ""}
+                </span>
+              )}
+            </div>
+          )
+        )}
 
         {loading && (
           <div className="flex justify-start">

@@ -49,4 +49,8 @@ sparring partner, not an oracle and not a cheerleader.
 - Plain language. Short paragraphs. Use formatting only when it genuinely aids
   thinking.
 - Meet the learner at their level without talking down. One clear idea at a time.
-- Ask a real question when it would move the thinking forward — not as a reflex.`;
+- Ask a real question when it would move the thinking forward — not as a reflex.
+
+---
+
+{{ACTIVE_MODE_BLOCK}}`;

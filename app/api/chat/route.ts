@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import type OpenAI from "openai";
 import { getClient, getModel } from "@/lib/models";
-import { BASE_PERSONA } from "@/lib/prompts/persona";
+import { assemblePersona } from "@/lib/assemblePrompt";
+import { classifyTurn, type HistoryMessage } from "@/lib/classify";
+import type { Mode } from "@/lib/prompts/modes";
 
 // LLM calls must run on the Node runtime (server-side only) — never expose keys.
 export const runtime = "nodejs";
@@ -11,6 +13,9 @@ type IncomingMessage = {
   role: "user" | "assistant" | "system";
   content: string;
 };
+
+// Below this confidence the classifier isn't trusted; default to ENGAGED.
+const CONFIDENCE_FLOOR = 0.6;
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -32,16 +37,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Keep only well-formed user/assistant turns; we supply the system prompt.
-  const history: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = (
-    messages as IncomingMessage[]
-  )
+  const history: HistoryMessage[] = (messages as IncomingMessage[])
     .filter(
       (m) =>
         m &&
         (m.role === "user" || m.role === "assistant") &&
         typeof m.content === "string"
     )
-    .map((m) => ({ role: m.role, content: m.content }));
+    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
   if (history.length === 0) {
     return NextResponse.json(
@@ -50,16 +53,47 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Find the latest user message — that's what we classify and route on.
+  let lastUserIdx = -1;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].role === "user") {
+      lastUserIdx = i;
+      break;
+    }
+  }
+
+  // Classify how the user is working, then pick the mode (low confidence -> ENGAGED).
+  let mode: Mode = "ENGAGED";
+  let confidence = 0.5;
+  if (lastUserIdx !== -1) {
+    const userMessage = history[lastUserIdx].content;
+    const prior = history.slice(0, lastUserIdx);
+    const classification = await classifyTurn(prior, userMessage);
+    confidence = classification.confidence;
+    mode =
+      classification.confidence < CONFIDENCE_FLOOR
+        ? "ENGAGED"
+        : classification.mode;
+  }
+
   try {
+    const systemPrompt = assemblePersona(mode);
     const client = getClient("persona");
+
+    const personaMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
+      [
+        { role: "system", content: systemPrompt },
+        ...history.map((m) => ({ role: m.role, content: m.content })),
+      ];
+
     const completion = await client.chat.completions.create({
       model: getModel("persona"),
       max_tokens: 1024,
-      messages: [{ role: "system", content: BASE_PERSONA }, ...history],
+      messages: personaMessages,
     });
 
     const reply = completion.choices?.[0]?.message?.content?.trim() ?? "";
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply, mode, confidence });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to generate a reply.";
