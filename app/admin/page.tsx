@@ -36,12 +36,20 @@ export default function AdminPage() {
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold tracking-tight">Admin · export</h1>
-        <Link
-          href="/"
-          className="rounded text-sm text-black/50 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
-        >
-          ← Back to chat
-        </Link>
+        <div className="flex items-center gap-3 text-sm">
+          <Link
+            href="/admin/label"
+            className="rounded text-black/50 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+          >
+            Labeling
+          </Link>
+          <Link
+            href="/"
+            className="rounded text-black/50 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+          >
+            ← Back to chat
+          </Link>
+        </div>
       </div>
       <p className="mt-1 text-sm text-black/50">
         One row per session: participant, condition, the four metrics, Independence

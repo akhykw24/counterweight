@@ -56,6 +56,9 @@ model Turn {
   // acceptance latency: ms elapsed since the previous assistant turn (user turns)
   latencyMs Int?
 
+  // human "true" mode label for classifier validation (Day 7)
+  humanMode String?
+
   createdAt DateTime @default(now())
 
   @@index([sessionId])
