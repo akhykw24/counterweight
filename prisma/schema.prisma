@@ -1,14 +1,16 @@
 // Counterweight data model (docs/SPEC.md §10).
-// The literal §10 schema isn't in the playbook, so this is authored to match
-// the design intent: users, sessions, turns, metrics, probes, tasks.
+// Canonical PostgreSQL schema (production / Vercel). The local SQLite schema is
+// auto-derived from this file by scripts/make-sqlite-schema.mjs — do not hand-edit that.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"] // include Vercel's serverless runtime
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled connection — app runtime
+  directUrl = env("DIRECT_URL")   // direct connection — prisma db push / migrations
 }
 
 model User {
