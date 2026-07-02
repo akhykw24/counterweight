@@ -12,6 +12,27 @@ type Message = {
   confidence?: number | null;
 };
 
+type CheckpointView = {
+  checkpointId: string;
+  items: { id: string; question: string }[];
+};
+type CheckpointResultView = {
+  score: number;
+  items: {
+    id: string;
+    question: string;
+    userAnswer: string;
+    verdict: string | null;
+    feedback: string | null;
+  }[];
+};
+
+function verdictCls(v: string | null) {
+  if (v === "correct") return "bg-emerald-100 text-emerald-700";
+  if (v === "partial") return "bg-amber-100 text-amber-700";
+  return "bg-red-100 text-red-700";
+}
+
 function prefersReducedMotion() {
   return (
     typeof window !== "undefined" &&
@@ -29,6 +50,11 @@ export default function ChatPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [reflection, setReflection] = useState<string | null>(null);
   const [reflecting, setReflecting] = useState(false);
+  const [checkpoint, setCheckpoint] = useState<CheckpointView | null>(null);
+  const [cpAnswers, setCpAnswers] = useState<Record<string, string>>({});
+  const [cpResult, setCpResult] = useState<CheckpointResultView | null>(null);
+  const [cpSubmitting, setCpSubmitting] = useState(false);
+  const [cpError, setCpError] = useState<string | null>(null);
   const [research, setResearch] = useState<{
     condition: string;
     participantId: string | null;
@@ -107,15 +133,66 @@ export default function ChatPage() {
     setReflecting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/session/${id}/reflect`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Failed to reflect.");
-      setReflection(data.reflection || "(no reflection)");
+      // Reflection (persona model) and checkpoint generation (cheap model) are
+      // independent — run them in parallel.
+      const [reflectRes, cpRes] = await Promise.all([
+        fetch(`/api/session/${id}/reflect`, { method: "POST" }),
+        fetch(`/api/session/${id}/checkpoint`, { method: "POST" }),
+      ]);
+      const reflectData = await reflectRes.json();
+      if (!reflectRes.ok)
+        throw new Error(reflectData?.error ?? "Failed to reflect.");
+      setReflection(reflectData.reflection || "(no reflection)");
+
+      // The solo check is optional — a too-thin session (422) just skips the offer.
+      if (cpRes.ok) {
+        const cpData = await cpRes.json();
+        setCheckpoint({ checkpointId: cpData.checkpointId, items: cpData.items });
+        setCpAnswers({});
+        setCpResult(null);
+        setCpError(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reflect.");
     } finally {
       setReflecting(false);
     }
+  }
+
+  async function submitCheckpoint() {
+    if (!checkpoint || cpSubmitting) return;
+    setCpSubmitting(true);
+    setCpError(null);
+    try {
+      const res = await fetch(
+        `/api/checkpoint/${checkpoint.checkpointId}/submit`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            answers: checkpoint.items.map((it) => ({
+              itemId: it.id,
+              answer: cpAnswers[it.id] ?? "",
+            })),
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Failed to grade.");
+      setCpResult(data);
+      setRefreshKey((k) => k + 1); // meters pick up the Solo Score
+    } catch (err) {
+      setCpError(err instanceof Error ? err.message : "Failed to grade.");
+    } finally {
+      setCpSubmitting(false);
+    }
+  }
+
+  function closeModal() {
+    setReflection(null);
+    setCheckpoint(null);
+    setCpResult(null);
+    setCpError(null);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -127,6 +204,10 @@ export default function ChatPage() {
 
   const linkCls =
     "rounded text-black/50 underline-offset-4 transition hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40";
+
+  // While the reflection/checkpoint modal is open, the chat is locked — the
+  // solo check is answered without AI help.
+  const modalOpen = reflection !== null;
 
   return (
     <main className="mx-auto flex h-[100dvh] max-w-5xl flex-col gap-4 px-4 md:flex-row md:gap-6">
@@ -241,13 +322,18 @@ export default function ChatPage() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
-              placeholder="What are you working on?"
+              disabled={modalOpen}
+              placeholder={
+                modalOpen
+                  ? "AI is stepping away — this one is yours."
+                  : "What are you working on?"
+              }
               aria-label="Message"
-              className="max-h-40 flex-1 resize-none rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-black/30 focus-visible:border-black/40 focus-visible:ring-2 focus-visible:ring-ink/20"
+              className="max-h-40 flex-1 resize-none rounded-xl border border-black/15 bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-black/30 focus-visible:border-black/40 focus-visible:ring-2 focus-visible:ring-ink/20 disabled:bg-black/[0.03]"
             />
             <button
               onClick={sendMessage}
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || modalOpen}
               className="rounded-xl bg-ink px-4 py-2.5 text-sm font-medium text-paper transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Send
@@ -266,19 +352,22 @@ export default function ChatPage() {
       {reflection && (
         <div
           className="fixed inset-0 z-10 flex items-center justify-center bg-black/30 p-4"
-          onClick={() => setReflection(null)}
+          onClick={() => {
+            // Don't lose in-progress solo-check answers on a stray backdrop click.
+            if (!checkpoint || cpResult) closeModal();
+          }}
           role="dialog"
           aria-modal="true"
           aria-label="Session reflection"
         >
           <div
-            className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+            className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold">Session reflection</h2>
               <button
-                onClick={() => setReflection(null)}
+                onClick={closeModal}
                 className="rounded text-black/40 transition hover:text-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
                 aria-label="Close"
               >
@@ -288,6 +377,115 @@ export default function ChatPage() {
             <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">
               {reflection}
             </div>
+
+            {checkpoint && (
+              <div className="mt-5 border-t border-black/10 pt-4">
+                <h3 className="text-sm font-semibold">
+                  Solo check — the AI is stepping away
+                </h3>
+                <p className="mt-0.5 text-xs text-black/50">
+                  A few quick items on what you just worked on. This one is
+                  yours: no help, no notes.
+                </p>
+
+                {!cpResult ? (
+                  <div className="mt-3 space-y-4">
+                    {checkpoint.items.map((it, i) => (
+                      <div key={it.id}>
+                        <label
+                          htmlFor={`cp-${it.id}`}
+                          className="block text-sm font-medium"
+                        >
+                          {i + 1}. {it.question}
+                        </label>
+                        <textarea
+                          id={`cp-${it.id}`}
+                          rows={2}
+                          value={cpAnswers[it.id] ?? ""}
+                          onChange={(e) =>
+                            setCpAnswers((a) => ({
+                              ...a,
+                              [it.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Your answer — a sentence or two"
+                          className="mt-1.5 w-full resize-none rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none placeholder:text-black/30 focus-visible:border-black/40 focus-visible:ring-2 focus-visible:ring-ink/20"
+                        />
+                      </div>
+                    ))}
+
+                    {cpError && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {cpError}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={submitCheckpoint}
+                        disabled={cpSubmitting}
+                        className="rounded-xl bg-ink px-4 py-2.5 text-sm font-medium text-paper transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {cpSubmitting ? "Grading…" : "Submit answers"}
+                      </button>
+                      <button
+                        onClick={closeModal}
+                        className="rounded text-sm text-black/40 underline-offset-4 transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+                      >
+                        Not now
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-4">
+                    <div className="rounded-xl bg-black/[0.03] p-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-black/40">
+                        Solo Score
+                      </div>
+                      <div className="mt-0.5 text-2xl font-semibold tabular-nums">
+                        {Math.round(cpResult.score * 100)}%
+                      </div>
+                      <p className="mt-1 text-[11px] leading-snug text-black/40">
+                        How you did on these items without help — not a measure
+                        of you.
+                      </p>
+                    </div>
+
+                    {cpResult.items.map((it, i) => (
+                      <div key={it.id}>
+                        <div className="text-sm font-medium">
+                          {i + 1}. {it.question}
+                        </div>
+                        {it.userAnswer && (
+                          <div className="mt-1 whitespace-pre-wrap text-sm text-black/60">
+                            {it.userAnswer}
+                          </div>
+                        )}
+                        <div className="mt-1.5 flex items-start gap-2">
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide ${verdictCls(it.verdict)}`}
+                          >
+                            {it.verdict ?? "ungraded"}
+                          </span>
+                          {it.feedback && (
+                            <span className="text-xs leading-relaxed text-black/50">
+                              {it.feedback}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      onClick={closeModal}
+                      className="rounded-xl border border-black/15 px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+                    >
+                      Done
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

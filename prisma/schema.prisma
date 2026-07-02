@@ -34,6 +34,7 @@ model Session {
   metric           Metric?
   probes           Probe[]
   tasks            Task[]
+  checkpoints      Checkpoint[]
 }
 
 model Turn {
@@ -91,6 +92,35 @@ model Probe {
   resolvedAt DateTime?
 
   @@index([sessionId])
+}
+
+model Checkpoint {
+  id          String           @id @default(cuid())
+  sessionId   String
+  session     Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  kind        String           @default("immediate") // "immediate" | "retention" (Day 9)
+  dueAt       DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  score       Float? // 0..1 — correct=1, partial=0.5, incorrect=0, averaged
+  createdAt   DateTime         @default(now())
+  items       CheckpointItem[]
+
+  @@index([sessionId])
+}
+
+model CheckpointItem {
+  id           String     @id @default(cuid())
+  checkpointId String
+  checkpoint   Checkpoint @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
+  order        Int
+  question     String
+  expectedGist String // grading key — never sent to the client
+  userAnswer   String?
+  verdict      String? // "correct" | "partial" | "incorrect"
+  feedback     String?
+
+  @@index([checkpointId])
 }
 
 model Task {

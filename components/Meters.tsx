@@ -9,6 +9,7 @@ type Metrics = {
   acceptanceLatency: number;
   independenceIndex: number;
   turnsScored: number;
+  soloScore?: number | null;
 };
 
 type Tone = "good" | "warn" | "neutral";
@@ -152,6 +153,20 @@ export default function Meters({
           hint="avg time before you replied"
         />
       </div>
+
+      {typeof m?.soloScore === "number" && (
+        <div className="mt-5 rounded-xl bg-black/[0.03] p-3">
+          <div className="text-xs font-medium uppercase tracking-wide text-black/40">
+            Solo Score
+          </div>
+          <div className="mt-0.5 text-2xl font-semibold tabular-nums">
+            {Math.round(m.soloScore * 100)}%
+          </div>
+          <p className="mt-1 text-[11px] leading-snug text-black/40">
+            How you did on these items without help — not a measure of you.
+          </p>
+        </div>
+      )}
 
       <div className="mt-4 text-[11px] text-black/30">
         {!sessionId
