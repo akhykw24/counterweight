@@ -13,6 +13,11 @@ import { VANILLA_PROMPT, REFUSE_PROMPT } from "@/lib/prompts/conditions";
 import { maybeFireProbe, buildDebrief, type ProbeSpec } from "@/lib/probe";
 import { buildProbeInstruction } from "@/lib/prompts/probe";
 import { buildHintInstruction, type HintLevel } from "@/lib/prompts/hints";
+import {
+  shouldInviteExplainBack,
+  EXPLAINBACK_INVITATION,
+  PARROT_NUDGE_INSTRUCTION,
+} from "@/lib/explainback";
 
 // LLM + DB calls must run on the Node runtime (server-side only) — never expose keys.
 export const runtime = "nodejs";
@@ -52,6 +57,7 @@ async function persistJudge(
       askedToProduce: scores.asked_to_produce,
       verifiedClaim: scores.verified_claim,
       concededToAi: scores.conceded_to_ai,
+      explainedBack: scores.explained_back,
     },
   });
 }
@@ -65,9 +71,14 @@ async function scoreAndUpdate(opts: {
   sessionId: string;
   aiPrev: string;
   userContent: string;
+  expectExplainBack: boolean;
 }) {
   try {
-    const scores = await judgeTurn(opts.aiPrev, opts.userContent);
+    const scores = await judgeTurn(
+      opts.aiPrev,
+      opts.userContent,
+      opts.expectExplainBack
+    );
     await persistJudge(opts.userTurnId, scores);
     await refreshMetrics(opts.sessionId);
   } catch (err) {
@@ -259,13 +270,27 @@ export async function POST(req: NextRequest) {
         hintActive || safety.category === "integrity"
           ? null
           : await maybeFireProbe(session, mode as Mode, history);
+
+      // Day 11: if their previous explain-back parroted, nudge for own words
+      // (lowest precedence — probe and hint instructions win the extra slot).
+      let parrotNudge = false;
+      if (!probeSpec && !hintActive) {
+        const prevUserTurn = await prisma.turn.findFirst({
+          where: { sessionId, role: "user", index: { lt: turnCount } },
+          orderBy: { index: "desc" },
+        });
+        parrotNudge = prevUserTurn?.explainedBack === "parroted";
+      }
+
       systemPrompt = assemblePersona(
         mode as Mode,
         probeSpec
           ? buildProbeInstruction(probeSpec.wrongClaim)
           : hintActive
             ? buildHintInstruction(rawHintLevel as HintLevel)
-            : undefined
+            : parrotNudge
+              ? PARROT_NUDGE_INSTRUCTION
+              : undefined
       );
     }
 
@@ -283,16 +308,34 @@ export async function POST(req: NextRequest) {
     });
     const reply = completion.choices?.[0]?.message?.content?.trim() ?? "";
 
-    // 6) Persist the AI turn.
+    // 6) Explain-back invitation (Day 11): a substantial STUCK/ENGAGED
+    //    explanation occasionally ends by asking the learner to say it back.
+    let invite = false;
+    if ((mode === "STUCK" || mode === "ENGAGED") && !probeSpec) {
+      const lastInvite = await prisma.turn.findFirst({
+        where: { sessionId, isExplainBack: true },
+        orderBy: { index: "desc" },
+      });
+      invite = shouldInviteExplainBack({
+        mode,
+        isProbe: !!probeSpec,
+        replyLength: reply.length,
+        turnsSinceLastInvitation: lastInvite ? aiIndex - lastInvite.index : null,
+      });
+    }
+    const finalReply = invite ? `${reply}\n\n${EXPLAINBACK_INVITATION}` : reply;
+
+    // 7) Persist the AI turn.
     const aiTurn = await prisma.turn.create({
       data: {
         sessionId,
         index: aiIndex,
         role: "assistant",
-        content: reply,
+        content: finalReply,
         mode,
         confidence,
         isProbe: !!probeSpec,
+        isExplainBack: invite,
       },
     });
 
@@ -325,10 +368,12 @@ export async function POST(req: NextRequest) {
         sessionId,
         aiPrev,
         userContent: userMessage,
+        // The turn being judged replied to the PREVIOUS assistant turn.
+        expectExplainBack: lastAiTurn?.isExplainBack ?? false,
       });
     }
 
-    return NextResponse.json({ reply, mode, confidence, sessionId });
+    return NextResponse.json({ reply: finalReply, mode, confidence, sessionId });
   } catch (err) {
     // Surface free-tier rate limits as a friendly, actionable message.
     const status = (err as { status?: number })?.status;

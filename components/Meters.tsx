@@ -129,7 +129,7 @@ export default function Meters({
           value={m?.verificationRate ?? 0}
           kind="ratio"
           tone="good"
-          hint="checked or pushed on a claim"
+          hint="checked a claim · faithful explain-backs count"
         />
         <Bar
           label="Offload ratio"

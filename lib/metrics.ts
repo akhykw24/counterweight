@@ -80,8 +80,13 @@ export function computeMetrics(turns: Turn[]): Metrics {
     (scored.filter((t) => t.askedToProduce).length + hintWeightSum) /
       nOffloadBase
   );
+  // A faithful explain-back is a verification event: they transformed the idea
+  // into their own words instead of accepting (or parroting) it.
   const verificationRate =
-    n > 0 ? scored.filter((t) => t.verifiedClaim).length / n : 0;
+    n > 0
+      ? scored.filter((t) => t.verifiedClaim || t.explainedBack === "faithful")
+          .length / n
+      : 0;
   const caveRate = n > 0 ? scored.filter((t) => t.concededToAi).length / n : 0;
 
   // Hint clicks are near-instant — they'd skew the deliberation signal.

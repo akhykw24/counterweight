@@ -46,15 +46,17 @@ model Turn {
   content   String
 
   // persona side (assistant turns)
-  mode       String?
-  confidence Float?
-  isProbe    Boolean @default(false) // Day 5
+  mode          String?
+  confidence    Float?
+  isProbe       Boolean @default(false) // Day 5
+  isExplainBack Boolean @default(false) // Day 11: reply carried the explain-back invitation
 
   // telemetry-judge scores (user turns)
   reasoningDepth Int? // 0..2
   askedToProduce Boolean?
   verifiedClaim  Boolean?
   concededToAi   Boolean?
+  explainedBack  String? // Day 11: "faithful" | "parroted" | "off" (null = no invitation)
 
   // acceptance latency: ms elapsed since the previous assistant turn (user turns)
   latencyMs Int?
