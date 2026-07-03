@@ -12,6 +12,7 @@ import { CRISIS_RESPONSE } from "@/lib/prompts/safety";
 import { VANILLA_PROMPT, REFUSE_PROMPT } from "@/lib/prompts/conditions";
 import { maybeFireProbe, buildDebrief, type ProbeSpec } from "@/lib/probe";
 import { buildProbeInstruction } from "@/lib/prompts/probe";
+import { buildHintInstruction, type HintLevel } from "@/lib/prompts/hints";
 
 // LLM + DB calls must run on the Node runtime (server-side only) — never expose keys.
 export const runtime = "nodejs";
@@ -88,13 +89,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const b = body as { messages?: unknown; sessionId?: unknown };
+  const b = body as {
+    messages?: unknown;
+    sessionId?: unknown;
+    hintLevel?: unknown;
+  };
   if (!Array.isArray(b?.messages) || b.messages.length === 0) {
     return NextResponse.json(
       { error: "Body must include a non-empty `messages` array." },
       { status: 400 }
     );
   }
+
+  // Hint ladder (Day 10): the client marks hint-button turns with their level.
+  const rawHintLevel: HintLevel | null =
+    b.hintLevel === 1 || b.hintLevel === 2 || b.hintLevel === 3
+      ? b.hintLevel
+      : null;
 
   const history: HistoryMessage[] = (b.messages as IncomingMessage[])
     .filter(
@@ -152,6 +163,7 @@ export async function POST(req: NextRequest) {
         role: "user",
         content: userMessage,
         latencyMs,
+        hintLevel: rawHintLevel,
       },
     });
 
@@ -222,8 +234,14 @@ export async function POST(req: NextRequest) {
       mode = "REFUSE";
       confidence = null;
     } else {
-      // effort_aware: integrity asks skip the classifier and redirect via OUTSOURCING.
-      if (safety.category === "integrity") {
+      // effort_aware. A hint-button turn skips the classifier (its synthetic
+      // text would read as OUTSOURCING) and answers in STUCK with the
+      // level-bounded hint instruction. Integrity asks redirect via OUTSOURCING.
+      const hintActive = rawHintLevel !== null && safety.category === "none";
+      if (hintActive) {
+        mode = "STUCK";
+        confidence = 1;
+      } else if (safety.category === "integrity") {
         mode = "OUTSOURCING";
         confidence = 1;
       } else {
@@ -238,12 +256,16 @@ export async function POST(req: NextRequest) {
             : classification.mode;
       }
       probeSpec =
-        safety.category === "integrity"
+        hintActive || safety.category === "integrity"
           ? null
           : await maybeFireProbe(session, mode as Mode, history);
       systemPrompt = assemblePersona(
         mode as Mode,
-        probeSpec ? buildProbeInstruction(probeSpec.wrongClaim) : undefined
+        probeSpec
+          ? buildProbeInstruction(probeSpec.wrongClaim)
+          : hintActive
+            ? buildHintInstruction(rawHintLevel as HintLevel)
+            : undefined
       );
     }
 
@@ -291,12 +313,20 @@ export async function POST(req: NextRequest) {
     }
 
     // 8) Judge this user turn + refresh metrics, without blocking the reply.
-    void scoreAndUpdate({
-      userTurnId: userTurn.id,
-      sessionId,
-      aiPrev,
-      userContent: userMessage,
-    });
+    //    Hint-button turns aren't judged (synthetic text — the level weight in
+    //    lib/metrics.ts carries their offload cost); just refresh the meters.
+    if (rawHintLevel !== null) {
+      void refreshMetrics(sessionId).catch((err) =>
+        console.error("[chat] refreshMetrics error:", err)
+      );
+    } else {
+      void scoreAndUpdate({
+        userTurnId: userTurn.id,
+        sessionId,
+        aiPrev,
+        userContent: userMessage,
+      });
+    }
 
     return NextResponse.json({ reply, mode, confidence, sessionId });
   } catch (err) {

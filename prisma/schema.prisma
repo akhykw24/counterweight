@@ -62,6 +62,10 @@ model Turn {
   // human "true" mode label for classifier validation (Day 7)
   humanMode String?
 
+  // hint ladder (Day 10): level requested on this user turn (1 concept cue,
+  // 2 first step, 3 worked example); null for ordinary turns
+  hintLevel Int?
+
   createdAt DateTime @default(now())
 
   @@index([sessionId])

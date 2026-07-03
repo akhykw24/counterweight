@@ -34,6 +34,13 @@ function verdictCls(v: string | null) {
   return "bg-red-100 text-red-700";
 }
 
+// Hint requests appear as honest user bubbles in the transcript.
+const HINT_MESSAGES: Record<1 | 2 | 3, string> = {
+  1: "Hint level 1, please — just point me at the concept I should be thinking about.",
+  2: "Hint level 2, please — show me the first step, then let me take it from there.",
+  3: "Hint level 3, please — walk me through a similar example, not my exact problem.",
+};
+
 function prefersReducedMotion() {
   return (
     typeof window !== "undefined" &&
@@ -58,6 +65,8 @@ export default function ChatPage() {
   const [cpError, setCpError] = useState<string | null>(null);
   const [due, setDue] = useState<DueCheckpoint[]>([]);
   const [startingId, setStartingId] = useState<string | null>(null);
+  const [pad, setPad] = useState({ know: "", firstMove: "", stuckAt: "" });
+  const [padDismissedAt, setPadDismissedAt] = useState(-1);
   const [research, setResearch] = useState<{
     condition: string;
     participantId: string | null;
@@ -125,13 +134,13 @@ export default function ChatPage() {
     }
   }
 
-  async function sendMessage() {
-    const text = input.trim();
-    if (!text || loading) return;
+  // Shared send path for typed messages, attempt-pad submissions, and hint
+  // requests (hintLevel marks the turn server-side).
+  async function dispatchMessage(text: string, hintLevel?: 1 | 2 | 3) {
+    if (!text || loading || reflection !== null || checkpoint !== null) return;
 
     const next: Message[] = [...messages, { role: "user", content: text }];
     setMessages(next);
-    setInput("");
     setError(null);
     setLoading(true);
 
@@ -139,7 +148,11 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next, sessionId: sessionIdRef.current }),
+        body: JSON.stringify({
+          messages: next,
+          sessionId: sessionIdRef.current,
+          hintLevel,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Something went wrong.");
@@ -164,6 +177,30 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function sendMessage() {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    void dispatchMessage(text);
+  }
+
+  function sendAttempt() {
+    const know = pad.know.trim();
+    const firstMove = pad.firstMove.trim();
+    const stuckAt = pad.stuckAt.trim();
+    if (!know && !firstMove && !stuckAt) return;
+    const parts = ["Here's my attempt:"];
+    if (know) parts.push(`What I already know: ${know}`);
+    if (firstMove) parts.push(`My first move: ${firstMove}`);
+    if (stuckAt) parts.push(`Where I get stuck: ${stuckAt}`);
+    setPad({ know: "", firstMove: "", stuckAt: "" });
+    void dispatchMessage(parts.join("\n"));
+  }
+
+  function requestHint(level: 1 | 2 | 3) {
+    void dispatchMessage(HINT_MESSAGES[level], level);
   }
 
   async function endSession() {
@@ -249,6 +286,17 @@ export default function ChatPage() {
   // checks and re-checks are answered without AI help. A due re-check opens the
   // modal with no reflection attached.
   const modalOpen = reflection !== null || checkpoint !== null;
+
+  // Attempt pad appears after an OUTSOURCING gate; hint ladder after STUCK help.
+  const lastAssistantMode = [...messages]
+    .reverse()
+    .find((m) => m.role === "assistant")?.mode;
+  const showPad =
+    lastAssistantMode === "OUTSOURCING" &&
+    padDismissedAt !== messages.length &&
+    !loading &&
+    !modalOpen;
+  const showHints = lastAssistantMode === "STUCK" && !loading && !modalOpen;
 
   return (
     <main className="mx-auto flex h-[100dvh] max-w-5xl flex-col gap-4 px-4 md:flex-row md:gap-6">
@@ -382,6 +430,87 @@ export default function ChatPage() {
         </div>
 
         <div className="shrink-0 border-t border-black/10 py-4">
+          {showPad && (
+            <div className="mb-3 rounded-2xl border border-black/10 bg-white p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold">Your attempt first</div>
+                  <p className="mt-0.5 text-xs text-black/50">
+                    Rough is fine — a line per box is enough to unlock real help.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setPadDismissedAt(messages.length)}
+                  aria-label="Dismiss attempt pad"
+                  className="rounded text-black/30 transition hover:text-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="mt-3 space-y-2">
+                {(
+                  [
+                    ["know", "What do I already know?"],
+                    ["firstMove", "My first move"],
+                    ["stuckAt", "Where I get stuck"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div key={key}>
+                    <label
+                      htmlFor={`pad-${key}`}
+                      className="block text-xs font-medium text-black/60"
+                    >
+                      {label}
+                    </label>
+                    <input
+                      id={`pad-${key}`}
+                      value={pad[key]}
+                      onChange={(e) =>
+                        setPad((p) => ({ ...p, [key]: e.target.value }))
+                      }
+                      className="mt-1 w-full rounded-xl border border-black/15 bg-white px-3 py-2 text-sm outline-none placeholder:text-black/25 focus-visible:border-black/40 focus-visible:ring-2 focus-visible:ring-ink/20"
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={sendAttempt}
+                disabled={
+                  loading ||
+                  (!pad.know.trim() && !pad.firstMove.trim() && !pad.stuckAt.trim())
+                }
+                className="mt-3 rounded-xl bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Send my attempt
+              </button>
+            </div>
+          )}
+
+          {showHints && (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-black/40">Need a nudge?</span>
+              {(
+                [
+                  [1, "concept"],
+                  [2, "first step"],
+                  [3, "worked example"],
+                ] as const
+              ).map(([level, label]) => (
+                <button
+                  key={level}
+                  onClick={() => requestHint(level)}
+                  disabled={loading}
+                  className="rounded-full border border-black/15 bg-white px-3 py-1 text-xs text-ink transition hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 disabled:opacity-40"
+                >
+                  Hint {level} · {label}
+                </button>
+              ))}
+              <span className="text-[10px] text-black/30">
+                hints count a little toward offload
+              </span>
+            </div>
+          )}
+
           <div className="flex items-end gap-2">
             <textarea
               value={input}

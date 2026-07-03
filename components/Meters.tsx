@@ -136,7 +136,7 @@ export default function Meters({
           value={m?.offloadRatio ?? 0}
           kind="ratio"
           tone="warn"
-          hint="asked the AI to produce the answer"
+          hint="asked the AI to produce · hints count a little (1 < 2 < 3)"
         />
         <Bar
           label="Cave rate"

@@ -29,6 +29,14 @@ export const INDEX_WEIGHTS = {
 // Acceptance latency at/above this (seconds) earns full deliberation credit.
 export const LATENCY_TARGET_SEC = 30;
 
+// Hint ladder (Day 10): a hint request is a partial offload event — visible
+// honesty, not punishment. L1 concept cue < L2 first step < L3 worked example.
+export const HINT_OFFLOAD_WEIGHTS: Record<number, number> = {
+  1: 0.15,
+  2: 0.3,
+  3: 0.5,
+};
+
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const round = (x: number, d = 3) => {
   const f = 10 ** d;
@@ -41,11 +49,17 @@ const round = (x: number, d = 3) => {
  */
 export function computeMetrics(turns: Turn[]): Metrics {
   const userTurns = turns.filter((t) => t.role === "user");
+  // Hint requests are button clicks, not authored text — the judge skips them;
+  // their offload cost comes from the level weights instead.
+  const hintTurns = userTurns.filter((t) => t.hintLevel != null);
   // A user turn is "scored" once the judge has written its booleans.
-  const scored = userTurns.filter((t) => t.askedToProduce !== null);
+  const scored = userTurns.filter(
+    (t) => t.askedToProduce !== null && t.hintLevel == null
+  );
   const n = scored.length;
+  const nOffloadBase = n + hintTurns.length;
 
-  if (n === 0) {
+  if (nOffloadBase === 0) {
     return {
       offloadRatio: 0,
       verificationRate: 0,
@@ -56,19 +70,30 @@ export function computeMetrics(turns: Turn[]): Metrics {
     };
   }
 
-  const offloadRatio = scored.filter((t) => t.askedToProduce).length / n;
-  const verificationRate = scored.filter((t) => t.verifiedClaim).length / n;
-  const caveRate = scored.filter((t) => t.concededToAi).length / n;
+  // Weighted mean over scored + hint turns: a full production ask counts 1,
+  // a hint counts its level weight, a self-authored turn counts 0.
+  const hintWeightSum = hintTurns.reduce(
+    (a, t) => a + (HINT_OFFLOAD_WEIGHTS[t.hintLevel as number] ?? 0),
+    0
+  );
+  const offloadRatio = clamp01(
+    (scored.filter((t) => t.askedToProduce).length + hintWeightSum) /
+      nOffloadBase
+  );
+  const verificationRate =
+    n > 0 ? scored.filter((t) => t.verifiedClaim).length / n : 0;
+  const caveRate = n > 0 ? scored.filter((t) => t.concededToAi).length / n : 0;
 
+  // Hint clicks are near-instant — they'd skew the deliberation signal.
   const latencies = userTurns
-    .filter((t) => typeof t.latencyMs === "number")
+    .filter((t) => typeof t.latencyMs === "number" && t.hintLevel == null)
     .map((t) => (t.latencyMs as number) / 1000);
   const meanLatencySec = latencies.length
     ? latencies.reduce((a, b) => a + b, 0) / latencies.length
     : 0;
 
   const avgReasoning =
-    scored.reduce((a, t) => a + (t.reasoningDepth ?? 0), 0) / n; // 0..2
+    n > 0 ? scored.reduce((a, t) => a + (t.reasoningDepth ?? 0), 0) / n : 0; // 0..2
 
   // Composite. The latency term is only included when we have samples, and the
   // weights are renormalized so a missing term doesn't unfairly drag the score.
