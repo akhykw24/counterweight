@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { gradeItems, scoreOf, type Verdict } from "@/lib/checkpoint";
+import {
+  gradeItems,
+  scheduleRetention,
+  scoreOf,
+  RETENTION_MIN_SCORE,
+  type Verdict,
+} from "@/lib/checkpoint";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,6 +107,13 @@ export async function POST(
         score,
       },
     });
+
+    // A passed IMMEDIATE checkpoint schedules its retention re-checks (+24h,
+    // +72h). Retention completions never chain further — the decay curve is
+    // sampled from the original session only.
+    if (checkpoint.kind === "immediate" && score >= RETENTION_MIN_SCORE) {
+      await scheduleRetention(checkpoint.sessionId, checkpoint.id);
+    }
 
     return NextResponse.json({ score, items: results });
   } catch (err) {

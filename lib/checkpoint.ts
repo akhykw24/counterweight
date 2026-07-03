@@ -5,6 +5,7 @@ import { extractJsonObject } from "@/lib/json";
 import {
   CHECKPOINT_GENERATE_PROMPT,
   CHECKPOINT_GRADE_PROMPT,
+  CHECKPOINT_VARIANT_PROMPT,
 } from "@/lib/prompts/checkpoint";
 
 export type Verdict = "correct" | "partial" | "incorrect";
@@ -27,6 +28,11 @@ const GRADE_FALLBACK = {
 
 // A session needs at least this many reasonably substantive user turns to test.
 const MIN_SUBSTANTIVE_USER_TURNS = 2;
+
+// Retention re-checks (Day 9): scheduled when an IMMEDIATE checkpoint completes
+// at or above the passing bar; the decay curve is sampled at these offsets.
+export const RETENTION_MIN_SCORE = 0.5;
+export const RETENTION_OFFSETS_HOURS = [24, 72] as const;
 
 /** correct=1, partial=0.5, incorrect=0, averaged; 2 decimals. */
 export function scoreOf(verdicts: Verdict[]): number {
@@ -126,6 +132,131 @@ export async function generateCheckpoint(
     );
     return null;
   }
+}
+
+/**
+ * Schedule the retention re-checks for a passed immediate checkpoint: empty
+ * Checkpoint rows (kind "retention") due at +24h and +72h. Items are generated
+ * as variants at due time, not now — see ensureCheckpointItems.
+ */
+export async function scheduleRetention(
+  sessionId: string,
+  parentId: string
+): Promise<void> {
+  const now = Date.now();
+  for (const hours of RETENTION_OFFSETS_HOURS) {
+    await prisma.checkpoint.create({
+      data: {
+        sessionId,
+        kind: "retention",
+        parentId,
+        dueAt: new Date(now + hours * 3_600_000),
+      },
+    });
+  }
+}
+
+/** One cheap-model call producing same-concept, different-surface variants. */
+async function generateVariants(
+  originals: { question: string; expectedGist: string }[]
+): Promise<{ question: string; expected_gist: string }[] | null> {
+  try {
+    const numbered = originals
+      .map(
+        (it, i) =>
+          `Item ${i + 1}:\nQuestion: ${it.question}\nExpected gist: ${it.expectedGist}`
+      )
+      .join("\n\n");
+    const client = getClient("cheap");
+    const completion = await client.chat.completions.create({
+      model: getModel("cheap"),
+      max_tokens: 500,
+      temperature: 0.4,
+      messages: [
+        { role: "system", content: CHECKPOINT_VARIANT_PROMPT },
+        { role: "user", content: `${numbered}\n\nProduce the variants JSON now.` },
+      ],
+    });
+    const parsed = extractJsonObject(
+      completion.choices?.[0]?.message?.content ?? ""
+    );
+    const rawItems = (parsed as { items?: unknown } | null)?.items;
+    if (!Array.isArray(rawItems)) return null;
+    const items = rawItems
+      .filter(
+        (it): it is { question: string; expected_gist: string } =>
+          !!it &&
+          typeof (it as Record<string, unknown>).question === "string" &&
+          typeof (it as Record<string, unknown>).expected_gist === "string" &&
+          (it as Record<string, unknown>).question !== "" &&
+          (it as Record<string, unknown>).expected_gist !== ""
+      )
+      .slice(0, originals.length);
+    return items.length > 0 ? items : null;
+  } catch (err) {
+    console.error(
+      "[generateVariants] error:",
+      err instanceof Error ? err.message : err
+    );
+    return null;
+  }
+}
+
+/**
+ * Make sure a checkpoint has items, generating retention variants from its
+ * parent's items on first open. Falls back to reusing the original items when
+ * variant generation fails (unblocks the review; after 24h+ the parroting risk
+ * is low). Returns null when the checkpoint doesn't exist or has no source items.
+ */
+export async function ensureCheckpointItems(
+  checkpointId: string
+): Promise<CheckpointWithItems | null> {
+  const cp = await prisma.checkpoint.findUnique({
+    where: { id: checkpointId },
+    include: { items: { orderBy: { order: "asc" } } },
+  });
+  if (!cp) return null;
+  if (cp.items.length > 0) return cp;
+  if (!cp.parentId) return null;
+
+  const parent = await prisma.checkpoint.findUnique({
+    where: { id: cp.parentId },
+    include: { items: { orderBy: { order: "asc" } } },
+  });
+  if (!parent || parent.items.length === 0) return null;
+
+  let variants = await generateVariants(
+    parent.items.map((it) => ({
+      question: it.question,
+      expectedGist: it.expectedGist,
+    }))
+  );
+  if (!variants) {
+    console.warn(
+      "[ensureCheckpointItems] variant generation failed — reusing original items"
+    );
+    variants = parent.items.map((it) => ({
+      question: it.question,
+      expected_gist: it.expectedGist,
+    }));
+  }
+
+  await prisma.checkpoint.update({
+    where: { id: cp.id },
+    data: {
+      items: {
+        create: variants.map((v, i) => ({
+          order: i,
+          question: v.question.trim(),
+          expectedGist: v.expected_gist.trim(),
+        })),
+      },
+    },
+  });
+  return prisma.checkpoint.findUnique({
+    where: { id: cp.id },
+    include: { items: { orderBy: { order: "asc" } } },
+  });
 }
 
 /**

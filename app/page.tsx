@@ -16,6 +16,7 @@ type CheckpointView = {
   checkpointId: string;
   items: { id: string; question: string }[];
 };
+type DueCheckpoint = { id: string; dueAt: string; kind: string; hint: string | null };
 type CheckpointResultView = {
   score: number;
   items: {
@@ -55,6 +56,8 @@ export default function ChatPage() {
   const [cpResult, setCpResult] = useState<CheckpointResultView | null>(null);
   const [cpSubmitting, setCpSubmitting] = useState(false);
   const [cpError, setCpError] = useState<string | null>(null);
+  const [due, setDue] = useState<DueCheckpoint[]>([]);
+  const [startingId, setStartingId] = useState<string | null>(null);
   const [research, setResearch] = useState<{
     condition: string;
     participantId: string | null;
@@ -85,6 +88,42 @@ export default function ChatPage() {
       behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
   }, [messages, loading]);
+
+  // Spaced re-checks come due without any cron — just look on page load.
+  useEffect(() => {
+    loadDue();
+  }, []);
+
+  async function loadDue() {
+    try {
+      const res = await fetch("/api/checkpoints/due");
+      const data = await res.json();
+      if (Array.isArray(data.checkpoints)) setDue(data.checkpoints);
+    } catch {
+      /* the strip just stays hidden */
+    }
+  }
+
+  async function startReview(id: string) {
+    if (startingId) return;
+    setStartingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/checkpoint/${id}/start`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Could not start the re-check.");
+      setCheckpoint({ checkpointId: data.checkpointId, items: data.items });
+      setCpAnswers({});
+      setCpResult(null);
+      setCpError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not start the re-check."
+      );
+    } finally {
+      setStartingId(null);
+    }
+  }
 
   async function sendMessage() {
     const text = input.trim();
@@ -181,6 +220,7 @@ export default function ChatPage() {
       if (!res.ok) throw new Error(data?.error ?? "Failed to grade.");
       setCpResult(data);
       setRefreshKey((k) => k + 1); // meters pick up the Solo Score
+      void loadDue(); // a completed re-check leaves the due strip
     } catch (err) {
       setCpError(err instanceof Error ? err.message : "Failed to grade.");
     } finally {
@@ -205,9 +245,10 @@ export default function ChatPage() {
   const linkCls =
     "rounded text-black/50 underline-offset-4 transition hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40";
 
-  // While the reflection/checkpoint modal is open, the chat is locked — the
-  // solo check is answered without AI help.
-  const modalOpen = reflection !== null;
+  // While the reflection/checkpoint modal is open, the chat is locked — solo
+  // checks and re-checks are answered without AI help. A due re-check opens the
+  // modal with no reflection attached.
+  const modalOpen = reflection !== null || checkpoint !== null;
 
   return (
     <main className="mx-auto flex h-[100dvh] max-w-5xl flex-col gap-4 px-4 md:flex-row md:gap-6">
@@ -244,6 +285,31 @@ export default function ChatPage() {
             </button>
           </nav>
         </header>
+
+        {due.length > 0 && (
+          <div className="shrink-0 border-b border-amber-200/70 bg-amber-50/70 px-1 py-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-amber-900">
+                Due for review — still got it?
+              </span>
+              {due.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => startReview(d.id)}
+                  disabled={startingId !== null}
+                  className="max-w-full truncate rounded-full border border-amber-300 bg-white px-3 py-1 text-xs text-amber-900 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  title={d.hint ?? "Re-check"}
+                >
+                  {startingId === d.id
+                    ? "Preparing…"
+                    : d.hint
+                      ? `${d.hint.slice(0, 48)}${d.hint.length > 48 ? "…" : ""}`
+                      : "Re-check"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Meters on mobile — collapsible so they don't dominate the screen. */}
         <div className="shrink-0 border-b border-black/10 py-2 md:hidden">
@@ -349,7 +415,7 @@ export default function ChatPage() {
         <Meters sessionId={sessionId} refreshKey={refreshKey} />
       </aside>
 
-      {reflection && (
+      {(reflection || checkpoint) && (
         <div
           className="fixed inset-0 z-10 flex items-center justify-center bg-black/30 p-4"
           onClick={() => {
@@ -358,14 +424,16 @@ export default function ChatPage() {
           }}
           role="dialog"
           aria-modal="true"
-          aria-label="Session reflection"
+          aria-label={reflection ? "Session reflection" : "Review check"}
         >
           <div
             className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold">Session reflection</h2>
+              <h2 className="text-base font-semibold">
+                {reflection ? "Session reflection" : "Review check"}
+              </h2>
               <button
                 onClick={closeModal}
                 className="rounded text-black/40 transition hover:text-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
@@ -374,18 +442,27 @@ export default function ChatPage() {
                 ✕
               </button>
             </div>
-            <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">
-              {reflection}
-            </div>
+            {reflection && (
+              <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">
+                {reflection}
+              </div>
+            )}
 
             {checkpoint && (
-              <div className="mt-5 border-t border-black/10 pt-4">
+              <div
+                className={
+                  reflection ? "mt-5 border-t border-black/10 pt-4" : "mt-3"
+                }
+              >
                 <h3 className="text-sm font-semibold">
-                  Solo check — the AI is stepping away
+                  {reflection
+                    ? "Solo check — the AI is stepping away"
+                    : "Still got it? — the AI stays out of this one"}
                 </h3>
                 <p className="mt-0.5 text-xs text-black/50">
-                  A few quick items on what you just worked on. This one is
-                  yours: no help, no notes.
+                  {reflection
+                    ? "A few quick items on what you just worked on. This one is yours: no help, no notes."
+                    : "Fresh variants of what you worked on last time. No help, no notes."}
                 </p>
 
                 {!cpResult ? (

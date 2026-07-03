@@ -19,6 +19,16 @@ Rules:
 Return ONLY JSON — no prose, no markdown, no code fences:
 {"items":[{"question":"...","expected_gist":"..."},{"question":"...","expected_gist":"..."}]}`;
 
+export const CHECKPOINT_VARIANT_PROMPT = `You refresh a "retention re-check" for a study tool. Given the ORIGINAL checkpoint items (question + expected gist), produce one VARIANT per item that tests the SAME concept with a DIFFERENT surface: change the numbers, the function, or the scenario — or turn a compute-item into a near-transfer case. Keep the difficulty comparable.
+
+Rules:
+- One variant per original item, in the same order.
+- Each variant must still be answerable in 1-3 sentences or one short worked step.
+- Rewrite "expected_gist" to match the new surface — it stays the grading key the learner never sees.
+
+Return ONLY JSON — no prose, no markdown, no code fences:
+{"items":[{"question":"...","expected_gist":"..."}]}`;
+
 export const CHECKPOINT_GRADE_PROMPT = `You grade a learner's answers on a short solo checkpoint for a study tool. For each numbered item you get the question, the expected gist (what a correct answer must contain), and the learner's answer.
 
 Verdicts:

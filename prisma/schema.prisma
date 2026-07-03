@@ -99,6 +99,7 @@ model Checkpoint {
   sessionId   String
   session     Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   kind        String           @default("immediate") // "immediate" | "retention" (Day 9)
+  parentId    String? // retention checks point at the immediate checkpoint they re-test
   dueAt       DateTime?
   startedAt   DateTime?
   completedAt DateTime?

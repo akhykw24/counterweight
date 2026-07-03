@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -18,6 +19,13 @@ type Point = {
   startedAt: string;
   independenceIndex: number;
   turnsScored: number;
+  soloScore: number | null;
+  retentionScore: number | null;
+};
+
+type ChartPoint = Point & {
+  retentionPct: number | null;
+  soloPct: number | null;
 };
 
 export default function TrendsPage() {
@@ -34,6 +42,17 @@ export default function TrendsPage() {
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
+  const data: ChartPoint[] = useMemo(
+    () =>
+      (points ?? []).map((p) => ({
+        ...p,
+        retentionPct:
+          p.retentionScore === null ? null : Math.round(p.retentionScore * 100),
+        soloPct: p.soloScore === null ? null : Math.round(p.soloScore * 100),
+      })),
+    [points]
+  );
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="flex items-center justify-between">
@@ -48,8 +67,9 @@ export default function TrendsPage() {
         </Link>
       </div>
       <p className="mt-1 text-sm text-black/50">
-        Your Independence Index across sessions — a behavioural signal of how
-        independently you worked, not a critical-thinking score.
+        Independence Index per session, and — where you took the re-checks —
+        what stuck days later. Behavioural signals, not a critical-thinking
+        score.
       </p>
 
       <div className="mt-8 h-80 rounded-2xl border border-black/10 bg-white/60 p-4">
@@ -70,7 +90,7 @@ export default function TrendsPage() {
         {!error && points && points.length > 0 && (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={points}
+              data={data}
               margin={{ top: 10, right: 16, bottom: 8, left: -16 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
@@ -83,7 +103,16 @@ export default function TrendsPage() {
                 tick={{ fontSize: 12, fill: "rgba(0,0,0,0.45)" }}
               />
               <Tooltip
-                formatter={(v: number) => [`${v} / 100`, "Independence Index"]}
+                formatter={(v: number, name: string, props) => {
+                  if (name === "What stuck") {
+                    const solo = (props.payload as ChartPoint).soloPct;
+                    return [
+                      `${v}%${solo !== null ? ` (solo right after: ${solo}%)` : ""}`,
+                      name,
+                    ];
+                  }
+                  return [`${v} / 100`, name];
+                }}
                 labelFormatter={(l) => `Session ${l}`}
                 contentStyle={{
                   borderRadius: 12,
@@ -91,11 +120,24 @@ export default function TrendsPage() {
                   fontSize: 12,
                 }}
               />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line
                 type="monotone"
+                name="Independence Index"
                 dataKey="independenceIndex"
                 stroke="#1c1c1e"
                 strokeWidth={2}
+                dot={{ r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+              <Line
+                type="monotone"
+                name="What stuck"
+                dataKey="retentionPct"
+                stroke="#d97706"
+                strokeWidth={2}
+                strokeDasharray="6 3"
+                connectNulls
                 dot={{ r: 3 }}
                 activeDot={{ r: 5 }}
               />
@@ -103,6 +145,11 @@ export default function TrendsPage() {
           </ResponsiveContainer>
         )}
       </div>
+      <p className="mt-3 text-xs text-black/30">
+        &quot;What stuck&quot; is your score on the spaced re-checks (24h / 3
+        days later) for sessions where you took them — retention on those items,
+        nothing more.
+      </p>
     </main>
   );
 }
