@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { latestCompletedScore } from "@/lib/checkpoint";
+import { parseTopics } from "@/lib/topics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,11 +9,14 @@ export const dynamic = "force-dynamic";
 type Row = {
   participantId: string;
   condition: string;
+  topics: string;
   offloadRatio: number;
   verificationRate: number;
   caveRate: number;
   acceptanceLatency: number;
   independenceIndex: number;
+  soloScore: number | string;
+  retentionScore: number | string;
   turnCount: number;
   probeCount: number;
   cavedCount: number;
@@ -22,11 +27,14 @@ type Row = {
 const HEADERS: (keyof Row)[] = [
   "participantId",
   "condition",
+  "topics",
   "offloadRatio",
   "verificationRate",
   "caveRate",
   "acceptanceLatency",
   "independenceIndex",
+  "soloScore",
+  "retentionScore",
   "turnCount",
   "probeCount",
   "cavedCount",
@@ -52,6 +60,7 @@ export async function GET(req: Request) {
       include: {
         metric: true,
         probes: true,
+        checkpoints: { where: { completedAt: { not: null } } },
         _count: { select: { turns: true } },
       },
       orderBy: { startedAt: "asc" },
@@ -62,11 +71,14 @@ export async function GET(req: Request) {
       .map((s) => ({
         participantId: s.participantId ?? "",
         condition: s.condition,
+        topics: parseTopics(s.topics).join("; "),
         offloadRatio: s.metric?.offloadRatio ?? 0,
         verificationRate: s.metric?.verificationRate ?? 0,
         caveRate: s.metric?.caveRate ?? 0,
         acceptanceLatency: s.metric?.acceptanceLatency ?? 0,
         independenceIndex: s.metric?.independenceIndex ?? 0,
+        soloScore: latestCompletedScore(s.checkpoints, "immediate") ?? "",
+        retentionScore: latestCompletedScore(s.checkpoints, "retention") ?? "",
         turnCount: s._count.turns,
         probeCount: s.probes.length,
         cavedCount: s.probes.filter((p) => p.caved === true).length,

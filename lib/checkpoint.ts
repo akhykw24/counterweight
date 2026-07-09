@@ -34,6 +34,24 @@ const MIN_SUBSTANTIVE_USER_TURNS = 2;
 export const RETENTION_MIN_SCORE = 0.5;
 export const RETENTION_OFFSETS_HOURS = [24, 72] as const;
 
+/** Most recent completed score of a kind across a set of checkpoints. */
+export function latestCompletedScore(
+  checkpoints: {
+    kind: string;
+    completedAt: Date | null;
+    score: number | null;
+  }[],
+  kind: "immediate" | "retention"
+): number | null {
+  const done = checkpoints
+    .filter((c) => c.kind === kind && c.completedAt !== null && c.score !== null)
+    .sort(
+      (a, b) =>
+        (b.completedAt as Date).getTime() - (a.completedAt as Date).getTime()
+    );
+  return done[0]?.score ?? null;
+}
+
 /** correct=1, partial=0.5, incorrect=0, averaged; 2 decimals. */
 export function scoreOf(verdicts: Verdict[]): number {
   if (verdicts.length === 0) return 0;

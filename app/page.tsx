@@ -318,6 +318,9 @@ export default function ChatPage() {
             <Link href="/start" className={linkCls}>
               Research
             </Link>
+            <Link href="/ready" className={linkCls}>
+              Ready
+            </Link>
             <Link href="/trends" className={linkCls}>
               Trends
             </Link>

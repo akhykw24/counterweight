@@ -3,6 +3,7 @@ import type OpenAI from "openai";
 import { prisma } from "@/lib/db";
 import { getClient, getModel } from "@/lib/models";
 import { REFLECTION_PROMPT } from "@/lib/prompts/reflection";
+import { tagSessionTopics } from "@/lib/topics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,15 +71,19 @@ export async function POST(
     // reflection. The reflection just summarizes metrics, so disable thinking
     // ("reasoning_effort":"none" — a Gemini OpenAI-compat param the SDK type
     // doesn't model, hence the cast).
-    const completion = await client.chat.completions.create({
-      model: getModel("persona"),
-      max_tokens: 1024,
-      reasoning_effort: "none",
-      messages: [
-        { role: "system", content: REFLECTION_PROMPT },
-        { role: "user", content: dataMessage },
-      ],
-    } as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming);
+    // Topic tagging (Day 12) rides along in parallel — zero added latency.
+    const [completion, topics] = await Promise.all([
+      client.chat.completions.create({
+        model: getModel("persona"),
+        max_tokens: 1024,
+        reasoning_effort: "none",
+        messages: [
+          { role: "system", content: REFLECTION_PROMPT },
+          { role: "user", content: dataMessage },
+        ],
+      } as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming),
+      tagSessionTopics(sessionId),
+    ]);
     const reflection = completion.choices?.[0]?.message?.content?.trim() ?? "";
 
     // Mark the session ended.
@@ -91,6 +96,7 @@ export async function POST(
       reflection,
       independenceIndex: metric.independenceIndex,
       trend: [...prevIndices, metric.independenceIndex],
+      topics: topics ?? [],
     });
   } catch (err) {
     const message =

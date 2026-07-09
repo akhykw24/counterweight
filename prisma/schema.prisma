@@ -27,6 +27,7 @@ model Session {
   participantId    String? // research mode (Day 6)
   condition        String    @default("effort_aware") // vanilla | refuse | effort_aware (Day 6)
   consentFlags     String? // JSON blob (Day 6)
+  topics           String? // Day 12: JSON array of 1-3 short topic tags, set on session end
   awaitingCaveEval Boolean   @default(false) // probe bookkeeping (Day 5)
   startedAt        DateTime  @default(now())
   endedAt          DateTime?
