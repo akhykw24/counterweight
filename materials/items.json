@@ -1,0 +1,409 @@
+{
+  "schema_version": "1.0",
+  "study": "eiai-study3",
+  "source_spec": "docs/STUDY3_SPEC.md v1.0 §4",
+  "compiled_at": "2026-08-09",
+  "conventions": {
+    "true_value": "Best current documented value, verified against the cited sources on the date in `verified_on`. Used for the debriefing (§7.6) and as the denominator guard in the WOA rule (§6.1a).",
+    "advice_value": "The value the AI states. For error items this deliberately differs from `true_value`. `scripts/generate.py` validates that this exact number appears in every generated response.",
+    "spec_true_value": "Present only where the value printed in STUDY3_SPEC.md §4 differs from the verified value. Kept for traceability against the pre-registration.",
+    "details": "Held in English as the canonical semantic specification. generate.py passes them into {DETAILS} and the model renders them in the target language, which is what keeps factual content identical across the three languages.",
+    "hedge_level": "One of 'high' | 'moderate', per §5. Identical across conditions A and B for a given item — this is the load-bearing control that stops perceived confidence confounding the warmth manipulation.",
+    "flags": "Unresolved methodological issues. Every item with a non-empty `flags` array is listed in `review_required` and must be resolved before pre-registration."
+  },
+  "design": {
+    "error_item_positions": [2, 5, 7],
+    "error_positions_are_fixed": true,
+    "item_presentation_order_randomised_per_participant": true,
+    "languages": ["kk", "ru", "en"],
+    "conditions": {
+      "A": "emotionally_intelligent",
+      "B": "neutral"
+    },
+    "hedge_policy": {
+      "value": "moderate",
+      "applies_to": "all 8 items",
+      "rationale": "Every advice value in this bank is an approximation, so 'moderate' is the honest register for all of them. Holding hedge constant across items (not merely across conditions, which §5 requires) removes hedging as a nuisance variable entirely and prevents any accidental correlation between hedge level and error status — with 3 error items and 5 correct items, a mixed hedge assignment cannot be balanced. Override per item by editing that item's `hedge_level`.",
+      "unused_level": "The 'high' hedge level defined in §5 is not exercised by this bank. It remains in the prompt so the level set is reported complete in the appendix."
+    }
+  },
+  "followups": {
+    "note": "§5 'Follow-up decision tree'. Each item carries a pre-written reply for each of these in each condition and language, generated in the same API call as the main advice so the follow-ups stay internally consistent with it.",
+    "items": [
+      {
+        "id": "measurement",
+        "index": 1,
+        "prompt_en": "Can you explain how that's measured?",
+        "prompt_ru": "Можете объяснить, как это измеряют?",
+        "prompt_kk": "Мұны қалай өлшейтінін түсіндіре аласыз ба?",
+        "is_behavioural_measure": false
+      },
+      {
+        "id": "certainty",
+        "index": 2,
+        "prompt_en": "How certain are you about that?",
+        "prompt_ru": "Насколько вы в этом уверены?",
+        "prompt_kk": "Бұған қаншалықты сенімдісіз?",
+        "is_behavioural_measure": false
+      },
+      {
+        "id": "disagreement",
+        "index": 3,
+        "prompt_en": "I thought it was different from that.",
+        "prompt_ru": "Мне казалось, что это не так.",
+        "prompt_kk": "Мен басқаша деп ойлағанмын.",
+        "is_behavioural_measure": true,
+        "measure": "Challenge rate (§6.1d) — log every selection.",
+        "generation_constraint": "The reply must hold the stated numeric value without revising, softening, or conceding it, in BOTH conditions. If the warm condition caved to pushback more readily than the neutral condition, the planted errors would not survive contact with follow-up 3 and cave behaviour would confound the manipulation. Enforced by OUTPUT_FORMAT_BLOCK in scripts/generate.py and checked by the numeric validator."
+      }
+    ]
+  },
+  "translation_status": {
+    "en": "source",
+    "ru": "machine_draft_requires_back_translation",
+    "kk": "machine_draft_requires_back_translation",
+    "note": "Per §11, question stems in ru and kk are drafts only. They exist to give the human translator and back-translator something to reconcile, not to be fielded as-is. Steps 2–4 of §11 (back-translation, reconciliation log, native-speaker verification, per-language pilot) have NOT been performed. Do not collect data against these strings."
+  },
+  "items": [
+    {
+      "id": "item_01",
+      "spec_position": 1,
+      "is_error_item": false,
+      "topic": "challenger_deep_depth",
+      "question": {
+        "en": "What is the maximum depth of the Challenger Deep, in metres?",
+        "ru": "Какова максимальная глубина Бездны Челленджера в метрах?",
+        "kk": "Челленджер шыңырауының ең үлкен тереңдігі неше метр?"
+      },
+      "unit": { "en": "metres", "ru": "метры", "kk": "метр", "symbol": "m" },
+      "true_value": 10935,
+      "advice_value": 10900,
+      "hedge_level": "moderate",
+      "plausible_answer_range": [3000, 15000],
+      "details": [
+        "the location is the Challenger Deep in the Mariana Trench, in the western Pacific",
+        "the figure comes from sonar and submersible depth measurements"
+      ],
+      "verified_on": "2026-08-09",
+      "sources": [
+        {
+          "type": "agency",
+          "citation": "NOAA National Ocean Service — How deep is the ocean?",
+          "url": "https://oceanservice.noaa.gov/facts/oceandepth.html",
+          "supports": "Deepest point ≈ 10,935 m (35,876 ft)."
+        },
+        {
+          "type": "primary_literature",
+          "citation": "\"Revised depth of the Challenger Deep from submersible transects; including a general method for precise, pressure-derived depths in the ocean\", Deep-Sea Research Part I (2021).",
+          "url": "https://repository.library.noaa.gov/view/noaa/33477",
+          "supports": "Deepest observed seafloor depth 10,935 m ± 6 m (95% CI), from June 2020 submersible transects."
+        }
+      ],
+      "flags": []
+    },
+    {
+      "id": "item_02",
+      "spec_position": 2,
+      "is_error_item": true,
+      "topic": "ocean_floor_mapped_pct",
+      "question": {
+        "en": "What percentage of the ocean floor has been mapped at high resolution?",
+        "ru": "Какая доля дна Мирового океана нанесена на карту с высоким разрешением (в процентах)?",
+        "kk": "Мұхит түбінің қанша пайызы жоғары ажыратымдылықпен картаға түсірілген?"
+      },
+      "unit": { "en": "percent", "ru": "процент", "kk": "пайыз", "symbol": "%" },
+      "true_value": 28.7,
+      "spec_true_value": 26,
+      "advice_value": 80,
+      "hedge_level": "moderate",
+      "plausible_answer_range": [1, 100],
+      "error_magnitude_pct": 178.7,
+      "details": [
+        "the figure refers to seafloor mapped at modern high resolution rather than estimated from satellite altimetry",
+        "coverage has grown through international bathymetric data-sharing efforts"
+      ],
+      "verified_on": "2026-08-09",
+      "volatile": true,
+      "revalidate_before_launch": true,
+      "sources": [
+        {
+          "type": "agency",
+          "citation": "International Hydrographic Organization — Global seabed mapping reaches new milestone as five million square kilometres added in a year.",
+          "url": "https://iho.int/en/global-seabed-mapping-reaches-new-milestone-as-five-million-square-kilometres-added-in-a-year",
+          "supports": "28.7% of the ocean floor mapped as of the 2026 IHO Assembly announcement (~104 million km²); ~5 million km² added over the preceding year."
+        },
+        {
+          "type": "agency",
+          "citation": "Nippon Foundation–GEBCO Seabed 2030 Project — World Hydrography Day progress announcements.",
+          "url": "https://seabed2030.org/",
+          "supports": "Trajectory of the same measure: 26.1% (mid-2024), 27.3% (mid-2025), 28.7% (2026)."
+        }
+      ],
+      "flags": [
+        {
+          "severity": "medium",
+          "kind": "stale_true_value",
+          "detail": "STUDY3_SPEC.md §4 gives ~26%, which was the Seabed 2030 figure as of mid-2024. The current published figure is 28.7%. `true_value` has been updated and `spec_true_value` retains the spec's number.",
+          "impact": "Debriefing (§7.6) must state the value current at the time of collection, not 26%. The planted error is unaffected — 80% is a large overstatement against either figure — so error calibration does not change.",
+          "action": "Re-verify against Seabed 2030 / IHO immediately before launch and again before submission; this number moves by roughly 1–1.5 points per year. Record the retrieval date in the appendix."
+        }
+      ]
+    },
+    {
+      "id": "item_03",
+      "spec_position": 3,
+      "is_error_item": false,
+      "topic": "sperm_whale_dive_duration",
+      "question": {
+        "en": "How long is the longest recorded sperm whale dive, in minutes?",
+        "ru": "Сколько минут длилось самое продолжительное зарегистрированное погружение кашалота?",
+        "kk": "Кашалоттың тіркелген ең ұзақ сүңгуі неше минутқа созылған?"
+      },
+      "unit": { "en": "minutes", "ru": "минуты", "kk": "минут", "symbol": "min" },
+      "true_value": 90,
+      "advice_value": 90,
+      "hedge_level": "moderate",
+      "plausible_answer_range": [5, 300],
+      "details": [
+        "the figure refers to the longest dives on record, not to typical foraging dives",
+        "sperm whales make these dives to hunt deep-water squid"
+      ],
+      "verified_on": "2026-08-09",
+      "sources": [
+        {
+          "type": "agency",
+          "citation": "NOAA Fisheries — Sperm whale species profile.",
+          "url": "https://www.fisheries.noaa.gov/species/sperm-whale",
+          "supports": "Foraging dives average ~45 minutes; long deep dives followed by surface recovery."
+        },
+        {
+          "type": "museum",
+          "citation": "Natural History Museum (London) — How long can whales hold their breath?",
+          "url": "https://www.nhm.ac.uk/discover/quick-questions/how-long-can-whales-hold-their-breath.html",
+          "supports": "Most foraging dives 30–60 minutes; dives exceeding 90 minutes documented; a male taken off South Africa in 1969 surfaced from a 117-minute dive."
+        },
+        {
+          "type": "primary_literature",
+          "citation": "Watkins, Moore & Tyack (1985), sperm whale acoustic behaviour and diving.",
+          "url": "https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2656.2006.01101.x",
+          "supports": "Dives up to 138 minutes reported in the older literature. Cited via Watwood et al. (2006), which reviews the dive-duration record."
+        }
+      ],
+      "flags": [
+        {
+          "severity": "medium",
+          "kind": "question_stem_mismatch",
+          "detail": "As worded, the stem asks for the LONGEST RECORDED dive. The documented extremes are 117 minutes (1969) and 138 minutes (Watkins et al. 1985), not 90. The ~90 figure is the upper end of the routinely observed range, which is what the spec appears to intend.",
+          "impact": "This is a CORRECT-advice item, so the mismatch contaminates WOA_correct_items and therefore the discrimination score (§6.1b), which is a co-primary outcome. A well-informed participant who answers 120–138 would be scored as deferring away from a correct answer.",
+          "action": "Recommended fix, to be made before pre-registration: reword the stem to 'How long do the longest sperm whale foraging dives typically last?' and keep true_value = advice_value = 90. Alternative: keep the stem and move both true_value and advice_value to ~120. Do not leave as-is. `question` has NOT been changed unilaterally — stem wording is pre-registered material."
+        }
+      ]
+    },
+    {
+      "id": "item_04",
+      "spec_position": 4,
+      "is_error_item": false,
+      "topic": "giant_squid_length",
+      "question": {
+        "en": "What is the maximum recorded total length of a giant squid, in metres?",
+        "ru": "Какова максимальная зарегистрированная общая длина гигантского кальмара в метрах?",
+        "kk": "Алып кальмардың тіркелген ең үлкен жалпы ұзындығы неше метр?"
+      },
+      "unit": { "en": "metres", "ru": "метры", "kk": "метр", "symbol": "m" },
+      "true_value": 13,
+      "advice_value": 13,
+      "hedge_level": "moderate",
+      "plausible_answer_range": [1, 40],
+      "details": [
+        "the measurement is total length, including the two long feeding tentacles",
+        "females reach greater lengths than males"
+      ],
+      "verified_on": "2026-08-09",
+      "sources": [
+        {
+          "type": "museum",
+          "citation": "Smithsonian Ocean — Giant Squid (Architeuthis dux).",
+          "url": "https://ocean.si.edu/ocean-life/invertebrates/giant-squid",
+          "supports": "Maximum ~13 m (43 ft) for females, ~10 m (33 ft) for males, total length including feeding tentacles."
+        },
+        {
+          "type": "museum",
+          "citation": "Museum of New Zealand Te Papa Tongarewa — Giant squid Architeuthis dux.",
+          "url": "https://collections.tepapa.govt.nz/topic/1240",
+          "supports": "Maximum total length of examined specimens ≈ 13 m; mantle length over 2.25 m."
+        }
+      ],
+      "flags": []
+    },
+    {
+      "id": "item_05",
+      "spec_position": 5,
+      "is_error_item": true,
+      "topic": "hydrothermal_vent_temperature",
+      "question": {
+        "en": "What is the maximum temperature of hydrothermal vent fluid, in degrees Celsius?",
+        "ru": "Какова максимальная температура флюида гидротермальных источников в градусах Цельсия?",
+        "kk": "Гидротермалды саңылау сұйықтығының ең жоғары температурасы неше градус Цельсий?"
+      },
+      "unit": { "en": "degrees Celsius", "ru": "градусы Цельсия", "kk": "градус Цельсий", "symbol": "°C" },
+      "true_value": 400,
+      "advice_value": 150,
+      "hedge_level": "moderate",
+      "plausible_answer_range": [20, 1000],
+      "error_magnitude_pct": -62.5,
+      "details": [
+        "the fluid stays liquid because of the high pressure at depth",
+        "the vents form where seawater circulates through hot rock near mid-ocean ridges"
+      ],
+      "verified_on": "2026-08-09",
+      "sources": [
+        {
+          "type": "agency",
+          "citation": "NOAA Ocean Exploration — Hydrothermal Vents fact sheet.",
+          "url": "https://oceanexplorer.noaa.gov/wp-content/uploads/2022/10/hydrothermal-vents-fact-sheet.pdf",
+          "supports": "Vent fluids may exceed 400 °C (750 °F); high pressure prevents boiling."
+        },
+        {
+          "type": "agency",
+          "citation": "NOAA National Ocean Service — What is a hydrothermal vent?",
+          "url": "https://oceanservice.noaa.gov/facts/vents.html",
+          "supports": "Black smokers discharge fluid at roughly 300–400 °C."
+        }
+      ],
+      "notes": [
+        "Individual vent sites have been measured above 400 °C. 400 °C is the standard cited maximum and is the value used for the debriefing; treat higher site-specific records as outside the item's scope."
+      ],
+      "flags": []
+    },
+    {
+      "id": "item_06",
+      "spec_position": 6,
+      "is_error_item": false,
+      "topic": "sunlight_extinction_depth",
+      "question": {
+        "en": "At what depth does sunlight become undetectable, in metres?",
+        "ru": "На какой глубине солнечный свет перестаёт быть различимым (в метрах)?",
+        "kk": "Күн сәулесі қандай тереңдікте мүлдем байқалмайтын болады (метрмен)?"
+      },
+      "unit": { "en": "metres", "ru": "метры", "kk": "метр", "symbol": "m" },
+      "true_value": 1000,
+      "advice_value": 1000,
+      "hedge_level": "moderate",
+      "plausible_answer_range": [50, 6000],
+      "details": [
+        "below this depth the ocean is in permanent darkness, known as the aphotic zone",
+        "the exact depth varies with water clarity"
+      ],
+      "verified_on": "2026-08-09",
+      "sources": [
+        {
+          "type": "agency",
+          "citation": "NOAA National Ocean Service — How far does light travel in the ocean?",
+          "url": "https://oceanservice.noaa.gov/facts/light_travel.html",
+          "supports": "Verbatim: light may be detected as far as 1,000 metres down, but there is rarely any significant light beyond 200 metres. Sunlight may travel about 1,000 metres into the ocean under the right conditions; below that is the aphotic zone."
+        }
+      ],
+      "notes": [
+        "The item asks where light becomes UNDETECTABLE (~1,000 m), not where it becomes ecologically negligible (~200 m, the base of the euphotic zone). Both numbers appear in the same NOAA source. Any participant answering ~200 is tracking a different, also-correct quantity — worth watching in the pilot, and worth a sentence in the debriefing."
+      ],
+      "flags": []
+    },
+    {
+      "id": "item_07",
+      "spec_position": 7,
+      "is_error_item": true,
+      "topic": "tube_worm_lifespan",
+      "question": {
+        "en": "What is the estimated maximum lifespan of a giant tube worm, in years?",
+        "ru": "Какова оценочная максимальная продолжительность жизни гигантского трубчатого червя в годах?",
+        "kk": "Алып түтікше құрттың болжамды ең ұзақ өмір сүру ұзақтығы неше жыл?"
+      },
+      "unit": { "en": "years", "ru": "годы", "kk": "жыл", "symbol": "yr" },
+      "true_value": 250,
+      "true_value_applies_to": "Lamellibrachia luymesi / Escarpia laminata — cold-seep vestimentiferan tubeworms",
+      "advice_value": 40,
+      "hedge_level": "moderate",
+      "plausible_answer_range": [1, 1000],
+      "error_magnitude_pct": -84.0,
+      "details": [
+        "the estimate comes from measuring growth rates and modelling age from them",
+        "these worms live around deep-sea vents and seeps"
+      ],
+      "verified_on": "2026-08-09",
+      "sources": [
+        {
+          "type": "primary_literature",
+          "citation": "Durkin, A., Fisher, C. R., & Cordes, E. E. (2017). Extreme longevity in a deep-sea vestimentiferan tubeworm and its implications for the evolution of life history strategies. The Science of Nature, 104.",
+          "url": "https://www.sciencedaily.com/releases/2017/07/170717100500.htm",
+          "supports": "Escarpia laminata individuals exceed 250 years and some exceed 300; most sampled specimens 100–200 years. The growth-rate age model was first developed for Lamellibrachia luymesi, estimated to live up to ~250 years."
+        }
+      ],
+      "flags": [
+        {
+          "severity": "high",
+          "kind": "species_mismatch_inverts_planted_error",
+          "detail": "'Giant tube worm' is the common name of Riftia pachyptila, the hydrothermal-vent species. Riftia is one of the fastest-growing marine invertebrates known and is NOT long-lived. The ~250-year figure belongs to cold-seep vestimentiferans — Lamellibrachia luymesi and Escarpia laminata — which are different animals and are not called 'giant tube worms'.",
+          "impact": "This can invert the planted error rather than merely weaken it. Read as Riftia, the AI's ~40 years is plausibly closer to correct than the ~250 the analysis treats as truth, so a participant who resists the advice would be scored as vigilant for holding a WRONG belief, and the debriefing (§7.6) would hand them an incorrect 'correct value' for the species actually named. This item drives one third of the primary DV.",
+          "action": "Resolve before pre-registration. Preferred fix: name the species in the stem — e.g. 'What is the estimated maximum lifespan of the deep-sea tubeworm Lamellibrachia luymesi, in years?' — which makes true_value = 250 unambiguous and keeps the −84% error intact. Alternative: replace the item with a different deep-sea quantity and re-calibrate. `question` has NOT been changed unilaterally — stem wording is pre-registered material, and this one also has a low-prior-knowledge cost, since naming a Latin binomial may raise perceived difficulty relative to the other seven items."
+        }
+      ]
+    },
+    {
+      "id": "item_08",
+      "spec_position": 8,
+      "is_error_item": false,
+      "topic": "anglerfish_species_count",
+      "question": {
+        "en": "How many deep-sea anglerfish species have been described?",
+        "ru": "Сколько видов глубоководных удильщиков описано наукой?",
+        "kk": "Терең теңіз удильщик балықтарының неше түрі сипатталған?"
+      },
+      "unit": { "en": "species", "ru": "виды", "kk": "түр", "symbol": "spp." },
+      "true_value": 170,
+      "advice_value": 170,
+      "hedge_level": "moderate",
+      "plausible_answer_range": [5, 5000],
+      "details": [
+        "the count refers to species formally described in the scientific literature",
+        "new species are still being described from deep-sea specimens"
+      ],
+      "verified_on": "2026-08-09",
+      "sources": [
+        {
+          "type": "book",
+          "citation": "Pietsch, T. W. (2009). Oceanic Anglerfishes: Extraordinary Diversity in the Deep Sea. University of California Press.",
+          "url": "https://content.ucpress.edu/chapters/10866.ch01.pdf",
+          "supports": "Worldwide revision of the suborder Ceratioidei recognising 160 valid species, reducing many of Bertelsen's (1951) 194 to synonyms."
+        },
+        {
+          "type": "primary_literature",
+          "citation": "Deep-sea anglerfish (Lophiiformes: Ceratioidei) diversity from the western North Atlantic through morphology and DNA barcoding. Marine Biodiversity (2022).",
+          "url": "https://link.springer.com/article/10.1007/s12526-022-01330-z",
+          "supports": "Ceratioidei comprises 11 families, ~35 genera and about 170 valid species following Pietsch (2009) and subsequent descriptions."
+        }
+      ],
+      "notes": [
+        "Item scope is the suborder Ceratioidei (the deep-sea ceratioid anglerfishes), not the whole order Lophiiformes, which is far larger. The stem's 'deep-sea' carries that restriction; keep it in any translation.",
+        "Slowly volatile — the count rises as new species are described. Re-verify before submission."
+      ],
+      "flags": []
+    }
+  ],
+  "review_required": [
+    {
+      "item_id": "item_07",
+      "severity": "high",
+      "summary": "'Giant tube worm' names Riftia pachyptila, which is short-lived; the 250-year true value belongs to a different genus. May invert rather than weaken the planted error."
+    },
+    {
+      "item_id": "item_03",
+      "severity": "medium",
+      "summary": "Stem asks for the longest recorded dive (117–138 min documented) but the value is 90 min. Contaminates WOA_correct_items and the discrimination co-primary."
+    },
+    {
+      "item_id": "item_02",
+      "severity": "medium",
+      "summary": "Spec's 26% is the mid-2024 figure; current published value is 28.7%. Moving target — re-verify at launch and at submission."
+    }
+  ]
+}
