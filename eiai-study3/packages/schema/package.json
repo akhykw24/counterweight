@@ -1,0 +1,17 @@
+{
+  "name": "@eiai/schema",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zod schemas for every event, stimulus and questionnaire record in Study 3. Source of truth for types, runtime validation, and the generated data dictionary.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "codegen": "tsx scripts/generate-data-dictionary.ts",
+    "codegen:check": "tsx scripts/generate-data-dictionary.ts --check"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

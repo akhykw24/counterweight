@@ -1,0 +1,46 @@
+name: ci
+
+# Day 1 gate: typecheck -> unit tests -> data-dictionary drift.
+# Later days extend this with property tests, model-based statechart tests,
+# the stimulus hash golden-file test, e2e, and the `make paper` repro gate
+# (STUDY3_SPEC_v3.md section 2).
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+defaults:
+  run:
+    working-directory: eiai-study3
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: eiai-study3/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Data dictionary is not stale
+        # The dictionary ships in the paper's appendix. If the schemas moved and
+        # the dictionary did not, the appendix would misdescribe the collected
+        # data -- so this is a build failure, not a warning.
+        run: pnpm codegen:check

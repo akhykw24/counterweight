@@ -1,0 +1,25 @@
+{
+  "name": "eiai-study3",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Emotional Warmth as a Peripheral Cue - processing-route displacement in human-AI epistemic interaction (Study 3)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "codegen": "tsx packages/schema/scripts/generate-data-dictionary.ts",
+    "codegen:check": "tsx packages/schema/scripts/generate-data-dictionary.ts --check",
+    "verify": "pnpm typecheck && pnpm test && pnpm codegen:check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.23.11",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
+  }
+}

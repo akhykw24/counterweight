@@ -1,0 +1,9 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+  - "services/*"
+
+# esbuild ships a prebuilt platform binary via its install script; vitest and
+# tsx do not run without it. Nothing else is permitted to run scripts.
+allowBuilds:
+  esbuild: true

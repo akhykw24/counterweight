@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# analysis + pipeline artifacts
+__pycache__/
+*.py[cod]
+.venv/
+pipeline/out/
+
+# raw data is never committed (docs/STUDY3_SPEC_v3.md section 3)
+data/raw/
+
+.DS_Store
+*.log
+.env
+.env.local

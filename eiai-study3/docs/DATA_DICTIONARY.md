@@ -1,0 +1,526 @@
+# Data Dictionary
+
+**Generated file — do not edit by hand.** Produced from the Zod schemas in `packages/schema/src` by `pnpm codegen`. CI runs `pnpm codegen:check` and fails the build if this file drifts from the schemas, so the dictionary printed in the paper's appendix cannot disagree with what the ingest service actually validated.
+
+No field anywhere in this document holds personally identifying information. Age is captured as a band at source, never as an exact number.
+
+## Contents
+
+- [Events](#events)
+- [Transport](#transport)
+- [Item bank and stimuli](#item-bank-and-stimuli)
+- [Questionnaire](#questionnaire)
+- [Enumerations](#enumerations)
+
+## Event envelope
+
+Every event carries the same four envelope fields in addition to its `type` and `payload`.
+
+| Field | Type | Description |
+|---|---|---|
+| `event_id` | string(uuid) | Idempotency key. The ingest service dedupes on this, so at-least-once delivery is safe. |
+| `session_id` | string(uuid) | The only participant identifier that exists. |
+| `seq` | integer | Monotonic within a session. Establishes order independently of clock skew. |
+| `client_ts` | string(date-time) | Client clock. Untrusted for ordering; used for wall-clock reporting only. |
+
+## Events
+
+The append-only log. Every analytic table is a projection computed by replaying these. A measure absent here cannot be recovered after collection.
+
+#### `SESSION_STARTED`
+
+First load, and again on resume after a crash. The manifest hash pins which frozen stimulus set this participant actually saw.
+
+*Emitted when:* first load, and on resume
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"SESSION_STARTED"` | yes |  |  |
+| `payload.app_version` | string | yes | minLen 1 | Build identifier of the study app. |
+| `payload.stimuli_manifest_hash` | string | yes | pattern `^[a-f0-9]{64}$` | SHA-256 of the stimulus manifest in force for this session. Lets you prove post hoc that stimuli were unaltered. |
+| `payload.locale` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `payload.viewport` | object | yes |  | Viewport in CSS pixels. Scroll-depth measures are only interpretable relative to this. |
+| `payload.viewport.width` | integer | yes | > 0 |  |
+| `payload.viewport.height` | integer | yes | > 0 |  |
+| `payload.resumed` | boolean | yes |  | True when continuing an interrupted session. Pre-registered as an exclusion candidate. |
+
+#### `CONSENT_GIVEN`
+
+Adult informed consent, or the guardian-facing half of the minor flow.
+
+*Emitted when:* consent screen
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"CONSENT_GIVEN"` | yes |  |  |
+| `payload.flow` | `minor` \| `adult` | yes |  | Which consent path the participant took. |
+
+#### `ASSENT_GIVEN`
+
+Minor assent, given in-app after a parental consent form was returned out of band.
+
+*Emitted when:* minor assent screen
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"ASSENT_GIVEN"` | yes |  |  |
+| `payload.parental_consent_code` | string | yes | minLen 1 | Opaque session code linking to a returned parental form. Carries no name and no contact detail. |
+
+#### `ALLOCATED`
+
+Condition assignment, drawn from the pre-computed seeded sequence so the allocation list is auditable after the fact.
+
+*Emitted when:* after eligibility
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"ALLOCATED"` | yes |  |  |
+| `payload.condition` | `warm` \| `neutral` | yes |  | Between-subjects emotional style condition. |
+| `payload.stratum` | `kk:minor` \| `kk:adult` \| `ru:minor` \| `ru:adult` \| `en:minor` \| `en:adult` | yes |  | Randomization stratum: language x age group. Six cells, block size 4 (STUDY3_SPEC_v3.md section 1). |
+| `payload.allocation_seq` | integer | yes | >= 0 | Index into the committed allocation sequence. |
+
+#### `ITEM_PRESENTED`
+
+Item screen mounted. Start of the reaction-time clock for this trial.
+
+*Emitted when:* item screen mount
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"ITEM_PRESENTED"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.position` | integer | yes | >= 1, <= 12 | Presentation position, 1-12. Order is randomized per participant. |
+
+#### `ESTIMATE_CHANGED`
+
+Every intermediate estimate value, not just the submitted one. This is what makes trajectory analysis possible and it cannot be reconstructed later.
+
+*Emitted when:* every slider or keystroke change
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"ESTIMATE_CHANGED"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.phase` | `initial` \| `final` | yes |  | Whether an estimate or confidence reading was taken before or after the AI response. |
+| `payload.value` | number | yes |  | A numeric estimate in the item's own unit. Unbounded — participants may enter any finite value. |
+| `payload.ms_since_present` | integer | yes | >= 0 | Elapsed milliseconds. |
+
+#### `CONFIDENCE_SET`
+
+Confidence reading. The initial-phase value is the input to the register function.
+
+*Emitted when:* confidence input
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"CONFIDENCE_SET"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.phase` | `initial` \| `final` | yes |  | Whether an estimate or confidence reading was taken before or after the AI response. |
+| `payload.value` | number | yes | >= 0, <= 100 | Self-reported confidence, 0-100. Feeds the register function. |
+
+#### `RESPONSE_REVEALED`
+
+AI reply shown. Records which frozen stimulus was served and, in the warm condition, which register the FSM entered.
+
+*Emitted when:* AI reply shown
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"RESPONSE_REVEALED"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.response_id` | string | yes | pattern `^[a-z]{2}_(warm\|neutral)_(low\|moderate\|high\|na)_item_(0[1-9]\|1[0-2])$` | Frozen stimulus identifier: {lang}_{condition}_{register}_{item}. Resolves to exactly one hash-manifested response file. |
+| `payload.register_state` | `LOW` \| `MODERATE` \| `HIGH` \| null | yes |  | Null in the neutral condition, which does not branch — non-branching is constitutive of the neutral control, not an oversight. |
+
+#### `RESPONSE_SCROLLED`
+
+Deepest scroll reached within the AI reply. Mediator variable for H4: if warm-condition participants never scroll to the justification, peripheral-route processing is caught in the act.
+
+*Emitted when:* scroll within reply
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"RESPONSE_SCROLLED"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.max_scroll_fraction` | number | yes | >= 0, <= 1 | Deepest fraction of the AI response scrolled into view. 1.0 means the justification was at least displayed. |
+
+#### `FOLLOWUP_SELECTED`
+
+One of three fixed follow-ups tapped. Selecting 'challenge' is a behavioural vigilance measure in its own right.
+
+*Emitted when:* follow-up tap
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"FOLLOWUP_SELECTED"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.followup_id` | `measurement` \| `certainty` \| `challenge` | yes |  | Fixed follow-up options. 'challenge' ("I think that might be wrong") is itself a behavioural measure. |
+| `payload.ms_since_reveal` | integer | yes | >= 0 | Elapsed milliseconds. |
+
+#### `VERIFY_CLICKED`
+
+The 'check this claim' button. Opens nothing; records verification intent only.
+
+*Emitted when:* "check this claim"
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"VERIFY_CLICKED"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.ms_since_reveal` | integer | yes | >= 0 | Elapsed milliseconds. |
+
+#### `WINDOW_BLURRED`
+
+Tab or window lost focus. Proxy for external verification. Behavioural monitoring — must be named explicitly in the consent form.
+
+*Emitted when:* tab switch away
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"WINDOW_BLURRED"` | yes |  |  |
+| `payload.item_id` | string \| null | yes |  | Item on screen at blur, or null outside the item loop. |
+| `payload.ms_since_session_start` | integer | yes | >= 0 | Elapsed milliseconds. |
+
+#### `WINDOW_FOCUSED`
+
+Focus returned. Paired with the preceding blur to give an away-duration.
+
+*Emitted when:* tab switch back
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"WINDOW_FOCUSED"` | yes |  |  |
+| `payload.item_id` | string \| null | yes |  |  |
+| `payload.ms_since_session_start` | integer | yes | >= 0 | Elapsed milliseconds. |
+| `payload.away_duration_ms` | integer | yes | >= 0 | Elapsed milliseconds. |
+
+#### `ESTIMATE_FINALIZED`
+
+Final estimate submitted for a trial. Numerator of Weight of Advice.
+
+*Emitted when:* submit
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"ESTIMATE_FINALIZED"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.value` | number | yes |  | A numeric estimate in the item's own unit. Unbounded — participants may enter any finite value. |
+| `payload.revision_count` | integer | yes | >= 0 | Number of ESTIMATE_CHANGED events in the final phase before submit. Indexes uncertainty in the revision itself. |
+| `payload.ms_since_reveal` | integer | yes | >= 0 | Elapsed milliseconds. |
+
+#### `QUESTIONNAIRE_ANSWERED`
+
+One questionnaire item. Emitted per item rather than per scale so partial completion is still analysable.
+
+*Emitted when:* each questionnaire item
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"QUESTIONNAIRE_ANSWERED"` | yes |  |  |
+| `payload.scale` | `warmth` \| `competence` \| `trust` \| `covariates` | yes |  | Which questionnaire instrument an answer belongs to. |
+| `payload.question_id` | string | yes | minLen 1 | Stable question identifier, e.g. warmth_01. |
+| `payload.value` | integer \| string | yes |  | Likert integer, or a string for categorical covariates such as age band. |
+
+#### `FUNNEL_RESPONSE`
+
+Funnelled suspicion probe. Free text at stages 'purpose' and 'anomaly'; the 'belief' stage is a three-way choice.
+
+*Emitted when:* suspicion probe
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"FUNNEL_RESPONSE"` | yes |  |  |
+| `payload.stage` | `purpose` \| `anomaly` \| `belief` | yes |  | Funnelled suspicion probe stage, administered in this order without backtracking. |
+| `payload.text` | string | yes |  | Verbatim free-text response, or the selected option at the belief stage. |
+
+#### `SESSION_COMPLETED`
+
+Participant reached the debrief and finished.
+
+*Emitted when:* debrief reached
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"SESSION_COMPLETED"` | yes |  |  |
+| `payload.total_duration_ms` | integer | yes | >= 0 | Elapsed milliseconds. |
+
+#### `SESSION_WITHDRAWN`
+
+Withdrawal, reachable from every screen. Events already logged still count up to this point unless the participant requests deletion.
+
+*Emitted when:* withdrawal, from any screen
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"SESSION_WITHDRAWN"` | yes |  |  |
+| `payload.reason` | string \| null | yes |  | Optional free-text reason. Null when the participant declined to give one. |
+| `payload.at_state` | string | yes | minLen 1 | Statechart state the participant withdrew from. |
+
+## Transport
+
+What the client sends to the ingest service.
+
+#### `EventBatch`
+
+A batch of events flushed from the client write-ahead log. Idempotent on event_id, so retries are safe.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `events` | any[] | yes | minItems 1, maxItems 500 |  |
+
+## Item bank and stimuli
+
+materials/items.json and the frozen response set. Hash-manifested before collection opens so alteration is detectable.
+
+#### `ItemBank`
+
+materials/items.json in full. Validated in CI, so a malformed bank fails the build rather than a pilot.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `schema_version` | string | yes | minLen 1 |  |
+| `study` | `"eiai-study3"` | yes |  |  |
+| `source_spec` | string | yes | minLen 1 |  |
+| `compiled_at` | string(date) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]00\|[13579][26]00)-02-29\|\d{4}-(?:(?:0[13578]\|1[02])-(?:0[1-9]\|[12]\d\|3[01])\|(?:0[469]\|11)-(?:0[1-9]\|[12]\d\|30)\|(?:02)-(?:0[1-9]\|1\d\|2[0-8])))$` |  |
+| `design` | object | yes |  |  |
+| `design.languages` | `kk` \| `ru` \| `en`[] | yes | minItems 1 |  |
+| `design.conditions` | `warm` \| `neutral`[] | yes | minItems 1 |  |
+| `design.registers` | `LOW` \| `MODERATE` \| `HIGH`[] | yes | minItems 1 |  |
+| `design.register_thresholds` | object | yes |  |  |
+| `design.register_thresholds.low_below` | number | yes |  |  |
+| `design.register_thresholds.high_above` | number | yes |  |  |
+| `design.item_order_randomised_per_participant` | boolean | yes |  |  |
+| `design.error_item_ids` | string[] | yes |  |  |
+| `translation_status` | object | yes |  |  |
+| `translation_status.en` | string | yes | minLen 1 |  |
+| `translation_status.ru` | string | yes | minLen 1 |  |
+| `translation_status.kk` | string | yes | minLen 1 |  |
+| `translation_status.note` | string | yes | minLen 1 |  |
+| `items` | object[] | yes | minItems 12, maxItems 12 |  |
+| `review_required` | object[] | yes |  |  |
+
+#### `ItemRecord`
+
+One item bank entry.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `index` | integer | yes | >= 1, <= 12 | Canonical item number from the spec table. |
+| `question` | object | yes |  | Question stem per language. Non-English stems are drafts until back-translation clears. |
+| `question.en` | string | yes | minLen 1 |  |
+| `question.ru` | string | yes | minLen 1 |  |
+| `question.kk` | string | yes | minLen 1 |  |
+| `unit` | object | yes |  | Unit of the numeric answer. |
+| `unit.symbol` | string | yes | minLen 1 |  |
+| `unit.en` | string | yes | minLen 1 |  |
+| `unit.ru` | string | yes | minLen 1 |  |
+| `unit.kk` | string | yes | minLen 1 |  |
+| `true_value` | number | yes |  | Best documented value, used for the debrief and the WOA denominator guard. |
+| `true_value_note` | string \| null | yes |  | Precision, CI, or scope qualification on the true value. |
+| `advice_value` | number | yes |  | The value the AI states. Differs from truth on error items. |
+| `is_error` | boolean | yes |  |  |
+| `assigned_justification_quality` | `strong` \| `weak` | yes |  | Which variant is deployed for this item per the spec's allocation table. |
+| `design_cell` | `error_weak` \| `error_strong` \| `correct_weak` \| `correct_strong` \| `correct_filler` | yes |  | Cell in the 2x2 item allocation (STUDY3_SPEC_v2.md section 2). |
+| `plausible_answer_range` | [number, number] | yes |  | Sanity bounds for the estimate input. Not a correctness check. |
+| `justifications` | object | yes |  | Word-count-matched justification pair. Only reasoning quality varies; no factual content differs. |
+| `justifications.strong` | object | yes |  | Method-referencing and in principle checkable. Names how the figure was obtained. |
+| `justifications.strong.text` | string | yes | minLen 1 |  |
+| `justifications.strong.word_count` | integer | yes | > 0 |  |
+| `justifications.weak` | object | yes |  | Circular appeal to consensus. Fluent, contentless, and adds no support for the claim. |
+| `justifications.weak.text` | string | yes | minLen 1 |  |
+| `justifications.weak.word_count` | integer | yes | > 0 |  |
+| `sources` | object[] | yes | minItems 1 |  |
+| `volatile` | boolean | yes |  | True when the value moves over time and must be re-verified immediately before launch. |
+| `flags` | object[] | yes |  |  |
+
+#### `JustificationPair`
+
+Word-count-matched justification pair. Only reasoning quality varies; no factual content differs.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `strong` | object | yes |  | Method-referencing and in principle checkable. Names how the figure was obtained. |
+| `strong.text` | string | yes | minLen 1 |  |
+| `strong.word_count` | integer | yes | > 0 |  |
+| `weak` | object | yes |  | Circular appeal to consensus. Fluent, contentless, and adds no support for the claim. |
+| `weak.text` | string | yes | minLen 1 |  |
+| `weak.word_count` | integer | yes | > 0 |  |
+
+#### `StimulusResponse`
+
+One frozen, hash-manifested stimulus.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `response_id` | string | yes | pattern `^[a-z]{2}_(warm\|neutral)_(low\|moderate\|high\|na)_item_(0[1-9]\|1[0-2])$` | Frozen stimulus identifier: {lang}_{condition}_{register}_{item}. Resolves to exactly one hash-manifested response file. |
+| `item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `condition` | `warm` \| `neutral` | yes |  | Between-subjects emotional style condition. |
+| `register_state` | `LOW` \| `MODERATE` \| `HIGH` \| null | yes |  | Null for the neutral condition, which does not branch. |
+| `body` | string | yes | minLen 1 | The AI reply as displayed, excluding the justification sentence. |
+| `justification_quality` | `strong` \| `weak` | yes |  | Within-subjects justification quality factor. Strong = method-referencing; weak = circular appeal to consensus. |
+| `justification_text` | string | yes | minLen 1 |  |
+| `followups` | object | yes |  | Pre-written replies to the three fixed follow-ups. The challenge reply must hold the stated value in both conditions. |
+| `followups.measurement` | string | yes | minLen 1 |  |
+| `followups.certainty` | string | yes | minLen 1 |  |
+| `followups.challenge` | string | yes | minLen 1 |  |
+| `sha256` | string | yes | pattern `^[a-f0-9]{64}$` | Lowercase hex SHA-256 digest. |
+
+#### `StimulusManifest`
+
+Committed before collection opens. CI recomputes it and fails on any drift.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `generated_at` | string(date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]00\|[13579][26]00)-02-29\|\d{4}-(?:(?:0[13578]\|1[02])-(?:0[1-9]\|[12]\d\|3[01])\|(?:0[469]\|11)-(?:0[1-9]\|[12]\d\|30)\|(?:02)-(?:0[1-9]\|1\d\|2[0-8])))T(?:(?:[01]\d\|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$` |  |
+| `generator_version` | string | yes | minLen 1 |  |
+| `model` | string | yes | minLen 1 |  |
+| `items_file_sha256` | string | yes | pattern `^[a-f0-9]{64}$` | Lowercase hex SHA-256 digest. |
+| `manifest_sha256` | string | yes | pattern `^[a-f0-9]{64}$` | Digest over the sorted per-file digests. This is what SESSION_STARTED records. |
+| `files` | object[] | yes |  |  |
+
+## Questionnaire
+
+Manipulation check, control check, trust, covariates, and the funnelled suspicion probe.
+
+#### `QuestionnaireResponse`
+
+A complete questionnaire submission, assembled by replay from QUESTIONNAIRE_ANSWERED and FUNNEL_RESPONSE events.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `warmth` | object | yes |  | Manipulation check, 5 items. Analysed within each language group separately, never pooled silently. |
+| `warmth.warmth_01` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `warmth.warmth_02` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `warmth.warmth_03` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `warmth.warmth_04` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `warmth.warmth_05` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `competence` | object | yes |  | Control check, 4 items. Should NOT differ by condition. Reported either way. |
+| `competence.competence_01` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `competence.competence_02` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `competence.competence_03` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `competence.competence_04` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `trust` | object | yes |  | Trust in the assistant, 4 items. H5 predicts warm > neutral. |
+| `trust.trust_01` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `trust.trust_02` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `trust.trust_03` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `trust.trust_04` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `covariates` | object | yes |  | Covariates for the ANCOVA model. |
+| `covariates.age_band` | `14-15` \| `16-17` \| `18-24` \| `25+` | yes |  | Coarsened age. Recorded as a band at source; an exact age is never collected. |
+| `covariates.gender` | `female` \| `male` \| `other` \| `prefer_not_to_say` | yes |  |  |
+| `covariates.primary_language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `covariates.ai_usage_frequency` | integer | yes | >= 1, <= 5 | Self-reported frequency of AI assistant use. |
+| `covariates.prior_knowledge_marine_biology` | integer | yes | >= 1, <= 7 | Self-rated prior knowledge. Screening excludes formal training. |
+| `funnel` | object | yes |  | Funnelled suspicion probe, administered in order without backtracking. |
+| `funnel.purpose` | string | yes |  | "What do you think this study was about?" — free text. |
+| `funnel.anomaly` | string | yes |  | "Did anything about the assistant's answers seem unusual?" — free text. |
+| `funnel.belief` | `yes` \| `no` \| `unsure` | yes |  | "Did you believe all of the assistant's answers were accurate?" |
+
+#### `PerceivedWarmthScale`
+
+Manipulation check, 5 items. Analysed within each language group separately, never pooled silently.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `warmth_01` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `warmth_02` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `warmth_03` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `warmth_04` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `warmth_05` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+
+#### `PerceivedCompetenceScale`
+
+Control check, 4 items. Should NOT differ by condition. Reported either way.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `competence_01` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `competence_02` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `competence_03` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `competence_04` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+
+#### `TrustScale`
+
+Trust in the assistant, 4 items. H5 predicts warm > neutral.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `trust_01` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `trust_02` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `trust_03` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+| `trust_04` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
+
+#### `Covariates`
+
+Covariates for the ANCOVA model.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `age_band` | `14-15` \| `16-17` \| `18-24` \| `25+` | yes |  | Coarsened age. Recorded as a band at source; an exact age is never collected. |
+| `gender` | `female` \| `male` \| `other` \| `prefer_not_to_say` | yes |  |  |
+| `primary_language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `ai_usage_frequency` | integer | yes | >= 1, <= 5 | Self-reported frequency of AI assistant use. |
+| `prior_knowledge_marine_biology` | integer | yes | >= 1, <= 7 | Self-rated prior knowledge. Screening excludes formal training. |
+
+#### `FunnelProbe`
+
+Funnelled suspicion probe, administered in order without backtracking.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `purpose` | string | yes |  | "What do you think this study was about?" — free text. |
+| `anomaly` | string | yes |  | "Did anything about the assistant's answers seem unusual?" — free text. |
+| `belief` | `yes` \| `no` \| `unsure` | yes |  | "Did you believe all of the assistant's answers were accurate?" |
+
+## Enumerations
+
+| Enumeration | Values | Meaning |
+|---|---|---|
+| `Language` | `kk`, `ru`, `en` | Participant language. Kazakh, Russian, English. |
+| `Condition` | `warm`, `neutral` | Between-subjects emotional style condition. |
+| `RegisterState` | `LOW`, `MODERATE`, `HIGH` | Register selected by initial confidence (LOW < 40, MODERATE 40-70, HIGH > 70). Warm condition only; neutral does not branch. |
+| `JustificationQuality` | `strong`, `weak` | Within-subjects justification quality factor. Strong = method-referencing; weak = circular appeal to consensus. |
+| `AgeGroup` | `minor`, `adult` | Consent-flow-determining age group. Drives the parental-consent fork. |
+| `AgeBand` | `14-15`, `16-17`, `18-24`, `25+` | Coarsened age. Recorded as a band at source; an exact age is never collected. |
+| `Stratum` | `kk:minor`, `kk:adult`, `ru:minor`, `ru:adult`, `en:minor`, `en:adult` | Randomization stratum: language x age group. Six cells, block size 4 (STUDY3_SPEC_v3.md section 1). |
+| `ConsentFlow` | `minor`, `adult` | Which consent path the participant took. |
+| `EstimatePhase` | `initial`, `final` | Whether an estimate or confidence reading was taken before or after the AI response. |
+| `FollowupId` | `measurement`, `certainty`, `challenge` | Fixed follow-up options. 'challenge' ("I think that might be wrong") is itself a behavioural measure. |
+| `FunnelStage` | `purpose`, `anomaly`, `belief` | Funnelled suspicion probe stage, administered in this order without backtracking. |
+| `QuestionnaireScale` | `warmth`, `competence`, `trust`, `covariates` | Which questionnaire instrument an answer belongs to. |
