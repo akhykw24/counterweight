@@ -13,10 +13,17 @@
     "test:watch": "vitest",
     "codegen": "tsx packages/schema/scripts/generate-data-dictionary.ts",
     "codegen:check": "tsx packages/schema/scripts/generate-data-dictionary.ts --check",
-    "verify": "pnpm typecheck && pnpm test && pnpm codegen:check"
+    "stimuli:generate": "python pipeline/generate.py",
+    "stimuli:equivalence": "python pipeline/verify_equivalence.py",
+    "stimuli:manifest": "python pipeline/hash_manifest.py",
+    "stimuli:check": "python pipeline/verify_equivalence.py && python pipeline/hash_manifest.py --check",
+    "coding:export": "python pipeline/verify_components.py export",
+    "coding:score": "python pipeline/verify_components.py score",
+    "verify": "pnpm typecheck && pnpm test && pnpm codegen:check && pnpm stimuli:check"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "fast-check": "^4.9.0",
     "tsx": "^4.23.11",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10",

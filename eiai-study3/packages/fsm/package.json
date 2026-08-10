@@ -1,0 +1,13 @@
+{
+  "name": "@eiai/fsm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Register selection function and (from day 3) the session statechart.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@eiai/schema": "workspace:*"
+  }
+}

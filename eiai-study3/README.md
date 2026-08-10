@@ -16,7 +16,7 @@ Day 1 of the seven-day build (`STUDY3_SPEC_v3.md` §10) is complete.
 | Day | Deliverable | State |
 |---|---|---|
 | 1 | Monorepo scaffold, `packages/schema`, verified `items.json`, justification pairs | **done** |
-| 2 | Register function + property tests; `generate.py` → 144 stimuli; equivalence checks; hash manifest | not started |
+| 2 | Register function + property tests; `generate.py` → 144 stimuli; equivalence checks; hash manifest | **done** (stimuli are placeholders — see below) |
 | 3 | Statechart + model-based tests; consent flows; item screen | not started |
 | 4 | Telemetry package; IndexedDB WAL; ingest service | not started |
 | 5 | Follow-ups, verify button, questionnaire, funnel, debrief; i18n | not started |
@@ -27,10 +27,18 @@ Day 1 of the seven-day build (`STUDY3_SPEC_v3.md` §10) is complete.
 
 ```bash
 pnpm install
-pnpm verify        # typecheck + tests + data-dictionary drift check
+pnpm verify              # everything CI runs
 pnpm typecheck
-pnpm test
-pnpm codegen       # regenerate docs/DATA_DICTIONARY.md from the Zod schemas
+pnpm test                # unit + property + golden-file
+pnpm codegen             # regenerate docs/DATA_DICTIONARY.md from the Zod schemas
+
+# stimulus pipeline (Python, no extra deps for offline mode)
+python pipeline/generate.py --offline    # deterministic placeholders, no API key
+python pipeline/generate.py              # real generation; needs ANTHROPIC_API_KEY
+pnpm stimuli:equivalence                 # content equivalence across conditions
+pnpm stimuli:manifest                    # rebuild materials/manifest.json
+pnpm coding:export                       # blinded kappa coding sheets for 2 raters
+pnpm coding:score                        # Cohen's kappa per component
 ```
 
 ## Layout
@@ -57,6 +65,28 @@ anything that can be computed later.** A fancier analysis can be added in month
 two. A scroll event from a participant who left in week three cannot.
 
 That is why `packages/schema` is Day 1 and the analysis pipeline is Day 7.
+
+## Day 2 notes
+
+- **The committed stimuli are offline placeholders.** There is no
+  `ANTHROPIC_API_KEY` in this environment, so `generate.py --offline` produced
+  144 structurally valid placeholder responses instead. They exist so the rest
+  of the chain — equivalence, manifest, golden-file test, coding sheets — could
+  be built and proven. `materials/manifest.json` records `launch_ready: false`,
+  every response carries `"placeholder": true`, and
+  `assertLaunchReady()` throws. Re-run `python pipeline/generate.py` with a key
+  before piloting; nothing else changes.
+- **Justifications are rendered once per (language, item)** and reused across
+  all four condition variants, so they are byte-identical across warm and
+  neutral by construction rather than by inspection. That is the property
+  `verify_equivalence.py` asserts and the reviewer objection it answers.
+- **Coding sheets are blinded.** Rows are shuffled with a committed seed and the
+  condition is withheld; the unblinding key is written separately. A rater who
+  can see "warm" in the row codes warmth, and the resulting kappa measures
+  nothing.
+- WOA and the projection property tests from §5 are deliberately **not** here.
+  WOA belongs with the analysis in Python (`replay.py`, day 7); implementing it
+  in TypeScript as well would mean two implementations of the primary DV.
 
 ## Day 1 notes
 

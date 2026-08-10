@@ -142,6 +142,18 @@ export const ItemBank = z
   })
   .describe("materials/items.json in full. Validated in CI, so a malformed bank fails the build rather than a pilot.");
 
+export const GeneratorMode = z
+  .enum(["anthropic_api", "offline_placeholder"])
+  .describe("How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded.");
+
+export const StimulusValidation = z
+  .strictObject({
+    ok: z.boolean(),
+    errors: z.array(z.string()),
+    warnings: z.array(z.string()),
+  })
+  .describe("Generation-time validation result, retained as provenance.");
+
 export const StimulusResponse = z
   .strictObject({
     response_id: ResponseId,
@@ -151,7 +163,10 @@ export const StimulusResponse = z
     register_state: RegisterState.nullable().describe("Null for the neutral condition, which does not branch."),
     body: z.string().min(1).describe("The AI reply as displayed, excluding the justification sentence."),
     justification_quality: JustificationQuality,
-    justification_text: z.string().min(1),
+    justification_text: z
+      .string()
+      .min(1)
+      .describe("Rendered once per (language, item) and reused across all four condition variants, so it is byte-identical across conditions by construction. Displayed as its own element because scroll depth on it is the H4 mediator."),
     followups: z
       .strictObject({
         measurement: z.string().min(1),
@@ -159,15 +174,50 @@ export const StimulusResponse = z
         challenge: z.string().min(1),
       })
       .describe("Pre-written replies to the three fixed follow-ups. The challenge reply must hold the stated value in both conditions."),
-    sha256: Sha256,
+    placeholder: z
+      .boolean()
+      .describe("True for offline-generated placeholders. Guards against a placeholder set reaching participants."),
+    sha256: Sha256.describe("Digest over body + justification + the three follow-ups."),
+    validation: StimulusValidation,
+    attempts_used: z.int().nonnegative(),
   })
   .describe("One frozen, hash-manifested stimulus.");
+
+export const StimulusFile = z
+  .strictObject({
+    meta: z.strictObject({
+      schema_version: z.string().min(1),
+      study: z.literal("eiai-study3"),
+      language: Language,
+      condition: Condition,
+      register_state: RegisterState.nullable(),
+      generator: z.string().min(1),
+      generator_version: z.string().min(1),
+      generator_mode: GeneratorMode,
+      model: z.string().min(1),
+      placeholder: z.boolean(),
+      prompt_hashes: z.record(z.string(), Sha256),
+      translation_status: z.string().min(1),
+      human_verification: z.strictObject({
+        content_equivalence_checked: z.boolean(),
+        component_coding_completed: z.boolean(),
+        back_translation_completed: z.boolean(),
+        native_speaker_verified: z.boolean(),
+      }),
+    }),
+    responses: z.array(StimulusResponse).length(12),
+  })
+  .describe("One materials/responses/{lang}_{condition}_{state}.json file. Carries no timestamp: its bytes must be stable across runs or the hash manifest means nothing.");
 
 export const StimulusManifest = z
   .strictObject({
     generated_at: z.iso.datetime(),
     generator_version: z.string().min(1),
+    generator_mode: GeneratorMode,
     model: z.string().min(1),
+    launch_ready: z
+      .boolean()
+      .describe("False whenever any stimulus is a placeholder. The loader refuses to serve a set with this false."),
     items_file_sha256: Sha256,
     manifest_sha256: Sha256.describe("Digest over the sorted per-file digests. This is what SESSION_STARTED records."),
     files: z.array(
@@ -183,5 +233,7 @@ export const StimulusManifest = z
 export type ItemRecord = z.infer<typeof ItemRecord>;
 export type ItemBank = z.infer<typeof ItemBank>;
 export type StimulusResponse = z.infer<typeof StimulusResponse>;
+export type StimulusFile = z.infer<typeof StimulusFile>;
 export type StimulusManifest = z.infer<typeof StimulusManifest>;
 export type JustificationPair = z.infer<typeof JustificationPair>;
+export type GeneratorMode = z.infer<typeof GeneratorMode>;

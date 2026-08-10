@@ -1,0 +1,14 @@
+{
+  "name": "@eiai/stimuli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Loader and hash-manifest verification for the frozen stimulus set.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@eiai/fsm": "workspace:*",
+    "@eiai/schema": "workspace:*"
+  }
+}

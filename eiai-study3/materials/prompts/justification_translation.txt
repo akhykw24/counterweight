@@ -1,0 +1,16 @@
+Render the following justification sentence in {LANGUAGE_NAME} ({LANGUAGE_CODE}).
+
+Source: {JUSTIFICATION_SOURCE}
+
+Rules:
+- Preserve the reasoning structure exactly. If the source references a method,
+  the rendering references that method. If the source appeals to consensus, the
+  rendering appeals to consensus.
+- Introduce no numeric value and no fact that is not in the source.
+- Do not make weak reasoning sound stronger, or strong reasoning sound weaker.
+  The difference between these two kinds of sentence is the experimental
+  manipulation.
+- Target length: {TARGET_WORDS} words, within two words either way.
+- Write as a fluent native speaker, not as a literal translation.
+
+Return the rendered sentence only.

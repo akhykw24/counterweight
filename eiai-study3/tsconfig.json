@@ -3,7 +3,9 @@
   "compilerOptions": {
     "types": ["node"],
     "paths": {
-      "@eiai/schema": ["./packages/schema/src/index.ts"]
+      "@eiai/schema": ["./packages/schema/src/index.ts"],
+      "@eiai/fsm": ["./packages/fsm/src/index.ts"],
+      "@eiai/stimuli": ["./packages/stimuli/src/index.ts"]
     }
   },
   "include": [

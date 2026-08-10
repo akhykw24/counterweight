@@ -1,0 +1,306 @@
+{
+  "meta": {
+    "condition": "warm",
+    "generator": "pipeline/generate.py",
+    "generator_mode": "offline_placeholder",
+    "generator_version": "2.0.0",
+    "human_verification": {
+      "back_translation_completed": false,
+      "component_coding_completed": false,
+      "content_equivalence_checked": false,
+      "native_speaker_verified": false
+    },
+    "language": "en",
+    "model": "none (offline placeholder)",
+    "placeholder": true,
+    "prompt_hashes": {
+      "language_block": "c0c83c44fd20f10a1fceafab9046a1ea403ca706203eac00be6ee7f3197df1de",
+      "output_format_block": "10c50a778706b1a42b04ca1c454048acaa245c4db70a820fb9a641a61a913c78",
+      "register": "227ab4bfe79e05f9716f5514ba4505bc457dccee18730788fc83298ad06f1a70",
+      "shared_constraints": "d0f60f1f5de7e25dff27092f0ac5f05b2432ecbc8ba65785b8e3dd551cd5156a",
+      "warm_components": "8ea3c6a762108ccd172e992455467273bb9ce7cb59b45f48de974828b000614d"
+    },
+    "register_state": "LOW",
+    "schema_version": "1.0",
+    "study": "eiai-study3",
+    "translation_status": "source"
+  },
+  "responses": [
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_01",
+      "justification_quality": "strong",
+      "justification_text": "This figure comes from pressure-referenced altimeter transects taken by crewed submersible, cross-checked against independent ship-based sonar mapping of the same site, with the two methods agreeing closely.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_01",
+      "sha256": "c3436c5520d0c4d0c0a86ef9b59dca8a6eae50601e65d009be80bd8ada39ac3a",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_02",
+      "justification_quality": "weak",
+      "justification_text": "This figure is the number people generally give for this, it is repeated consistently wherever the topic comes up, and nobody disputes it as far as I know.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_02",
+      "sha256": "a6bd50d2470192b526831a6c5223d7e00ffb964da6da8e1cd69e2e18e40043fc",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_03",
+      "justification_quality": "weak",
+      "justification_text": "This figure is what the sources on this subject tend to say, it is the number that gets quoted in this context, and it is the usual answer given.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_03",
+      "sha256": "c5579dd74b65f7c7d48d655eb2ab5e79dd5252da119403e328d3be0240c2a86c",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_04",
+      "justification_quality": "strong",
+      "justification_text": "This figure comes from calibrated downwelling irradiance profiles measured by photometers lowered through the water column, with the detection limit set by the instrument's characterised noise floor.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_04",
+      "sha256": "23b803db90b14cff4e1518699101f87133518ee8663481413a637e237de067e1",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_05",
+      "justification_quality": "strong",
+      "justification_text": "This figure comes from high-temperature probes inserted directly into the vent orifice by remotely operated vehicle, with the reading repeated across separate dives to confirm it was stable.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_05",
+      "sha256": "748ba283de5ea4eeda9ab7ccedcf939eb879b7f722ece3cf276c2dc059848c90",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_06",
+      "justification_quality": "strong",
+      "justification_text": "This figure comes from measurements taken on landed specimens by museum staff following a standard protocol, with total length recorded the same way for every specimen in the record.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_06",
+      "sha256": "ba27ca9b50218858a2c62ed4e3a8d9fc537f174ed62fcd1817d2bbae296a8408",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_07",
+      "justification_quality": "weak",
+      "justification_text": "This figure is the number normally quoted for this, it shows up wherever the question is discussed, and it is broadly treated as the standard answer.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_07",
+      "sha256": "bbb0b131ecb56bd645e74d9403c1e9b0bd8cd0326dd8f96342176f921fce511f",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_08",
+      "justification_quality": "strong",
+      "justification_text": "This figure comes from a taxonomic revision that re-examined the museum type specimens directly and consolidated duplicate names, so the count reflects distinct species rather than accumulated synonyms.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_08",
+      "sha256": "25774a66b16de13818a26ff1ffdd8f6b43a92bac795f24ebb1754edf03d364e3",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_09",
+      "justification_quality": "weak",
+      "justification_text": "This figure is the estimate that generally gets cited for this, it appears consistently in what has been written on the subject, and it is the standard answer.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_09",
+      "sha256": "321d14360552901f825728e821b3d27f633261aada3830e9bbbb6e5bbb3fdc30",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_10",
+      "justification_quality": "strong",
+      "justification_text": "This figure comes from irradiance profiles taken with calibrated sensors on a lowered frame, applying the standard threshold definition of the boundary consistently across every site in the dataset.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_10",
+      "sha256": "ad127878cdcfd147ef429ed501beaeb87c16f4f0e2aac518996c296e9e3077ce",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_11",
+      "justification_quality": "strong",
+      "justification_text": "This figure comes from a calibrated pressure sensor on a baited lander, with the video timestamped against that sensor so the depth and the sighting are tied to one reading.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_11",
+      "sha256": "696c50133a9f34e05243a213fd4f62eb35d281fe3bdbd3ea14afbfcd7bddff92",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    },
+    {
+      "attempts_used": 0,
+      "body": "[PLACEHOLDER] It sounds like this one felt uncertain, which is an ordinary way to feel about it. approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence",
+      "condition": "warm",
+      "followups": {
+        "certainty": "[PLACEHOLDER] On how certain this is: approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
+        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
+        "measurement": "[PLACEHOLDER] On how it is measured: approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+      },
+      "item_id": "item_12",
+      "justification_quality": "strong",
+      "justification_text": "This figure comes from conductivity-temperature-depth casts whose sensors were calibrated against onboard reference standards before and after each deployment, so drift over the cruise can be ruled out.",
+      "language": "en",
+      "placeholder": true,
+      "register_state": "LOW",
+      "response_id": "en_warm_low_item_12",
+      "sha256": "55aac105a35e428bc4a46fc6fa51a3ef14c4e85bf62ab390efad1d1d8665b9a3",
+      "validation": {
+        "errors": [],
+        "ok": true,
+        "warnings": []
+      }
+    }
+  ]
+}

@@ -382,6 +382,32 @@ Word-count-matched justification pair. Only reasoning quality varies; no factual
 | `weak.text` | string | yes | minLen 1 |  |
 | `weak.word_count` | integer | yes | > 0 |  |
 
+#### `StimulusFile`
+
+One materials/responses/{lang}_{condition}_{state}.json file. Carries no timestamp: its bytes must be stable across runs or the hash manifest means nothing.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `meta` | object | yes |  |  |
+| `meta.schema_version` | string | yes | minLen 1 |  |
+| `meta.study` | `"eiai-study3"` | yes |  |  |
+| `meta.language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `meta.condition` | `warm` \| `neutral` | yes |  | Between-subjects emotional style condition. |
+| `meta.register_state` | `LOW` \| `MODERATE` \| `HIGH` \| null | yes |  |  |
+| `meta.generator` | string | yes | minLen 1 |  |
+| `meta.generator_version` | string | yes | minLen 1 |  |
+| `meta.generator_mode` | `anthropic_api` \| `offline_placeholder` | yes |  | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. |
+| `meta.model` | string | yes | minLen 1 |  |
+| `meta.placeholder` | boolean | yes |  |  |
+| `meta.prompt_hashes` | object | yes |  |  |
+| `meta.translation_status` | string | yes | minLen 1 |  |
+| `meta.human_verification` | object | yes |  |  |
+| `meta.human_verification.content_equivalence_checked` | boolean | yes |  |  |
+| `meta.human_verification.component_coding_completed` | boolean | yes |  |  |
+| `meta.human_verification.back_translation_completed` | boolean | yes |  |  |
+| `meta.human_verification.native_speaker_verified` | boolean | yes |  |  |
+| `responses` | object[] | yes | minItems 12, maxItems 12 |  |
+
 #### `StimulusResponse`
 
 One frozen, hash-manifested stimulus.
@@ -395,12 +421,18 @@ One frozen, hash-manifested stimulus.
 | `register_state` | `LOW` \| `MODERATE` \| `HIGH` \| null | yes |  | Null for the neutral condition, which does not branch. |
 | `body` | string | yes | minLen 1 | The AI reply as displayed, excluding the justification sentence. |
 | `justification_quality` | `strong` \| `weak` | yes |  | Within-subjects justification quality factor. Strong = method-referencing; weak = circular appeal to consensus. |
-| `justification_text` | string | yes | minLen 1 |  |
+| `justification_text` | string | yes | minLen 1 | Rendered once per (language, item) and reused across all four condition variants, so it is byte-identical across conditions by construction. Displayed as its own element because scroll depth on it is the H4 mediator. |
 | `followups` | object | yes |  | Pre-written replies to the three fixed follow-ups. The challenge reply must hold the stated value in both conditions. |
 | `followups.measurement` | string | yes | minLen 1 |  |
 | `followups.certainty` | string | yes | minLen 1 |  |
 | `followups.challenge` | string | yes | minLen 1 |  |
-| `sha256` | string | yes | pattern `^[a-f0-9]{64}$` | Lowercase hex SHA-256 digest. |
+| `placeholder` | boolean | yes |  | True for offline-generated placeholders. Guards against a placeholder set reaching participants. |
+| `sha256` | string | yes | pattern `^[a-f0-9]{64}$` | Digest over body + justification + the three follow-ups. |
+| `validation` | object | yes |  | Generation-time validation result, retained as provenance. |
+| `validation.ok` | boolean | yes |  |  |
+| `validation.errors` | string[] | yes |  |  |
+| `validation.warnings` | string[] | yes |  |  |
+| `attempts_used` | integer | yes | >= 0 |  |
 
 #### `StimulusManifest`
 
@@ -410,7 +442,9 @@ Committed before collection opens. CI recomputes it and fails on any drift.
 |---|---|---|---|---|
 | `generated_at` | string(date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]00\|[13579][26]00)-02-29\|\d{4}-(?:(?:0[13578]\|1[02])-(?:0[1-9]\|[12]\d\|3[01])\|(?:0[469]\|11)-(?:0[1-9]\|[12]\d\|30)\|(?:02)-(?:0[1-9]\|1\d\|2[0-8])))T(?:(?:[01]\d\|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$` |  |
 | `generator_version` | string | yes | minLen 1 |  |
+| `generator_mode` | `anthropic_api` \| `offline_placeholder` | yes |  | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. |
 | `model` | string | yes | minLen 1 |  |
+| `launch_ready` | boolean | yes |  | False whenever any stimulus is a placeholder. The loader refuses to serve a set with this false. |
 | `items_file_sha256` | string | yes | pattern `^[a-f0-9]{64}$` | Lowercase hex SHA-256 digest. |
 | `manifest_sha256` | string | yes | pattern `^[a-f0-9]{64}$` | Digest over the sorted per-file digests. This is what SESSION_STARTED records. |
 | `files` | object[] | yes |  |  |
@@ -524,3 +558,4 @@ Funnelled suspicion probe, administered in order without backtracking.
 | `FollowupId` | `measurement`, `certainty`, `challenge` | Fixed follow-up options. 'challenge' ("I think that might be wrong") is itself a behavioural measure. |
 | `FunnelStage` | `purpose`, `anomaly`, `belief` | Funnelled suspicion probe stage, administered in this order without backtracking. |
 | `QuestionnaireScale` | `warmth`, `competence`, `trust`, `covariates` | Which questionnaire instrument an answer belongs to. |
+| `GeneratorMode` | `anthropic_api`, `offline_placeholder` | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. |

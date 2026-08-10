@@ -34,10 +34,12 @@ import {
   RegisterState,
   Stratum,
 } from "./primitives.js";
+import { GeneratorMode } from "./stimuli.js";
 import {
   ItemBank,
   ItemRecord,
   JustificationPair,
+  StimulusFile,
   StimulusManifest,
   StimulusResponse,
 } from "./stimuli.js";
@@ -109,6 +111,7 @@ export const schemaRegistry: readonly RegistrySection[] = [
       { name: "ItemBank", schema: ItemBank },
       { name: "ItemRecord", schema: ItemRecord },
       { name: "JustificationPair", schema: JustificationPair },
+      { name: "StimulusFile", schema: StimulusFile },
       { name: "StimulusResponse", schema: StimulusResponse },
       { name: "StimulusManifest", schema: StimulusManifest },
     ],
@@ -142,4 +145,5 @@ export const enumRegistry: readonly RegistryEntry[] = [
   { name: "FollowupId", schema: FollowupId },
   { name: "FunnelStage", schema: FunnelStage },
   { name: "QuestionnaireScale", schema: QuestionnaireScale },
+  { name: "GeneratorMode", schema: GeneratorMode },
 ];
