@@ -1,5 +1,13 @@
-# packages/fsm
+# @eiai/fsm
 
-Not built yet -- scheduled for **day 3** of the build plan (STUDY3_SPEC_v3.md section 10).
+Session flow and register selection.
 
-Session statechart (XState) and the register(confidence) pure function. The register function stays a plain total function with property tests -- a four-line function over [0,100] does not need a statechart, and knowing which tool not to reach for is the point.
+- **`register(confidence)`** — a plain total function over `[0,100]`, verified
+  by property tests. Throws outside the domain rather than clamping: a clamped
+  value would write a wrong register into an immutable log.
+- **`sessionMachine`** — the XState statechart for the session flow, with
+  withdrawal reachable from every screen. Path-generated UI tests live in
+  `apps/study/test`.
+
+Why one is a statechart and the other deliberately is not:
+[ADR-003](../../docs/adr/ADR-003-statechart-session-flow.md).

@@ -1,0 +1,71 @@
+:root {
+  --fg: #1b1f23;
+  --muted: #5b6570;
+  --line: #d8dee4;
+  --accent: #1f6feb;
+  --warn: #9a6700;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--fg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: #fbfcfd; }
+
+.app { max-width: 44rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 2rem;
+}
+.brand { font-weight: 600; font-size: 0.9rem; }
+
+h1 { font-size: 1.4rem; line-height: 1.35; margin: 0 0 1rem; }
+p { line-height: 1.6; }
+
+fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 0 0 1.25rem; padding: 1rem; }
+legend { padding: 0 0.4rem; font-size: 0.9rem; color: var(--muted); }
+
+button {
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+.choice { margin: 0 0.4rem 0.4rem 0; }
+.choice.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.primary { background: var(--accent); border-color: var(--accent); color: #fff; margin-top: 0.5rem; }
+.withdraw { border-color: #d1a0a0; color: #8b2c2c; font-size: 0.85rem; }
+.withdraw-confirm { display: inline-flex; gap: 0.4rem; }
+
+input[type="text"], input:not([type]) {
+  font: inherit; padding: 0.45rem 0.6rem; border: 1px solid var(--line); border-radius: 6px;
+  display: block; margin: 0.35rem 0 1rem; width: 16rem; max-width: 100%;
+}
+label { font-size: 0.9rem; color: var(--muted); }
+
+.slider { margin: 0 0 1.5rem; }
+.slider input[type="range"] { width: 100%; display: block; margin: 0.4rem 0 0.2rem; }
+.slider output { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.progress { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.35rem; }
+.unit { font-size: 0.9rem; color: var(--muted); margin-top: -0.5rem; }
+
+.advice {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.25rem 1rem 1rem;
+  background: #fff;
+  margin: 0 0 1.5rem;
+}
+.justification { color: var(--muted); font-size: 0.95rem; }
+.warning { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
+.stub { color: var(--muted); font-style: italic; }

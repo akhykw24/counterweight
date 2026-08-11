@@ -7,3 +7,4 @@
  */
 
 export * from "./register.js";
+export * from "./session.js";

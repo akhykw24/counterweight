@@ -1,5 +1,13 @@
-# packages/stimuli
+# @eiai/stimuli
 
-Not built yet -- scheduled for **day 2** of the build plan (STUDY3_SPEC_v3.md section 10).
+Loader and hash-manifest verification for the frozen stimulus set.
 
-Loader for the frozen response set plus the SHA-256 manifest check. Serving a response is a lookup.
+`loadStimuli()` re-hashes every response file against `materials/manifest.json`
+and throws on any mismatch; `assertLaunchReady()` refuses a set generated in
+offline placeholder mode. Serving a response is a lookup — nothing here
+generates, interpolates, or falls back, because an improvised stimulus is an
+uncontrolled one.
+
+Node only (it reads the filesystem). The browser build bundles the same JSON
+via `apps/study/src/stimuli.ts`; integrity is checked in CI by the golden-file
+test rather than on every page load.

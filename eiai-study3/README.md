@@ -11,13 +11,13 @@ Specification: [`docs/STUDY3_SPEC_v3.md`](docs/STUDY3_SPEC_v3.md).
 
 ## Status
 
-Day 1 of the seven-day build (`STUDY3_SPEC_v3.md` §10) is complete.
+Days 1-3 of the seven-day build (`STUDY3_SPEC_v3.md` §10) are complete.
 
 | Day | Deliverable | State |
 |---|---|---|
 | 1 | Monorepo scaffold, `packages/schema`, verified `items.json`, justification pairs | **done** |
 | 2 | Register function + property tests; `generate.py` → 144 stimuli; equivalence checks; hash manifest | **done** (stimuli are placeholders — see below) |
-| 3 | Statechart + model-based tests; consent flows; item screen | not started |
+| 3 | Statechart + model-based tests; consent flows; item screen | **done** |
 | 4 | Telemetry package; IndexedDB WAL; ingest service | not started |
 | 5 | Follow-ups, verify button, questionnaire, funnel, debrief; i18n | not started |
 | 6 | Simulation bots + parameter recovery | not started |
@@ -39,6 +39,9 @@ pnpm stimuli:equivalence                 # content equivalence across conditions
 pnpm stimuli:manifest                    # rebuild materials/manifest.json
 pnpm coding:export                       # blinded kappa coding sheets for 2 raters
 pnpm coding:score                        # Cohen's kappa per component
+
+# run the participant app
+pnpm --dir apps/study dev                # http://localhost:5173
 ```
 
 ## Layout
@@ -65,6 +68,39 @@ anything that can be computed later.** A fancier analysis can be added in month
 two. A scroll event from a participant who left in week three cannot.
 
 That is why `packages/schema` is Day 1 and the analysis pipeline is Day 7.
+
+## Day 3 notes
+
+- **Model-based coverage is stated precisely, not as "every path".**
+  `getSimplePaths()` does not terminate usefully here: estimate and confidence
+  are self-transitions in two phases and withdrawal is reachable from
+  everywhere, so simple-path enumeration explodes. The suite covers every
+  reachable screen, withdrawal from every screen, and both consent arms end to
+  end — 46 generated paths driven against the real DOM. See ADR-003.
+- **The spec names `@xstate/test`; that package is stale** at 0.5.1 (XState v4
+  era). Model-based testing moved into `@xstate/graph` for v5. Same technique,
+  current package.
+- **A participant-blocking slider defect was found by hand, not by the model
+  suite.** A range input always shows a thumb somewhere. If the participant
+  agreed with that resting position, no `change` event fired, the machine never
+  received their estimate, and Continue stayed disabled with nothing on screen
+  explaining why. Now committed on pointer and key release too, with a
+  regression test. The model suite passed straight through it, because
+  generated paths always send a value that differs from the default — worth
+  remembering about what generated tests can and cannot see.
+- **Open methodological question: the estimate slider anchors everyone at its
+  midpoint.** `WOA = (final - initial) / (advice - initial)`, so a shared
+  starting position biases the denominator of the primary DV. A free numeric
+  input would remove the anchor. The spec says "slider", so this has not been
+  changed unilaterally — but it should be settled before pre-registration.
+- Vite is configured with an empty inline postcss config. Without it, Vite
+  walks up and applies the **counterweight** repo's `postcss.config.js` and
+  Tailwind config to this app's stylesheet.
+- Questionnaire, funnel and debrief are stub screens so the statechart's later
+  states are reachable now. Their content is day 5.
+- `apps/study/src/events.ts` is an in-memory event recorder with a deliberately
+  narrow interface. Day 4 swaps it for `@eiai/telemetry` without touching call
+  sites. Nothing leaves the tab yet, because there is no ingest endpoint yet.
 
 ## Day 2 notes
 

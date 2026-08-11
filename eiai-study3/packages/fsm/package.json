@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@eiai/schema": "workspace:*"
+    "@eiai/schema": "workspace:*",
+    "xstate": "^5.32.5"
   }
 }

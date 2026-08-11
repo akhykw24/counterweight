@@ -8,6 +8,10 @@
       "@eiai/stimuli": ["./packages/stimuli/src/index.ts"]
     }
   },
+  // Node/library code only. The app is checked by its own tsconfig, which adds
+  // the DOM lib, the JSX transform and vite/client types; folding those into
+  // the root would let a package accidentally depend on `document` and still
+  // typecheck.
   "include": [
     "packages/*/src/**/*.ts",
     "packages/*/scripts/**/*.ts",
