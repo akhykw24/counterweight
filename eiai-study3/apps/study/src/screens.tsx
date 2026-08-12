@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type UIEvent } from "react";
 import type { AgeBand, Language } from "@eiai/schema";
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import { currentItemId } from "@eiai/fsm";
@@ -254,10 +254,12 @@ export function ItemScreen({
   context,
   send,
   phase,
+  onAdviceScroll,
 }: {
   context: SessionContext;
   send: Send;
   phase: "estimate" | "advice" | "revise";
+  onAdviceScroll?: ((fraction: number) => void) | undefined;
 }) {
   const itemId = currentItemId(context);
   if (!itemId) return null;
@@ -310,11 +312,24 @@ export function ItemScreen({
         </>
       )}
 
-      {phase === "advice" && <AdviceBlock context={context} send={send} itemId={itemId} />}
+      {phase === "advice" && (
+        <AdviceBlock
+          context={context}
+          send={send}
+          itemId={itemId}
+          onScroll={onAdviceScroll}
+        />
+      )}
 
       {phase === "revise" && (
         <>
-          <AdviceBlock context={context} send={send} itemId={itemId} readOnly />
+          <AdviceBlock
+            context={context}
+            send={send}
+            itemId={itemId}
+            onScroll={onAdviceScroll}
+            readOnly
+          />
           <Slider
             id="final-estimate"
             testId="final-estimate"
@@ -356,12 +371,14 @@ function AdviceBlock({
   context,
   send,
   itemId,
+  onScroll,
   readOnly = false,
 }: {
   context: SessionContext;
   send: Send;
   itemId: string;
-  readOnly?: boolean;
+  onScroll?: ((fraction: number) => void) | undefined;
+  readOnly?: boolean | undefined;
 }) {
   const stimulus = resolveStimulus(
     context.language ?? "en",
@@ -370,8 +387,24 @@ function AdviceBlock({
     itemId,
   );
 
+  // Fraction of the scrollable extent reached. A response that fits entirely on
+  // screen has no extent, and counts as fully seen rather than as zero -- the
+  // H4 mediator asks whether the justification was displayed, not whether the
+  // participant happened to need to scroll for it.
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    if (!onScroll) return;
+    const el = event.currentTarget;
+    const extent = el.scrollHeight - el.clientHeight;
+    onScroll(extent <= 0 ? 1 : Math.min(1, (el.scrollTop + el.clientHeight) / el.scrollHeight));
+  };
+
   return (
-    <div className="advice" data-testid="advice" data-response-id={stimulus.response_id}>
+    <div
+      className="advice"
+      data-testid="advice"
+      data-response-id={stimulus.response_id}
+      onScroll={handleScroll}
+    >
       <p data-testid="advice-body">{stimulus.body}</p>
       {/* Rendered as its own element: scroll depth on the justification is the
           H4 mediator, so it has to be separately measurable from the body. */}

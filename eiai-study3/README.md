@@ -11,14 +11,14 @@ Specification: [`docs/STUDY3_SPEC_v3.md`](docs/STUDY3_SPEC_v3.md).
 
 ## Status
 
-Days 1-3 of the seven-day build (`STUDY3_SPEC_v3.md` §10) are complete.
+Days 1-4 of the seven-day build (`STUDY3_SPEC_v3.md` §10) are complete.
 
 | Day | Deliverable | State |
 |---|---|---|
 | 1 | Monorepo scaffold, `packages/schema`, verified `items.json`, justification pairs | **done** |
 | 2 | Register function + property tests; `generate.py` → 144 stimuli; equivalence checks; hash manifest | **done** (stimuli are placeholders — see below) |
 | 3 | Statechart + model-based tests; consent flows; item screen | **done** |
-| 4 | Telemetry package; IndexedDB WAL; ingest service | not started |
+| 4 | Telemetry package; IndexedDB WAL; ingest service | **done** |
 | 5 | Follow-ups, verify button, questionnaire, funnel, debrief; i18n | not started |
 | 6 | Simulation bots + parameter recovery | not started |
 | 7 | `replay.py`, `analysis.py`, multiverse, Docker, CI repro gate, `make paper` | not started |
@@ -51,10 +51,10 @@ eiai-study3/
 ├── packages/
 │   ├── schema/       source of truth: Zod schemas -> types, validation, data dictionary
 │   ├── fsm/          (day 3) session statechart + register function
-│   ├── telemetry/    (day 4) event capture, IndexedDB WAL, batched sync
+│   ├── telemetry/    event capture, IndexedDB WAL, batched sync, resume
 │   └── stimuli/      (day 2) frozen responses + loader + hash check
 ├── apps/study/       (day 3) participant-facing React + Vite SPA
-├── services/ingest/  (day 4) single append-only serverless endpoint
+├── services/ingest/  single append-only serverless endpoint + SQL migration
 ├── pipeline/         (day 2+) generation, verification, replay, analysis
 ├── e2e/              (day 5) Playwright: human flows + simulation bots
 ├── materials/        item bank; frozen stimuli and hash manifest land here
@@ -68,6 +68,39 @@ anything that can be computed later.** A fancier analysis can be added in month
 two. A scroll event from a participant who left in week three cannot.
 
 That is why `packages/schema` is Day 1 and the analysis pipeline is Day 7.
+
+## Day 4 notes
+
+- **Zero event loss is asserted, not claimed.**
+  `packages/telemetry/test/durability.test.ts` records events while offline,
+  discards the telemetry instance to simulate a reload, brings the network
+  back, and checks all 22 events arrive exactly once and in sequence order.
+- **Ack after the server has it, never before.** A record leaves the WAL only
+  on a 2xx. Acknowledging optimistically would turn any delivery failure into
+  permanent, undetectable loss.
+- **Insert-only is enforced three times over** — no update or delete code path
+  in the service, UPDATE/DELETE revoked from every client role, and triggers
+  that raise regardless of who attempts them. The paper says the table is
+  append-only, so that should not rest on the application layer alone.
+- **RESPONSE_REVEALED re-emits on resume, by design.** A participant who
+  reloads sees the response again, so `ms_since_reveal` is measured from that
+  second showing — timing across an arbitrarily long gap would inflate every
+  reaction time. The cost: an item can carry more than one reveal, so
+  `pipeline/replay.py` must reduce on the **last** per (session, item) rather
+  than assume one. Pinned by a test so day 7 cannot get it wrong silently.
+- **The advice box has a fixed height and scrolls.** If the response always
+  fitted on screen, scroll depth — the H4 mediator — would be a constant.
+  Identical in both conditions, and both run 60-90 words.
+- **Not handled yet: IndexedDB unavailable.** Some hardened and private-mode
+  browsers refuse it; the WAL open would throw. Needs a fallback (in-memory,
+  with a visible warning) before piloting.
+- **Allocation is still a local stub.** The `ALLOCATE` event carries a
+  hard-coded warm/en:adult assignment. Wiring it to a seeded, backend-served
+  sequence needs `pipeline/allocation.py`, which the spec does not schedule
+  until pre-registration; it must land before the pilot.
+- Supabase is not provisioned. `services/ingest/sql/001_events.sql` is ready to
+  apply and the handler is tested against an in-memory store with the same
+  primary-key semantics, but nothing has been run against a real database.
 
 ## Day 3 notes
 

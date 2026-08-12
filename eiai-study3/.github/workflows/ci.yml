@@ -1,8 +1,9 @@
 name: ci
 
-# Gate as of day 3:
-#   typecheck (libraries + app) -> unit, property, model-based and golden-file
-#   tests -> data-dictionary drift -> content equivalence -> manifest integrity
+# Gate as of day 4:
+#   typecheck (libraries + app) -> unit, property, model-based, durability and
+#   golden-file tests -> data-dictionary drift -> content equivalence ->
+#   manifest integrity
 #
 # Later days add e2e, the simulation-bot parameter-recovery run, and the
 # `make paper` repro gate (STUDY3_SPEC_v3.md section 2).
@@ -42,11 +43,12 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Unit, property, model-based and golden-file tests
+      - name: Unit, property, model-based, durability and golden-file tests
         # Includes the stimulus golden-file test (every frozen response file is
         # re-hashed against the committed manifest, so one changed byte fails
-        # the build) and the model-based UI suite, which drives generated
-        # statechart paths against the real DOM.
+        # the build), the model-based UI suite driving generated statechart
+        # paths against the real DOM, and the offline-durability suite that
+        # asserts zero event loss across a network outage plus a reload.
         run: pnpm test
 
       - name: Data dictionary is not stale

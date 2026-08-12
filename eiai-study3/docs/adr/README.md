@@ -12,4 +12,4 @@ considered and dropped.
 | [001](ADR-001-event-sourcing.md) | Append-only event log, not one row per participant-item | 1 |
 | [002](ADR-002-frozen-stimuli.md) | Pre-generated hash-manifested stimuli, not live LLM calls | 1 |
 | [003](ADR-003-statechart-session-flow.md) | Session flow as a statechart; register stays a pure function | 3 |
-| 004 | Offline write-ahead log in IndexedDB, at-least-once delivery | 4 |
+| [004](ADR-004-offline-write-ahead-log.md) | Offline write-ahead log in IndexedDB, at-least-once delivery | 4 |

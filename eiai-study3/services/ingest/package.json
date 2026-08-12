@@ -1,0 +1,13 @@
+{
+  "name": "@eiai/ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Single append-only write endpoint. Validates against @eiai/schema, inserts idempotently.",
+  "exports": {
+    ".": "./src/handler.ts"
+  },
+  "dependencies": {
+    "@eiai/schema": "workspace:*"
+  }
+}

@@ -5,7 +5,9 @@
     "paths": {
       "@eiai/schema": ["./packages/schema/src/index.ts"],
       "@eiai/fsm": ["./packages/fsm/src/index.ts"],
-      "@eiai/stimuli": ["./packages/stimuli/src/index.ts"]
+      "@eiai/stimuli": ["./packages/stimuli/src/index.ts"],
+      "@eiai/telemetry": ["./packages/telemetry/src/index.ts"],
+      "@eiai/ingest": ["./services/ingest/src/handler.ts"]
     }
   },
   // Node/library code only. The app is checked by its own tsconfig, which adds
@@ -16,6 +18,9 @@
     "packages/*/src/**/*.ts",
     "packages/*/scripts/**/*.ts",
     "packages/*/test/**/*.ts",
+    "services/*/src/**/*.ts",
+    "services/*/api/**/*.ts",
+    "services/*/test/**/*.ts",
     "vitest.config.ts"
   ]
 }

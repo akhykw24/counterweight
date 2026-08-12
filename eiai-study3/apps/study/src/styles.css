@@ -65,7 +65,13 @@ label { font-size: 0.9rem; color: var(--muted); }
   padding: 0.25rem 1rem 1rem;
   background: #fff;
   margin: 0 0 1.5rem;
+  /* A fixed extent is what makes scroll depth measurable at all. If the reply
+     always fitted on screen, the H4 mediator would be a constant. Identical in
+     both conditions, and both conditions run 60-90 words. */
+  max-height: 40vh;
+  overflow-y: auto;
 }
+.hint { font-size: 0.85rem; color: var(--muted); margin: 0.2rem 0 0; }
 .justification { color: var(--muted); font-size: 0.95rem; }
 .warning { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
 .stub { color: var(--muted); font-style: italic; }

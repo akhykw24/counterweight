@@ -8,6 +8,9 @@ export default defineConfig({
     alias: {
       "@eiai/schema": fileURLToPath(new URL("../../packages/schema/src/index.ts", import.meta.url)),
       "@eiai/fsm": fileURLToPath(new URL("../../packages/fsm/src/index.ts", import.meta.url)),
+      "@eiai/telemetry": fileURLToPath(
+        new URL("../../packages/telemetry/src/index.ts", import.meta.url),
+      ),
     },
   },
   css: {

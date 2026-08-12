@@ -1,0 +1,14 @@
+{
+  "name": "@eiai/telemetry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Event capture, IndexedDB write-ahead log, batched sync with backoff, resume tokens.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@eiai/schema": "workspace:*",
+    "idb": "^8.0.3"
+  }
+}

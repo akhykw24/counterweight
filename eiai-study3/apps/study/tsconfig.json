@@ -6,7 +6,8 @@
     "types": ["vite/client", "node"],
     "paths": {
       "@eiai/schema": ["../../packages/schema/src/index.ts"],
-      "@eiai/fsm": ["../../packages/fsm/src/index.ts"]
+      "@eiai/fsm": ["../../packages/fsm/src/index.ts"],
+      "@eiai/telemetry": ["../../packages/telemetry/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx", "vite.config.ts"]
