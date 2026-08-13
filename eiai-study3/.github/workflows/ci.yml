@@ -1,11 +1,11 @@
 name: ci
 
-# Gate as of day 4:
+# Gate as of day 5:
 #   typecheck (libraries + app) -> unit, property, model-based, durability and
 #   golden-file tests -> data-dictionary drift -> content equivalence ->
-#   manifest integrity
+#   manifest integrity -> end-to-end in a real browser
 #
-# Later days add e2e, the simulation-bot parameter-recovery run, and the
+# Later days add the simulation-bot parameter-recovery run and the
 # `make paper` repro gate (STUDY3_SPEC_v3.md section 2).
 
 on:
@@ -64,3 +64,21 @@ jobs:
 
       - name: Stimulus manifest integrity
         run: python pipeline/hash_manifest.py --check
+
+      - name: Install browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end
+        # Real Chromium against the real dev server. The vitest suites drive
+        # React in jsdom, where IndexedDB is faked and layout does not exist;
+        # only this catches a stimulus that fails to bundle or a write-ahead
+        # log that will not open.
+        run: pnpm e2e
+
+      - name: Upload e2e artefacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: eiai-study3/playwright-report/
+          retention-days: 7

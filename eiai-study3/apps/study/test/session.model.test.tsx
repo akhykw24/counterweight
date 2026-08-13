@@ -19,6 +19,12 @@ import { App, stateName } from "../src/App";
  *   - withdrawal from every non-terminal screen, in both arms
  *   - both arms end to end to `done`
  *
+ * The graph is keyed by `serializeState` on flow-relevant context only.
+ * `verifyClicks` is an unbounded counter -- a participant may press "check this
+ * claim" any number of times -- so keying on raw context makes the traversal
+ * non-terminating. Everything a guard reads stays in the key; counters and
+ * answer *values* are collapsed to their shape.
+ *
  * `getSimplePaths()` is deliberately NOT used. With SET_ESTIMATE and
  * SET_CONFIDENCE available as self-transitions in two phases, plus withdrawal
  * reachable from everywhere, simple-path enumeration does not terminate in
@@ -27,6 +33,10 @@ import { App, stateName } from "../src/App";
  */
 
 const ITEM_IDS = ["item_01", "item_02"];
+// One required question, for the same reason there are two items: every
+// answered question is a distinct context, so the full eighteen explodes the
+// graph. The real required set is asserted in the direct machine tests.
+const REQUIRED_QUESTIONS = ["warmth_01"];
 
 const SCREEN_STATES = [
   "eligibility",
@@ -37,7 +47,9 @@ const SCREEN_STATES = [
   { task: "advice" },
   { task: "revise" },
   "questionnaire",
-  "funnel",
+  { funnel: "purpose" },
+  { funnel: "anomaly" },
+  { funnel: "belief" },
   "debrief",
   "done",
   "ineligible",
@@ -71,20 +83,50 @@ function eventsFor(ageBand: string) {
     { type: "SUBMIT_INITIAL" },
     { type: "REQUEST_FINAL" },
     { type: "SUBMIT_FINAL" },
+    { type: "SELECT_FOLLOWUP", followupId: "challenge" },
+    { type: "CLICK_VERIFY" },
+    { type: "ANSWER_QUESTION", id: "warmth_01", value: 5 },
     { type: "SUBMIT_QUESTIONNAIRE" },
-    { type: "SUBMIT_FUNNEL" },
+    { type: "ANSWER_FUNNEL", stage: "purpose", text: "generated" },
+    { type: "ANSWER_FUNNEL", stage: "anomaly", text: "generated" },
+    { type: "ANSWER_FUNNEL", stage: "belief", text: "unsure" },
     { type: "FINISH" },
     { type: "WITHDRAW", atState: "generated" },
   ];
 }
 
+/**
+ * Graph key. Anything a guard reads must stay here or the traversal mistakes a
+ * real transition for a self-loop; anything unbounded must not, or it never
+ * terminates.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function serializeState(snapshot: any): string {
+  const c = snapshot.context;
+  return JSON.stringify({
+    value: snapshot.value,
+    language: c.language,
+    ageGroup: c.ageGroup,
+    priorTraining: c.priorTraining,
+    hasCode: Boolean(c.parentalConsentCode),
+    condition: c.condition,
+    itemIndex: c.itemIndex,
+    initial: [c.initialEstimate !== null, c.initialConfidence !== null],
+    final: [c.finalEstimate !== null, c.finalConfidence !== null],
+    followups: c.followupsSelected.length,
+    answers: Object.keys(c.answers).length,
+    funnel: Object.keys(c.funnelAnswers).sort(),
+    withdrawn: c.withdrawnFrom !== null,
+  });
+}
+
 function modelFor(ageBand: string) {
-  return createTestModel(createSessionMachine(ITEM_IDS) as never, {
+  return createTestModel(createSessionMachine(ITEM_IDS, REQUIRED_QUESTIONS) as never, {
     events: eventsFor(ageBand),
+    serializeState,
   } as never);
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function pathTo(ageBand: string, target: unknown): any | null {
   const paths = modelFor(ageBand).getShortestPaths({
     toState: (s: any) => s.matches(target as never),
@@ -133,10 +175,17 @@ async function execute(user: ReturnType<typeof userEvent.setup>, event: any) {
       return click("request-final");
     case "SUBMIT_FINAL":
       return click("submit-final");
+    case "SELECT_FOLLOWUP":
+      return click(`followup-${event.followupId}`);
+    case "CLICK_VERIFY":
+      return click("verify");
+    case "ANSWER_QUESTION":
+      return click(`${event.id}-${event.value}`);
     case "SUBMIT_QUESTIONNAIRE":
       return click("submit-questionnaire");
-    case "SUBMIT_FUNNEL":
-      return click("submit-funnel");
+    case "ANSWER_FUNNEL":
+      if (event.stage === "belief") return click(`funnel-belief-${event.text}`);
+      return click(`funnel-${event.stage}-submit`);
     case "FINISH":
       return click("submit-debrief");
     case "WITHDRAW":
@@ -152,7 +201,7 @@ async function execute(user: ReturnType<typeof userEvent.setup>, event: any) {
 /** Drives a generated path against the DOM, asserting the screen after each step. */
 async function drive(path: any): Promise<void> {
   const user = userEvent.setup();
-  render(<App machine={createSessionMachine(ITEM_IDS)} />);
+  render(<App machine={createSessionMachine(ITEM_IDS, REQUIRED_QUESTIONS)} />);
 
   for (const step of path.steps) {
     if (String(step.event.type).startsWith("xstate.")) continue;

@@ -1,18 +1,17 @@
 import { useState, type UIEvent } from "react";
-import type { AgeBand, Language } from "@eiai/schema";
+import type { AgeBand, FollowupId, Language, StimulusResponse } from "@eiai/schema";
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import { currentItemId } from "@eiai/fsm";
 import { itemById, resolveStimulus } from "./stimuli";
 
 /**
- * Screens for the day-3 flow.
+ * Eligibility, consent, allocation and the item screen.
  *
  * Every interactive control carries a `data-testid`, because the model-based
  * test drives these by generated path rather than by hand-written script and
  * needs a stable handle on each one.
  *
- * Questionnaire, funnel and debrief are stubs: their content is day 5. They
- * exist so the statechart's later states are reachable and clickable now.
+ * The questionnaire, funnel and debrief live in screens-end.tsx.
  */
 
 export type Send = (event: SessionEvent) => void;
@@ -313,12 +312,15 @@ export function ItemScreen({
       )}
 
       {phase === "advice" && (
-        <AdviceBlock
-          context={context}
-          send={send}
-          itemId={itemId}
-          onScroll={onAdviceScroll}
-        />
+        <>
+          <AdviceBlock
+            context={context}
+            send={send}
+            itemId={itemId}
+            onScroll={onAdviceScroll}
+          />
+          <VerifyButton send={send} clicks={context.verifyClicks} />
+        </>
       )}
 
       {phase === "revise" && (
@@ -330,6 +332,7 @@ export function ItemScreen({
             onScroll={onAdviceScroll}
             readOnly
           />
+          <VerifyButton send={send} clicks={context.verifyClicks} />
           <Slider
             id="final-estimate"
             testId="final-estimate"
@@ -417,45 +420,88 @@ function AdviceBlock({
         </p>
       )}
       {!readOnly && (
-        <button
-          type="button"
-          className="primary"
-          data-testid="request-final"
-          onClick={() => send({ type: "REQUEST_FINAL" })}
-        >
-          Continue
-        </button>
+        <>
+          <FollowupBlock context={context} send={send} stimulus={stimulus} />
+          <button
+            type="button"
+            className="primary"
+            data-testid="request-final"
+            onClick={() => send({ type: "REQUEST_FINAL" })}
+          >
+            Continue
+          </button>
+        </>
       )}
     </div>
   );
 }
 
-export function StubScreen({
-  name,
-  title,
-  cta,
-  event,
+const FOLLOWUP_PROMPTS: { id: FollowupId; label: string }[] = [
+  { id: "measurement", label: "Can you explain how that's measured?" },
+  { id: "certainty", label: "How certain are you about that?" },
+  { id: "challenge", label: "I think that might be wrong." },
+];
+
+function FollowupBlock({
+  context,
   send,
+  stimulus,
 }: {
-  name: string;
-  title: string;
-  cta: string;
-  event: SessionEvent;
+  context: SessionContext;
   send: Send;
+  stimulus: StimulusResponse;
 }) {
   return (
-    <section data-testid={`screen-${name}`}>
-      <h1>{title}</h1>
-      <p className="stub">Built on day 5.</p>
+    <div className="followups" data-testid="followups">
+      <p className="followup-prompt">Would you like to ask anything about that?</p>
+      {FOLLOWUP_PROMPTS.map(({ id, label }) => {
+        const asked = context.followupsSelected.includes(id);
+        return (
+          <div key={id}>
+            <button
+              type="button"
+              className={asked ? "choice selected" : "choice"}
+              data-testid={`followup-${id}`}
+              disabled={asked}
+              onClick={() => send({ type: "SELECT_FOLLOWUP", followupId: id })}
+            >
+              {label}
+            </button>
+            {asked && (
+              <p className="followup-reply" data-testid={`followup-${id}-reply`}>
+                {stimulus.followups[id]}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Logs verification intent and opens nothing (spec section 6, step 5). The
+ * point is to measure the impulse to check, not to satisfy it -- following a
+ * link would leave the study and confound the measure with whatever the
+ * participant then read.
+ */
+export function VerifyButton({ send, clicks }: { send: Send; clicks: number }) {
+  return (
+    <div className="verify">
       <button
         type="button"
-        className="primary"
-        data-testid={`submit-${name}`}
-        onClick={() => send(event)}
+        className="choice"
+        data-testid="verify"
+        onClick={() => send({ type: "CLICK_VERIFY" })}
       >
-        {cta}
+        Check this claim
       </button>
-    </section>
+      {clicks > 0 && (
+        <span className="verify-noted" data-testid="verify-noted">
+          Noted.
+        </span>
+      )}
+    </div>
   );
 }
 

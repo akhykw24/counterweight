@@ -11,7 +11,7 @@ Specification: [`docs/STUDY3_SPEC_v3.md`](docs/STUDY3_SPEC_v3.md).
 
 ## Status
 
-Days 1-4 of the seven-day build (`STUDY3_SPEC_v3.md` §10) are complete.
+Days 1-5 of the seven-day build (`STUDY3_SPEC_v3.md` §10) are complete.
 
 | Day | Deliverable | State |
 |---|---|---|
@@ -19,7 +19,7 @@ Days 1-4 of the seven-day build (`STUDY3_SPEC_v3.md` §10) are complete.
 | 2 | Register function + property tests; `generate.py` → 144 stimuli; equivalence checks; hash manifest | **done** (stimuli are placeholders — see below) |
 | 3 | Statechart + model-based tests; consent flows; item screen | **done** |
 | 4 | Telemetry package; IndexedDB WAL; ingest service | **done** |
-| 5 | Follow-ups, verify button, questionnaire, funnel, debrief; i18n | not started |
+| 5 | Follow-ups, verify button, questionnaire, funnel, debrief; i18n | **done** |
 | 6 | Simulation bots + parameter recovery | not started |
 | 7 | `replay.py`, `analysis.py`, multiverse, Docker, CI repro gate, `make paper` | not started |
 
@@ -40,6 +40,9 @@ pnpm stimuli:manifest                    # rebuild materials/manifest.json
 pnpm coding:export                       # blinded kappa coding sheets for 2 raters
 pnpm coding:score                        # Cohen's kappa per component
 
+# end to end in a real browser (needs `pnpm exec playwright install chromium` once)
+pnpm e2e
+
 # run the participant app
 pnpm --dir apps/study dev                # http://localhost:5173
 ```
@@ -56,7 +59,7 @@ eiai-study3/
 ├── apps/study/       (day 3) participant-facing React + Vite SPA
 ├── services/ingest/  single append-only serverless endpoint + SQL migration
 ├── pipeline/         (day 2+) generation, verification, replay, analysis
-├── e2e/              (day 5) Playwright: human flows + simulation bots
+├── e2e/              Playwright happy-path; day 6 adds the simulation bots
 ├── materials/        item bank; frozen stimuli and hash manifest land here
 └── docs/             spec, ADRs, generated data dictionary
 ```
@@ -68,6 +71,33 @@ anything that can be computed later.** A fancier analysis can be added in month
 two. A scroll event from a participant who left in week three cannot.
 
 That is why `packages/schema` is Day 1 and the analysis pipeline is Day 7.
+
+## Day 5 notes
+
+- **The funnel is three screens, not one form.** The spec requires the stages be
+  administered in order without backtracking, so there is deliberately no
+  transition back: seeing "did anything seem unusual?" must not let a
+  participant revise their more spontaneous answer to "what was this about?".
+- **The debrief is generated from `materials/items.json`.** Correcting a true
+  value there updates what participants are told automatically. Hardcoding the
+  corrections is how someone gets told something the appendix contradicts.
+- **Age band and primary language are no longer asked twice.** Both are captured
+  at eligibility and carried into the questionnaire data. Re-asking twenty
+  minutes later invites a contradicting answer and adds burden for nothing.
+- **Each follow-up may be asked once per item.** The reply is pre-written and
+  identical on a second press, so repeats would only inflate the challenge-rate
+  measure. "Check this claim" is deliberately unlimited — pressing it twice is a
+  real signal.
+- **Russian and Kazakh are empty, not machine-filled.** §11 requires cultural
+  adaptation with back-translation and native-speaker verification. A machine
+  draft would look finished and silently fail the manipulation check in two of
+  three language groups. `t()` falls back to English and `missingKeys()` reports
+  the gap, so it is visible during the pilot rather than invisible in the data.
+- **Model-based path generation needed a custom state key.** `verifyClicks` is
+  an unbounded counter, so keying the graph on raw context never terminates.
+  The key keeps everything a guard reads and collapses counters and answer
+  values to their shape. Getting this wrong in either direction is silent: too
+  much collapsing and the traversal mistakes real transitions for self-loops.
 
 ## Day 4 notes
 

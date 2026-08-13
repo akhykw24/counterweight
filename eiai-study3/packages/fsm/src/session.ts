@@ -3,6 +3,8 @@ import type {
   AgeBand,
   AgeGroup,
   Condition,
+  FollowupId,
+  FunnelStage,
   Language,
   RegisterState,
   Stratum,
@@ -42,6 +44,15 @@ export interface SessionContext {
   finalEstimate: number | null;
   finalConfidence: number | null;
 
+  /** Per-item, reset on advance. Selecting `challenge` is a vigilance measure. */
+  followupsSelected: readonly FollowupId[];
+  /** Per-item count of "check this claim". The button opens nothing. */
+  verifyClicks: number;
+
+  /** questionnaire item id -> answer. Likert integers and categorical strings. */
+  answers: Readonly<Record<string, number | string>>;
+  funnelAnswers: Readonly<Record<string, string>>;
+
   withdrawnFrom: string | null;
 }
 
@@ -64,6 +75,10 @@ export type SessionEvent =
   | { type: "GIVE_CONSENT" }
   | { type: "GIVE_ASSENT" }
   | { type: "ALLOCATE"; condition: Condition; stratum: Stratum; allocationSeq: number }
+  | { type: "SELECT_FOLLOWUP"; followupId: FollowupId }
+  | { type: "CLICK_VERIFY" }
+  | { type: "ANSWER_QUESTION"; id: string; value: number | string }
+  | { type: "ANSWER_FUNNEL"; stage: FunnelStage; text: string }
   | { type: "SET_ESTIMATE"; value: number }
   | { type: "SET_CONFIDENCE"; value: number }
   | { type: "SUBMIT_INITIAL" }
@@ -78,6 +93,19 @@ export type SessionEvent =
   | { type: "WITHDRAW"; atState: string };
 
 const MINOR_BANDS: readonly AgeBand[] = ["14-15", "16-17"];
+
+/**
+ * Every questionnaire item that must be answered before the funnel opens.
+ * Kept here rather than imported from the instrument so the machine has no
+ * dependency on questionnaire copy.
+ */
+export const REQUIRED_QUESTION_IDS: readonly string[] = [
+  "warmth_01", "warmth_02", "warmth_03", "warmth_04", "warmth_05",
+  "competence_01", "competence_02", "competence_03", "competence_04",
+  "trust_01", "trust_02", "trust_03", "trust_04",
+  "cov_age_band", "cov_gender", "cov_primary_language",
+  "cov_ai_usage", "cov_prior_knowledge",
+];
 
 export function ageGroupFor(band: AgeBand): AgeGroup {
   return MINOR_BANDS.includes(band) ? "minor" : "adult";
@@ -98,8 +126,16 @@ export function stratumFor(language: Language, ageGroup: AgeGroup): Stratum {
  * covers a sample of paths while claiming to cover all of them is worse than
  * one that is honest about its scope. The loop-termination guard is verified
  * separately against the real twelve.
+ *
+ * `requiredQuestionIds` is parameterised for the same reason. Each answered
+ * question is a distinct context, so generating paths against the full
+ * eighteen-item questionnaire explodes the graph outright. The model-based
+ * suite passes a single question; the real required set is asserted directly.
  */
-export function createSessionMachine(itemIds: readonly string[] = DEFAULT_ITEM_IDS) {
+export function createSessionMachine(
+  itemIds: readonly string[] = DEFAULT_ITEM_IDS,
+  requiredQuestionIds: readonly string[] = REQUIRED_QUESTION_IDS,
+) {
   return setup({
   types: {
     context: {} as SessionContext,
@@ -117,14 +153,30 @@ export function createSessionMachine(itemIds: readonly string[] = DEFAULT_ITEM_I
     isMinor: ({ context }) => context.ageGroup === "minor",
     hasParentalCode: ({ context }) =>
       context.parentalConsentCode !== null && context.parentalConsentCode.trim().length > 0,
+    // `typeof === "number"`, not `!== null`: a malformed event with no payload
+    // would set the field to `undefined`, which passes a null check and then
+    // throws inside selectRegister. A bad event must not be able to crash a
+    // participant's session.
     initialComplete: ({ context }) =>
-      context.initialEstimate !== null && context.initialConfidence !== null,
+      typeof context.initialEstimate === "number" &&
+      typeof context.initialConfidence === "number",
     finalComplete: ({ context }) =>
-      context.finalEstimate !== null && context.finalConfidence !== null,
+      typeof context.finalEstimate === "number" &&
+      typeof context.finalConfidence === "number",
     finalCompleteWithMoreItems: ({ context }) =>
-      context.finalEstimate !== null &&
-      context.finalConfidence !== null &&
+      typeof context.finalEstimate === "number" &&
+      typeof context.finalConfidence === "number" &&
       context.itemIndex + 1 < context.itemIds.length,
+    questionnaireComplete: ({ context }) =>
+      requiredQuestionIds.every((id) => context.answers[id] !== undefined),
+    // Each follow-up may be asked once per item. The reply is pre-written and
+    // identical on a second press, so allowing repeats would only inflate the
+    // challenge-rate measure -- and it would make `followupsSelected` an
+    // unbounded context, which no graph traversal can enumerate.
+    followupNotYetAsked: ({ context, event }) =>
+      event.type === "SELECT_FOLLOWUP" &&
+      typeof event.followupId === "string" &&
+      !context.followupsSelected.includes(event.followupId),
   },
   actions: {
     setLanguage: assign(({ event }) => ({
@@ -151,16 +203,20 @@ export function createSessionMachine(itemIds: readonly string[] = DEFAULT_ITEM_I
         : {},
     ),
     setInitialEstimate: assign(({ event }) => ({
-      initialEstimate: event.type === "SET_ESTIMATE" ? event.value : null,
+      initialEstimate:
+        event.type === "SET_ESTIMATE" && typeof event.value === "number" ? event.value : null,
     })),
     setInitialConfidence: assign(({ event }) => ({
-      initialConfidence: event.type === "SET_CONFIDENCE" ? event.value : null,
+      initialConfidence:
+        event.type === "SET_CONFIDENCE" && typeof event.value === "number" ? event.value : null,
     })),
     setFinalEstimate: assign(({ event }) => ({
-      finalEstimate: event.type === "SET_ESTIMATE" ? event.value : null,
+      finalEstimate:
+        event.type === "SET_ESTIMATE" && typeof event.value === "number" ? event.value : null,
     })),
     setFinalConfidence: assign(({ event }) => ({
-      finalConfidence: event.type === "SET_CONFIDENCE" ? event.value : null,
+      finalConfidence:
+        event.type === "SET_CONFIDENCE" && typeof event.value === "number" ? event.value : null,
     })),
     /**
      * The register is selected from the INITIAL confidence, before the
@@ -169,9 +225,38 @@ export function createSessionMachine(itemIds: readonly string[] = DEFAULT_ITEM_I
      */
     selectRegister: assign(({ context }) => ({
       registerState:
-        context.condition === null || context.initialConfidence === null
+        context.condition === null || typeof context.initialConfidence !== "number"
           ? null
           : registerFor(context.condition, context.initialConfidence),
+    })),
+    /** Follow-ups are recorded in selection order; the sequence is a measure. */
+    recordFollowup: assign(({ context, event }) =>
+      event.type === "SELECT_FOLLOWUP" && typeof event.followupId === "string"
+        ? { followupsSelected: [...context.followupsSelected, event.followupId] }
+        : {},
+    ),
+    countVerify: assign(({ context }) => ({ verifyClicks: context.verifyClicks + 1 })),
+    recordAnswer: assign(({ context, event }) =>
+      event.type === "ANSWER_QUESTION" && typeof event.id === "string"
+        ? { answers: { ...context.answers, [event.id]: event.value } }
+        : {},
+    ),
+    recordFunnel: assign(({ context, event }) =>
+      event.type === "ANSWER_FUNNEL" && typeof event.stage === "string"
+        ? { funnelAnswers: { ...context.funnelAnswers, [event.stage]: event.text ?? "" } }
+        : {},
+    ),
+    /**
+     * Age band and primary language are already known from eligibility.
+     * Asking again twenty minutes later invites a contradicting answer and
+     * adds burden for nothing, so they are carried across instead.
+     */
+    seedCovariatesFromEligibility: assign(({ context }) => ({
+      answers: {
+        ...context.answers,
+        ...(context.ageBand ? { cov_age_band: context.ageBand } : {}),
+        ...(context.language ? { cov_primary_language: context.language } : {}),
+      },
     })),
     nextItem: assign(({ context }) => ({
       itemIndex: context.itemIndex + 1,
@@ -180,6 +265,8 @@ export function createSessionMachine(itemIds: readonly string[] = DEFAULT_ITEM_I
       registerState: null,
       finalEstimate: null,
       finalConfidence: null,
+      followupsSelected: [],
+      verifyClicks: 0,
     })),
     recordWithdrawalPoint: assign(({ event }) => ({
       withdrawnFrom: event.type === "WITHDRAW" ? event.atState : null,
@@ -204,6 +291,10 @@ export function createSessionMachine(itemIds: readonly string[] = DEFAULT_ITEM_I
     registerState: null,
     finalEstimate: null,
     finalConfidence: null,
+    followupsSelected: [],
+    verifyClicks: 0,
+    answers: {},
+    funnelAnswers: {},
     withdrawnFrom: null,
   }),
 
@@ -273,11 +364,23 @@ export function createSessionMachine(itemIds: readonly string[] = DEFAULT_ITEM_I
         },
         advice: {
           meta: { screen: "item.advice" },
-          on: { REQUEST_FINAL: { target: "revise" } },
+          on: {
+            // Internal transitions: the participant stays on the response and
+            // may take several of these before revising.
+            SELECT_FOLLOWUP: {
+              guard: "followupNotYetAsked",
+              actions: "recordFollowup",
+            },
+            CLICK_VERIFY: { actions: "countVerify" },
+            REQUEST_FINAL: { target: "revise" },
+          },
         },
         revise: {
           meta: { screen: "item.revise" },
           on: {
+            // "check this claim" is available on every item, which includes
+            // while the participant is revising.
+            CLICK_VERIFY: { actions: "countVerify" },
             SET_ESTIMATE: { actions: "setFinalEstimate" },
             SET_CONFIDENCE: { actions: "setFinalConfidence" },
             // Targets `questionnaire` directly rather than a final child with
@@ -301,12 +404,51 @@ export function createSessionMachine(itemIds: readonly string[] = DEFAULT_ITEM_I
 
     questionnaire: {
       meta: { screen: "questionnaire" },
-      on: { SUBMIT_QUESTIONNAIRE: { target: "funnel" } },
+      entry: "seedCovariatesFromEligibility",
+      on: {
+        ANSWER_QUESTION: { actions: "recordAnswer" },
+        SUBMIT_QUESTIONNAIRE: { guard: "questionnaireComplete", target: "funnel" },
+      },
     },
 
+    // Three stages, forward only. The spec requires the probe be administered
+    // in this order without backtracking, so there is deliberately no
+    // transition back: seeing the later questions must not let a participant
+    // revise an earlier, more spontaneous answer.
     funnel: {
-      meta: { screen: "funnel" },
-      on: { SUBMIT_FUNNEL: { target: "debrief" } },
+      initial: "purpose",
+      states: {
+        purpose: {
+          meta: { screen: "funnel.purpose" },
+          on: {
+            ANSWER_FUNNEL: {
+              guard: ({ event }) => event.stage === "purpose",
+              actions: "recordFunnel",
+              target: "anomaly",
+            },
+          },
+        },
+        anomaly: {
+          meta: { screen: "funnel.anomaly" },
+          on: {
+            ANSWER_FUNNEL: {
+              guard: ({ event }) => event.stage === "anomaly",
+              actions: "recordFunnel",
+              target: "belief",
+            },
+          },
+        },
+        belief: {
+          meta: { screen: "funnel.belief" },
+          on: {
+            ANSWER_FUNNEL: {
+              guard: ({ event }) => event.stage === "belief",
+              actions: "recordFunnel",
+              target: "#session.debrief",
+            },
+          },
+        },
+      },
     },
 
     debrief: {

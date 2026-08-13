@@ -10,17 +10,18 @@ import {
   type Recorder,
 } from "./telemetry";
 import { resolveStimulus } from "./stimuli";
+import { translator } from "./i18n";
 import {
   AllocatingScreen,
   AssentScreen,
   ConsentScreen,
   EligibilityScreen,
   ItemScreen,
-  StubScreen,
   TerminalScreen,
   WithdrawButton,
   type Send,
 } from "./screens";
+import { DebriefScreen, FunnelScreen, QuestionnaireScreen } from "./screens-end";
 
 /** Flattens a possibly-nested state value to a dotted name, e.g. `task.estimate`. */
 export function stateName(value: StateValue): string {
@@ -55,6 +56,7 @@ export function App({
   );
   const name = stateName(state.value);
   const context = state.context;
+  const t = translator(context.language ?? "en");
 
   const startedAt = useRef(Date.now());
   const itemPresentedAt = useRef(Date.now());
@@ -203,6 +205,35 @@ export function App({
           });
         }
         break;
+      case "SELECT_FOLLOWUP":
+        if (itemId) {
+          recorder.record("FOLLOWUP_SELECTED", {
+            item_id: itemId,
+            followup_id: event.followupId,
+            ms_since_reveal: Date.now() - revealedAt.current,
+          });
+        }
+        break;
+      case "CLICK_VERIFY":
+        if (itemId) {
+          recorder.record("VERIFY_CLICKED", {
+            item_id: itemId,
+            ms_since_reveal: Date.now() - revealedAt.current,
+          });
+        }
+        break;
+      case "ANSWER_QUESTION":
+        recorder.record("QUESTIONNAIRE_ANSWERED", {
+          scale: event.id.startsWith("cov_")
+            ? "covariates"
+            : event.id.split("_")[0],
+          question_id: event.id,
+          value: event.value,
+        });
+        break;
+      case "ANSWER_FUNNEL":
+        recorder.record("FUNNEL_RESPONSE", { stage: event.stage, text: event.text });
+        break;
       case "FINISH":
         recorder.record("SESSION_COMPLETED", {
           total_duration_ms: Date.now() - startedAt.current,
@@ -266,52 +297,36 @@ export function App({
         )}
 
         {name === "questionnaire" && (
-          <StubScreen
-            name="questionnaire"
-            title="A few questions about the assistant"
-            cta="Continue"
-            event={{ type: "SUBMIT_QUESTIONNAIRE" }}
-            send={send}
-          />
+          <QuestionnaireScreen context={context} send={send} t={t} />
         )}
-        {name === "funnel" && (
-          <StubScreen
-            name="funnel"
-            title="Three last questions"
-            cta="Continue"
-            event={{ type: "SUBMIT_FUNNEL" }}
-            send={send}
-          />
-        )}
+
+        {name === "funnel.purpose" && <FunnelScreen stage="purpose" send={send} t={t} />}
+        {name === "funnel.anomaly" && <FunnelScreen stage="anomaly" send={send} t={t} />}
+        {name === "funnel.belief" && <FunnelScreen stage="belief" send={send} t={t} />}
+
         {name === "debrief" && (
-          <StubScreen
-            name="debrief"
-            title="What this study was really about"
-            cta="Finish"
-            event={{ type: "FINISH" }}
-            send={send}
-          />
+          <DebriefScreen send={send} t={t} language={context.language ?? "en"} />
         )}
 
         {name === "done" && (
           <TerminalScreen
             name="done"
-            title="Thank you"
-            body="Your responses have been recorded. You can close this tab."
+            title={t("done.title")}
+            body={t("done.body")}
           />
         )}
         {name === "withdrawn" && (
           <TerminalScreen
             name="withdrawn"
-            title="You have stopped"
-            body="Nothing further will be recorded. Thank you for your time."
+            title={t("withdrawn.title")}
+            body={t("withdrawn.body")}
           />
         )}
         {name === "ineligible" && (
           <TerminalScreen
             name="ineligible"
-            title="Thank you for your interest"
-            body="This study needs participants without formal training in marine biology or oceanography, so it is not a fit this time."
+            title={t("ineligible.title")}
+            body={t("ineligible.body")}
           />
         )}
       </div>

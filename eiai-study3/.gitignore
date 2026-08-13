@@ -3,6 +3,12 @@ dist/
 .turbo/
 *.tsbuildinfo
 
+# playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
 # analysis + pipeline artifacts
 __pycache__/
 *.py[cod]

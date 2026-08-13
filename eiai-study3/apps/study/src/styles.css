@@ -75,3 +75,34 @@ label { font-size: 0.9rem; color: var(--muted); }
 .justification { color: var(--muted); font-size: 0.95rem; }
 .warning { color: var(--warn); font-size: 0.85rem; font-weight: 600; }
 .stub { color: var(--muted); font-style: italic; }
+
+/* --- follow-ups, verify, questionnaire, funnel, debrief ------------------ */
+
+.followups { margin-top: 1rem; border-top: 1px solid var(--line); padding-top: 0.75rem; }
+.followup-prompt { font-size: 0.9rem; color: var(--muted); margin: 0 0 0.5rem; }
+.followups .choice { margin: 0 0 0.35rem; text-align: left; }
+.followup-reply {
+  margin: 0.2rem 0 0.9rem 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--line);
+  font-size: 0.95rem;
+}
+
+.verify { margin: 0 0 1.5rem; display: flex; align-items: center; gap: 0.6rem; }
+.verify-noted { font-size: 0.85rem; color: var(--muted); }
+
+.likert { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+.likert legend { flex-basis: 100%; color: var(--fg); font-size: 0.95rem; }
+.likert .choice { margin: 0; min-width: 2.2rem; }
+.anchor { font-size: 0.78rem; color: var(--muted); }
+
+h2 { font-size: 1.05rem; margin: 1.75rem 0 0.6rem; }
+
+textarea {
+  font: inherit; width: 100%; padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line); border-radius: 6px; margin: 0.4rem 0 0.8rem;
+}
+
+.debrief-errors { padding-left: 1.1rem; }
+.debrief-errors li { margin-bottom: 1rem; line-height: 1.5; }
+.source { font-size: 0.82rem; color: var(--muted); }
