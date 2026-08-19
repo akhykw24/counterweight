@@ -1,12 +1,16 @@
 name: ci
 
-# Gate as of day 5:
+# Gate as of day 7:
 #   typecheck (libraries + app) -> unit, property, model-based, durability and
 #   golden-file tests -> data-dictionary drift -> content equivalence ->
-#   manifest integrity -> end-to-end in a real browser
+#   manifest integrity -> allocation-sequence freshness -> end-to-end in a real
+#   browser -> simulation bots -> simulator/app bridge -> parameter recovery ->
+#   specification curve -> reproducibility -> the results document itself
 #
-# Later days add the simulation-bot parameter-recovery run and the
-# `make paper` repro gate (STUDY3_SPEC_v3.md section 2).
+# The last four are what make this more than a test suite. Recovery proves the
+# analysis returns effects that were actually planted; the bridge proves the
+# synthetic log is shaped like the real one, without which recovery would only
+# be testing the simulator against itself.
 
 on:
   push:
@@ -40,6 +44,11 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Install Python dependencies
+        # Pinned in requirements.txt. The stimulus pipeline needs none of them;
+        # only the analysis half does.
+        run: pip install -r requirements.txt
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -50,6 +59,11 @@ jobs:
         # paths against the real DOM, and the offline-durability suite that
         # asserts zero event loss across a network outage plus a reload.
         run: pnpm test
+
+      - name: Pipeline tests
+        # The Python half of the invariants: the quality contrast must exclude
+        # fillers, and the event log's hash chain must verify.
+        run: python -m pytest pipeline/tests -q
 
       - name: Data dictionary is not stale
         # The dictionary ships in the paper's appendix. If the schemas moved and
@@ -65,6 +79,12 @@ jobs:
       - name: Stimulus manifest integrity
         run: python pipeline/hash_manifest.py --check
 
+      - name: Allocation sequence is current
+        # The allocation list is a pre-registered artefact. If it no longer
+        # matches its seed, either the seed moved or the file was edited by
+        # hand, and in both cases the randomisation stops being auditable.
+        run: python pipeline/allocation.py --check
+
       - name: Install browser
         run: pnpm exec playwright install --with-deps chromium
 
@@ -74,6 +94,50 @@ jobs:
         # only this catches a stimulus that fails to bundle or a write-ahead
         # log that will not open.
         run: pnpm e2e
+
+      - name: Simulation bots through the real app
+        # Three real browser sessions, one per policy. Small on purpose: this
+        # establishes what the app emits, not the statistics.
+        run: pnpm e2e:bots
+
+      - name: Synthetic participants and parameter recovery
+        # The done-criterion for day 6: planted effects have to come back out.
+        # A non-zero exit here means the pipeline would have mis-estimated real
+        # data in exactly the same way, silently.
+        run: |
+          python pipeline/simulate.py --n 60 --out data/sim-events.jsonl
+          python pipeline/replay.py --events data/sim-events.jsonl --out data/tables
+          python pipeline/analysis.py --tables data/tables \
+            --recover data/sim-truth.csv --json data/results.json
+
+      - name: Simulated and real event streams agree
+        # Without this, recovery above is a statement about simulate.py rather
+        # than about the study pipeline.
+        run: python pipeline/verify_bridge.py
+
+      - name: Projections are reproducible
+        # Same log in, byte-identical tables out. Projections are pure functions
+        # of the event log, and this is where that stops being a claim.
+        run: python pipeline/replay.py --events data/sim-events.jsonl --out data/tables --check
+
+      - name: Specification curve
+        run: python pipeline/multiverse.py --tables data/tables --out data/multiverse
+
+      - name: Results document
+        # `make paper` from a clean checkout, which is the day-7 done-criterion.
+        run: |
+          python pipeline/report.py --results data/results.json \
+            --multiverse data/multiverse --out paper/results.html
+          node scripts/html-to-pdf.mjs paper/results.html paper/results.pdf
+
+      - name: Upload the results document
+        uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: |
+            eiai-study3/paper/results.pdf
+            eiai-study3/data/multiverse/specification_curve.png
+          retention-days: 30
 
       - name: Upload e2e artefacts
         if: failure()

@@ -69,6 +69,7 @@ def manifest_digest(entries: list[dict[str, Any]]) -> str:
 def build(entries: list[dict[str, Any]]) -> dict[str, Any]:
     modes: set[str] = set()
     models: set[str] = set()
+    providers: set[str] = set()
     placeholder = False
 
     for entry in entries:
@@ -76,7 +77,21 @@ def build(entries: list[dict[str, Any]]) -> dict[str, Any]:
         meta = document.get("meta", {})
         modes.add(str(meta.get("generator_mode", "unknown")))
         models.add(str(meta.get("model", "unknown")))
+        providers.add(str(meta.get("provider", "unknown")))
         placeholder = placeholder or bool(meta.get("placeholder"))
+
+    # A split here means the twelve files were not produced by one run -- a
+    # resume that changed model, or a half-regenerated set. The manifest would
+    # otherwise report a single provenance for a set that does not have one, so
+    # this fails rather than picking a winner. `models` was already collected
+    # for the same reason but the mode was being recomputed from the placeholder
+    # flag instead of read, so a mixed set could not have been noticed.
+    for label, values in (("generator_mode", modes), ("model", models), ("provider", providers)):
+        if len(values) > 1:
+            sys.exit(
+                f"stimulus files disagree on {label}: {sorted(values)}\n"
+                "  The frozen set must come from one run. Regenerate with --force."
+            )
 
     return {
         # `Z`, not `+00:00`: the TypeScript schema uses zod's z.iso.datetime(),
@@ -87,8 +102,9 @@ def build(entries: list[dict[str, Any]]) -> dict[str, Any]:
         .isoformat(timespec="seconds")
         .replace("+00:00", "Z"),
         "generator_version": GENERATOR_VERSION,
-        "generator_mode": "offline_placeholder" if placeholder else "anthropic_api",
-        "model": sorted(models)[0] if len(models) == 1 else ", ".join(sorted(models)),
+        "generator_mode": modes.pop(),
+        "provider": providers.pop(),
+        "model": models.pop(),
         "launch_ready": not placeholder,
         "items_file_sha256": sha256_file(ITEMS_PATH),
         "manifest_sha256": manifest_digest(entries),

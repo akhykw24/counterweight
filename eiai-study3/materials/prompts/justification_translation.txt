@@ -13,4 +13,6 @@ Rules:
 - Target length: {TARGET_WORDS} words, within two words either way.
 - Write as a fluent native speaker, not as a literal translation.
 
-Return the rendered sentence only.
+You are rendering the sentence given to you. You are not answering any question,
+and you are not stating what the correct value is. If the sentence describes how
+a figure was established, describe that method; do not supply the figure.

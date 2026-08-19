@@ -1,7 +1,8 @@
 import { useState, type UIEvent } from "react";
 import type { AgeBand, FollowupId, Language, StimulusResponse } from "@eiai/schema";
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
-import { currentItemId } from "@eiai/fsm";
+import { currentItemId, stratumFor } from "@eiai/fsm";
+import { allocate } from "./allocation";
 import { itemById, resolveStimulus } from "./stimuli";
 
 /**
@@ -171,29 +172,56 @@ export function AssentScreen({
   );
 }
 
-export function AllocatingScreen({ send }: { send: Send }) {
+export function AllocatingScreen({
+  context,
+  send,
+  sessionId,
+}: {
+  context: SessionContext;
+  send: Send;
+  sessionId: string;
+}) {
+  // Drawn from the committed seeded sequence in materials/allocation.json,
+  // against the participant's real stratum. Previously both were literals
+  // (`warm`, `en:adult`), which made the neutral arm unreachable and recorded a
+  // stratum that contradicted the eligibility answers.
+  const stratum =
+    context.language && context.ageGroup
+      ? stratumFor(context.language, context.ageGroup)
+      : null;
+  const assignment = stratum ? allocate(sessionId, stratum) : null;
+
   return (
     <section data-testid="screen-allocating">
       <h1>Setting up your session</h1>
       <p>One moment.</p>
-      {/* Day 4 replaces this with a fetch of the pre-computed seeded sequence
-          from the backend. The button keeps the state observable and driveable
-          until then. */}
-      <button
-        type="button"
-        className="primary"
-        data-testid="allocate"
-        onClick={() =>
-          send({
-            type: "ALLOCATE",
-            condition: "warm",
-            stratum: "en:adult",
-            allocationSeq: 0,
-          })
-        }
-      >
-        Continue
-      </button>
+      {assignment === null ? (
+        // Reachable only if the machine let someone past eligibility without
+        // both answers, which would be a statechart bug. Better to show it than
+        // to invent an assignment.
+        <p className="warning" data-testid="allocate-blocked">
+          Eligibility answers are incomplete, so no condition can be assigned.
+        </p>
+      ) : (
+        <button
+          type="button"
+          className="primary"
+          data-testid="allocate"
+          data-condition={assignment.condition}
+          data-stratum={assignment.stratum}
+          data-allocation-seq={assignment.allocationSeq}
+          onClick={() =>
+            send({
+              type: "ALLOCATE",
+              condition: assignment.condition,
+              stratum: assignment.stratum,
+              allocationSeq: assignment.allocationSeq,
+            })
+          }
+        >
+          Continue
+        </button>
+      )}
     </section>
   );
 }

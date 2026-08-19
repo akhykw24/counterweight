@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { ItemBank, type ItemRecord } from "@eiai/schema";
+import { ItemBank, QualityAssignment, withQualityAssignment, type ItemRecord } from "@eiai/schema";
 
 /**
  * The item bank is study apparatus, not configuration. A malformed bank should
@@ -12,8 +12,20 @@ const ITEMS_PATH = fileURLToPath(
   new URL("../../../materials/items.json", import.meta.url),
 );
 
+const ASSIGNMENT_PATH = fileURLToPath(
+  new URL("../../../materials/quality_assignment.json", import.meta.url),
+);
+
 const raw: unknown = JSON.parse(readFileSync(ITEMS_PATH, "utf8"));
 const parsed = ItemBank.safeParse(raw);
+const assignmentRaw: unknown = JSON.parse(readFileSync(ASSIGNMENT_PATH, "utf8"));
+const assignmentParsed = QualityAssignment.safeParse(assignmentRaw);
+
+/** Items with quality and role merged in, as every consumer sees them. */
+const assigned =
+  parsed.success && assignmentParsed.success
+    ? withQualityAssignment(parsed.data, assignmentParsed.data)
+    : [];
 
 function wordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
@@ -67,7 +79,7 @@ describe("item bank contents", () => {
 
   it("matches the design-cell allocation in the spec", () => {
     const byCell: Record<string, string[]> = {};
-    for (const item of items) {
+    for (const item of assigned) {
       (byCell[item.design_cell] ??= []).push(item.id);
     }
     expect(byCell["error_weak"]).toEqual(["item_03", "item_09"]);
@@ -77,16 +89,26 @@ describe("item bank contents", () => {
     expect(byCell["correct_filler"]).toEqual(["item_01", "item_06", "item_08", "item_12"]);
   });
 
-  it("keeps design_cell consistent with is_error and assigned quality", () => {
-    for (const item of items) {
+  it("derives design_cell so it cannot contradict the assignment", () => {
+    for (const item of assigned) {
+      if (item.role === "filler") {
+        expect(item.design_cell, `${item.id}`).toBe("correct_filler");
+        expect(item.is_error, `${item.id} filler must be correct`).toBe(false);
+        continue;
+      }
       const expectedError = item.design_cell.startsWith("error_");
       expect(item.is_error, `${item.id}`).toBe(expectedError);
-      if (item.design_cell.endsWith("_weak")) {
-        expect(item.assigned_justification_quality, `${item.id}`).toBe("weak");
-      } else {
-        expect(item.assigned_justification_quality, `${item.id}`).toBe("strong");
-      }
+      expect(item.design_cell.endsWith("_weak"), `${item.id}`).toBe(
+        item.assigned_justification_quality === "weak",
+      );
     }
+  });
+
+  it("validates materials/quality_assignment.json against its schema", () => {
+    if (!assignmentParsed.success) {
+      throw new Error(JSON.stringify(assignmentParsed.error.issues, null, 2));
+    }
+    expect(Object.keys(assignmentParsed.data.assignment)).toHaveLength(12);
   });
 });
 
@@ -151,8 +173,25 @@ describe("sourcing", () => {
     const bank = parsed.success ? parsed.data : null;
     if (!bank) return;
     const flagged = new Set(bank.items.filter((i) => i.flags.length > 0).map((i) => i.id));
-    const listed = new Set(bank.review_required.map((r) => r.item_id));
+    // Entries with a null item_id concern the bank as a whole rather than any
+    // one item, so they are outside this correspondence by construction.
+    const listed = new Set(
+      bank.review_required.map((r) => r.item_id).filter((id): id is string => id !== null),
+    );
     expect([...flagged].sort()).toEqual([...listed].sort());
+  });
+
+  it("keeps bank-level findings, which belong to no single item", () => {
+    const bank = parsed.success ? parsed.data : null;
+    if (!bank) return;
+    const bankLevel = bank.review_required.filter((r) => r.item_id === null);
+    // The 8 strong / 4 weak split is recorded here rather than against an
+    // arbitrary item. It costs power on H3 without threatening validity, so it
+    // is a decision to take before pre-registration, not a defect to fix.
+    expect(bankLevel.length).toBeGreaterThanOrEqual(1);
+    for (const finding of bankLevel) {
+      expect(finding.summary.length).toBeGreaterThan(40);
+    }
   });
 
   it("marks the values that move over time as volatile", () => {

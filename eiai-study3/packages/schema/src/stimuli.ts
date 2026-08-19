@@ -61,6 +61,18 @@ export const JustificationPair = z
   })
   .describe("Word-count-matched justification pair. Only reasoning quality varies; no factual content differs.");
 
+export const ItemTopic = z
+  .enum([
+    "bathymetry",
+    "diving_physiology",
+    "optics",
+    "hydrothermal",
+    "taxonomy",
+    "life_history",
+    "physical_oceanography",
+  ])
+  .describe("Sub-domain of deep-sea biology the item asks about. A classification of the question stems, not a property carried by the cited sources. Exists so that topic diversity within each justification-quality cell is machine-checkable: a cell drawn entirely from one sub-domain would confound justification quality with subject-matter familiarity.");
+
 export const DesignCell = z
   .enum([
     "error_weak",
@@ -94,10 +106,13 @@ export const ItemRecord = z
     true_value_note: z.string().nullable().describe("Precision, CI, or scope qualification on the true value."),
     advice_value: z.number().finite().describe("The value the AI states. Differs from truth on error items."),
     is_error: z.boolean(),
-    assigned_justification_quality: JustificationQuality.describe(
-      "Which variant is deployed for this item per the spec's allocation table.",
-    ),
-    design_cell: DesignCell,
+    topic: ItemTopic,
+    // Justification quality and analysed/filler role deliberately do NOT live
+    // here. They are in materials/quality_assignment.json, so that reassigning
+    // an item is a config edit plus a stimulus regeneration rather than a bank
+    // edit, and so that design_cell can be derived instead of stored — a stored
+    // cell can contradict the assignment, and that contradiction survives review
+    // because each file looks correct on its own.
     plausible_answer_range: z
       .tuple([z.number(), z.number()])
       .describe("Sanity bounds for the estimate input. Not a correctness check."),
@@ -134,7 +149,9 @@ export const ItemBank = z
     items: z.array(ItemRecord).length(12),
     review_required: z.array(
       z.strictObject({
-        item_id: ItemId,
+        item_id: ItemId.nullable().describe(
+          "The item the finding concerns, or null when it concerns the bank as a whole — an imbalance across items belongs to no single one, and pinning it to an arbitrary item would misfile it.",
+        ),
         severity: z.enum(["low", "medium", "high"]),
         summary: z.string().min(1),
       }),
@@ -142,9 +159,74 @@ export const ItemBank = z
   })
   .describe("materials/items.json in full. Validated in CI, so a malformed bank fails the build rather than a pilot.");
 
+export const ItemRole = z
+  .enum(["analysed", "filler"])
+  .describe("Whether an item enters the justification-quality contrast, or exists only to keep planted errors at 33% of twelve rather than 50% of eight.");
+
+export const QualityAssignmentEntry = z
+  .strictObject({
+    quality: JustificationQuality,
+    role: ItemRole,
+  })
+  .describe("Which justification an item carries, and whether it is analysed.");
+
+export const QualityAssignment = z
+  .strictObject({
+    schema_version: z.string().min(1),
+    study: z.literal("eiai-study3"),
+    source: z.string().min(1),
+    note: z.string().min(1),
+    roles: z.strictObject({
+      analysed: z.string().min(1),
+      filler: z.string().min(1),
+    }),
+    assignment: z.record(ItemId, QualityAssignmentEntry),
+  })
+  .describe("materials/quality_assignment.json. The single source of truth for justification-quality allocation; the item bank carries neither the quality nor the design cell.");
+
+/** design_cell, derived. Deriving it is what stops it disagreeing with the assignment. */
+export function designCellFor(
+  isError: boolean,
+  quality: z.infer<typeof JustificationQuality>,
+  role: z.infer<typeof ItemRole>,
+): z.infer<typeof DesignCell> {
+  if (role === "filler") return "correct_filler";
+  return `${isError ? "error" : "correct"}_${quality}` as z.infer<typeof DesignCell>;
+}
+
+/**
+ * The bank with its assignment merged in, mirroring `_common.load_items()` on
+ * the Python side. Kept as a pure function over already-parsed data so both
+ * languages agree on what an "item" is without either owning file IO.
+ */
+export function withQualityAssignment(
+  bank: z.infer<typeof ItemBank>,
+  assignment: z.infer<typeof QualityAssignment>,
+): (z.infer<typeof ItemRecord> & {
+  assigned_justification_quality: z.infer<typeof JustificationQuality>;
+  role: z.infer<typeof ItemRole>;
+  design_cell: z.infer<typeof DesignCell>;
+})[] {
+  return bank.items.map((item) => {
+    const entry = assignment.assignment[item.id];
+    if (!entry) {
+      throw new Error(
+        `quality_assignment.json has no entry for ${item.id}. Every item must be assigned; ` +
+          `a missing one would silently drop out of the design.`,
+      );
+    }
+    return {
+      ...item,
+      assigned_justification_quality: entry.quality,
+      role: entry.role,
+      design_cell: designCellFor(item.is_error, entry.quality, entry.role),
+    };
+  });
+}
+
 export const GeneratorMode = z
-  .enum(["anthropic_api", "offline_placeholder"])
-  .describe("How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded.");
+  .enum(["live_api", "offline_placeholder"])
+  .describe("How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. Was 'anthropic_api', which named the wrong thing: generation runs against whichever OpenAI-compatible provider is configured, and the provider is recorded separately.");
 
 export const StimulusValidation = z
   .strictObject({
@@ -194,6 +276,10 @@ export const StimulusFile = z
       generator: z.string().min(1),
       generator_version: z.string().min(1),
       generator_mode: GeneratorMode,
+      provider: z
+        .string()
+        .min(1)
+        .describe("Which configured provider served the generation. Recorded because the model id alone is ambiguous: 'openai/gpt-oss-120b' is served by Groq and reads as though it came from OpenAI."),
       model: z.string().min(1),
       placeholder: z.boolean(),
       prompt_hashes: z.record(z.string(), Sha256),
@@ -214,6 +300,7 @@ export const StimulusManifest = z
     generated_at: z.iso.datetime(),
     generator_version: z.string().min(1),
     generator_mode: GeneratorMode,
+    provider: z.string().min(1),
     model: z.string().min(1),
     launch_ready: z
       .boolean()
@@ -237,3 +324,6 @@ export type StimulusFile = z.infer<typeof StimulusFile>;
 export type StimulusManifest = z.infer<typeof StimulusManifest>;
 export type JustificationPair = z.infer<typeof JustificationPair>;
 export type GeneratorMode = z.infer<typeof GeneratorMode>;
+export type ItemRole = z.infer<typeof ItemRole>;
+export type ItemTopic = z.infer<typeof ItemTopic>;
+export type QualityAssignment = z.infer<typeof QualityAssignment>;

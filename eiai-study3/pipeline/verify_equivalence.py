@@ -11,6 +11,8 @@ warm/HIGH, neutral -- must agree on:
 
   1. the numeric advice value, and carry no other numeric claim
   2. the justification text, byte for byte
+  2b. the justification states no number at all -- it is not covered by 1 or 4,
+     which walk the body and follow-ups only
   3. the presence of hedging
   4. the absence of the true value on planted-error items
 
@@ -169,6 +171,26 @@ def verify(report: Report) -> None:
                 qualities == {item["assigned_justification_quality"]},
                 f"{language}/{item_id}: justification_quality disagrees with the item bank",
             )
+
+            # 2b. the justification states no number at all.
+            #
+            # The numeric checks above walk texts_of(), which is the body and
+            # the three follow-ups -- the justification is not in it. So until
+            # this check existed, a justification that named a value was
+            # invisible here: on a planted-error item it would have carried the
+            # true value into text that is byte-identical across all four
+            # variants, and checks 1 and 4 would both have passed it.
+            #
+            # Every source justification in the bank describes how a figure was
+            # established and never states one, so "no digits at all" is the
+            # exact rule rather than a conservative approximation.
+            for justification in sorted(justifications):
+                numbers = sorted(set(extract_numbers(justification)))
+                report.check(
+                    not numbers,
+                    f"{language}/{item_id}: justification states numeric content {numbers}; "
+                    f"source justifications state none",
+                )
 
             # 3. hedging present in every variant
             for response in responses:

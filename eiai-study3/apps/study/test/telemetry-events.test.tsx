@@ -6,7 +6,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { EventBatch } from "@eiai/schema";
 import { createSessionMachine } from "@eiai/fsm";
 import { App } from "../src/App";
+import allocationDocument from "../../../materials/allocation.json";
 import type { Recorder } from "../src/telemetry";
+
+const allocationSequence = (allocationDocument as { sequence: Record<string, string[]> })
+  .sequence;
 
 /**
  * What the app actually emits.
@@ -88,14 +92,29 @@ describe("event emission", () => {
     expect(log.of("ASSENT_GIVEN")).toHaveLength(0);
   });
 
-  it("records allocation with the stratum", async () => {
+  it("records allocation drawn from the committed sequence, at the real stratum", async () => {
     const log = capturing();
     await runToAdvice(log);
-    expect(log.of("ALLOCATED")[0]!.payload).toMatchObject({
-      condition: "warm",
-      stratum: "en:adult",
-      allocation_seq: 0,
-    });
+    const payload = log.of("ALLOCATED")[0]!.payload as {
+      condition: string;
+      stratum: string;
+      allocation_seq: number;
+    };
+
+    // The stratum has to follow the eligibility answers this run actually gave
+    // (English, 25+), not a literal. It used to be hard-coded to "en:adult"
+    // regardless, which agreed with this path by luck and disagreed with every
+    // other one.
+    expect(payload.stratum).toBe("en:adult");
+
+    // And the condition has to be the entry the committed sequence holds at the
+    // recorded index -- not merely a valid-looking value. Asserting the pair
+    // together is what makes this a test of the allocation list rather than of
+    // the enum.
+    const sequence = allocationSequence[payload.stratum]!;
+    expect(payload.allocation_seq).toBeGreaterThanOrEqual(0);
+    expect(payload.allocation_seq).toBeLessThan(sequence.length);
+    expect(payload.condition).toBe(sequence[payload.allocation_seq]);
   });
 
   it("records every intermediate estimate, not just the submitted one", async () => {

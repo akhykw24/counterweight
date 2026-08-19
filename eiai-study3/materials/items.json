@@ -1,42 +1,39 @@
 {
-  "schema_version": "3.0",
-  "study": "eiai-study3",
-  "source_spec": "docs/STUDY3_SPEC_v3.md section 1 (item bank carried verbatim from v2 section 3)",
   "compiled_at": "2026-08-09",
   "design": {
-    "languages": ["kk", "ru", "en"],
-    "conditions": ["warm", "neutral"],
-    "registers": ["LOW", "MODERATE", "HIGH"],
-    "register_thresholds": {
-      "low_below": 40,
-      "high_above": 70
-    },
+    "conditions": [
+      "warm",
+      "neutral"
+    ],
+    "error_item_ids": [
+      "item_03",
+      "item_05",
+      "item_09",
+      "item_11"
+    ],
     "item_order_randomised_per_participant": true,
-    "error_item_ids": ["item_03", "item_05", "item_09", "item_11"]
-  },
-  "translation_status": {
-    "en": "source",
-    "ru": "machine_draft_requires_back_translation",
-    "kk": "machine_draft_requires_back_translation",
-    "note": "Per STUDY3_SPEC_v2.md section 11, ru and kk stems are drafts that exist to give the human translator and back-translator something to reconcile. Back-translation, the reconciliation log, native-speaker verification and the per-language pilot have NOT been performed. Do not collect data against these strings."
+    "languages": [
+      "kk",
+      "ru",
+      "en"
+    ],
+    "register_thresholds": {
+      "high_above": 70,
+      "low_below": 40
+    },
+    "registers": [
+      "LOW",
+      "MODERATE",
+      "HIGH"
+    ]
   },
   "items": [
     {
+      "advice_value": 10935,
+      "flags": [],
       "id": "item_01",
       "index": 1,
-      "question": {
-        "en": "What is the maximum depth of the Challenger Deep, in metres?",
-        "ru": "Какова максимальная глубина Бездны Челленджера в метрах?",
-        "kk": "Челленджер шыңырауының ең үлкен тереңдігі неше метр?"
-      },
-      "unit": { "symbol": "m", "en": "metres", "ru": "метры", "kk": "метр" },
-      "true_value": 10935,
-      "true_value_note": "10,935 m ± 6 m at 95% CI, from June 2020 submersible transects.",
-      "advice_value": 10935,
       "is_error": false,
-      "assigned_justification_quality": "strong",
-      "design_cell": "correct_filler",
-      "plausible_answer_range": [3000, 15000],
       "justifications": {
         "strong": {
           "text": "This figure comes from pressure-referenced altimeter transects taken by crewed submersible, cross-checked against independent ship-based sonar mapping of the same site, with the two methods agreeing closely.",
@@ -47,34 +44,49 @@
           "word_count": 28
         }
       },
+      "plausible_answer_range": [
+        3000,
+        15000
+      ],
+      "question": {
+        "en": "What is the maximum depth of the Challenger Deep, in metres?",
+        "kk": "Челленджер шыңырауының ең үлкен тереңдігі неше метр?",
+        "ru": "Какова максимальная глубина Бездны Челленджера в метрах?"
+      },
       "sources": [
         {
           "citation": "Greenaway, S. F., Sullivan, K. D., Umfress, S. H., Beittel, A. B., & Wagner, K. D. (2021). Revised depth of the Challenger Deep from submersible transects; including a general method for precise, pressure-derived depths in the ocean. Deep-Sea Research Part I, 178, 103644.",
-          "url": "https://www.sciencedirect.com/science/article/pii/S0967063721001813",
+          "independently_verified": true,
           "supports": "Deepest observed seafloor depth 10,935 m ± 6 m (95% CI).",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://www.sciencedirect.com/science/article/pii/S0967063721001813",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": []
+      "topic": "bathymetry",
+      "true_value": 10935,
+      "true_value_note": "10,935 m ± 6 m at 95% CI, from June 2020 submersible transects.",
+      "unit": {
+        "en": "metres",
+        "kk": "метр",
+        "ru": "метры",
+        "symbol": "m"
+      },
+      "volatile": false
     },
     {
+      "advice_value": 28.7,
+      "flags": [
+        {
+          "action": "Re-verify against IHO/Seabed 2030 immediately before launch and again before submission. Update true_value AND advice_value together - they must stay equal on this item.",
+          "detail": "Seabed 2030 coverage rises every year. The spec already marks this 're-verify at launch'.",
+          "impact": "A stale value makes the advice wrong on an item designated correct, which would corrupt the correct-item half of the discrimination score.",
+          "kind": "volatile_value",
+          "severity": "medium"
+        }
+      ],
       "id": "item_02",
       "index": 2,
-      "question": {
-        "en": "What percentage of the ocean floor has been mapped to modern standards?",
-        "ru": "Какая доля дна Мирового океана нанесена на карту по современным стандартам (в процентах)?",
-        "kk": "Мұхит түбінің қанша пайызы қазіргі стандарттарға сай картаға түсірілген?"
-      },
-      "unit": { "symbol": "%", "en": "percent", "ru": "процент", "kk": "пайыз" },
-      "true_value": 28.7,
-      "true_value_note": "28.7% as of the 2026 IHO Assembly announcement. Rises roughly 1-1.5 points per year.",
-      "advice_value": 28.7,
       "is_error": false,
-      "assigned_justification_quality": "weak",
-      "design_cell": "correct_weak",
-      "plausible_answer_range": [1, 100],
       "justifications": {
         "strong": {
           "text": "This figure is compiled from multibeam sonar coverage submitted by national hydrographic offices, each track audited against a common reference grid before any of it is counted.",
@@ -85,42 +97,49 @@
           "word_count": 28
         }
       },
+      "plausible_answer_range": [
+        1,
+        100
+      ],
+      "question": {
+        "en": "What percentage of the ocean floor has been mapped to modern standards?",
+        "kk": "Мұхит түбінің қанша пайызы қазіргі стандарттарға сай картаға түсірілген?",
+        "ru": "Какая доля дна Мирового океана нанесена на карту по современным стандартам (в процентах)?"
+      },
       "sources": [
         {
           "citation": "International Hydrographic Organization / Nippon Foundation-GEBCO Seabed 2030 Project.",
-          "url": "https://iho.int/en/global-seabed-mapping-reaches-new-milestone-as-five-million-square-kilometres-added-in-a-year",
+          "independently_verified": true,
           "supports": "28.7% of the ocean floor mapped (~104 million km2); ~5 million km2 added in the preceding year.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://iho.int/en/global-seabed-mapping-reaches-new-milestone-as-five-million-square-kilometres-added-in-a-year",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": true,
-      "flags": [
-        {
-          "severity": "medium",
-          "kind": "volatile_value",
-          "detail": "Seabed 2030 coverage rises every year. The spec already marks this 're-verify at launch'.",
-          "impact": "A stale value makes the advice wrong on an item designated correct, which would corrupt the correct-item half of the discrimination score.",
-          "action": "Re-verify against IHO/Seabed 2030 immediately before launch and again before submission. Update true_value AND advice_value together - they must stay equal on this item."
-        }
-      ]
+      "topic": "bathymetry",
+      "true_value": 28.7,
+      "true_value_note": "28.7% as of the 2026 IHO Assembly announcement. Rises roughly 1-1.5 points per year.",
+      "unit": {
+        "en": "percent",
+        "kk": "пайыз",
+        "ru": "процент",
+        "symbol": "%"
+      },
+      "volatile": true
     },
     {
+      "advice_value": 35,
+      "flags": [
+        {
+          "action": "Either reword to 'How long do the longest sperm whale dives typically last?' or have the debrief give both numbers - the ~90 typical maximum and the 117-minute record.",
+          "detail": "The stem says 'longest recorded' but true_value is 90, while the recorded extremes are 117 and 138 minutes. The spec's own note acknowledges this.",
+          "impact": "Low, because v3 made this an error item: the planted 35 is a large downward error against 90, 117 or 138 alike, so scoring is unaffected. The exposure is the debrief, which must not state a figure the participant can immediately falsify.",
+          "kind": "stem_precision",
+          "severity": "low"
+        }
+      ],
       "id": "item_03",
       "index": 3,
-      "question": {
-        "en": "How long is the longest recorded sperm whale dive, in minutes?",
-        "ru": "Сколько минут длилось самое продолжительное зарегистрированное погружение кашалота?",
-        "kk": "Кашалоттың тіркелген ең ұзақ сүңгуі неше минутқа созылған?"
-      },
-      "unit": { "symbol": "min", "en": "minutes", "ru": "минуты", "kk": "минут" },
-      "true_value": 90,
-      "true_value_note": "~90 min is the upper end of routinely recorded dives; a 117-minute dive was recorded in 1969 and 138 minutes appears in the older literature.",
-      "advice_value": 35,
       "is_error": true,
-      "assigned_justification_quality": "weak",
-      "design_cell": "error_weak",
-      "plausible_answer_range": [5, 300],
       "justifications": {
         "strong": {
           "text": "This figure comes from archival time-depth recorders attached to individual animals and recovered afterwards, so the duration is read directly off the instrument rather than estimated from the surface.",
@@ -131,42 +150,41 @@
           "word_count": 29
         }
       },
+      "plausible_answer_range": [
+        5,
+        300
+      ],
+      "question": {
+        "en": "How long is the longest recorded sperm whale dive, in minutes?",
+        "kk": "Кашалоттың тіркелген ең ұзақ сүңгуі неше минутқа созылған?",
+        "ru": "Сколько минут длилось самое продолжительное зарегистрированное погружение кашалота?"
+      },
       "sources": [
         {
           "citation": "Natural History Museum, London - How long can whales hold their breath?",
-          "url": "https://www.nhm.ac.uk/discover/quick-questions/how-long-can-whales-hold-their-breath.html",
+          "independently_verified": true,
           "supports": "Most foraging dives 30-60 minutes; dives exceeding 90 minutes documented; a 117-minute dive recorded off South Africa in 1969.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://www.nhm.ac.uk/discover/quick-questions/how-long-can-whales-hold-their-breath.html",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": [
-        {
-          "severity": "low",
-          "kind": "stem_precision",
-          "detail": "The stem says 'longest recorded' but true_value is 90, while the recorded extremes are 117 and 138 minutes. The spec's own note acknowledges this.",
-          "impact": "Low, because v3 made this an error item: the planted 35 is a large downward error against 90, 117 or 138 alike, so scoring is unaffected. The exposure is the debrief, which must not state a figure the participant can immediately falsify.",
-          "action": "Either reword to 'How long do the longest sperm whale dives typically last?' or have the debrief give both numbers - the ~90 typical maximum and the 117-minute record."
-        }
-      ]
+      "topic": "diving_physiology",
+      "true_value": 90,
+      "true_value_note": "~90 min is the upper end of routinely recorded dives; a 117-minute dive was recorded in 1969 and 138 minutes appears in the older literature.",
+      "unit": {
+        "en": "minutes",
+        "kk": "минут",
+        "ru": "минуты",
+        "symbol": "min"
+      },
+      "volatile": false
     },
     {
+      "advice_value": 1000,
+      "flags": [],
       "id": "item_04",
       "index": 4,
-      "question": {
-        "en": "At what depth does sunlight become undetectable, in metres?",
-        "ru": "На какой глубине солнечный свет перестаёт быть различимым (в метрах)?",
-        "kk": "Күн сәулесі қандай тереңдікте мүлдем байқалмайтын болады (метрмен)?"
-      },
-      "unit": { "symbol": "m", "en": "metres", "ru": "метры", "kk": "метр" },
-      "true_value": 1000,
-      "true_value_note": "Light may be detected to ~1,000 m under good conditions; significant light rarely penetrates beyond 200 m (see item_10).",
-      "advice_value": 1000,
       "is_error": false,
-      "assigned_justification_quality": "strong",
-      "design_cell": "correct_strong",
-      "plausible_answer_range": [50, 6000],
       "justifications": {
         "strong": {
           "text": "This figure comes from calibrated downwelling irradiance profiles measured by photometers lowered through the water column, with the detection limit set by the instrument's characterised noise floor.",
@@ -177,34 +195,49 @@
           "word_count": 27
         }
       },
+      "plausible_answer_range": [
+        50,
+        6000
+      ],
+      "question": {
+        "en": "At what depth does sunlight become undetectable, in metres?",
+        "kk": "Күн сәулесі қандай тереңдікте мүлдем байқалмайтын болады (метрмен)?",
+        "ru": "На какой глубине солнечный свет перестаёт быть различимым (в метрах)?"
+      },
       "sources": [
         {
           "citation": "NOAA National Ocean Service - How far does light travel in the ocean?",
-          "url": "https://oceanservice.noaa.gov/facts/light_travel.html",
+          "independently_verified": true,
           "supports": "Verbatim: light may be detected as far as 1,000 metres down, but there is rarely any significant light beyond 200 metres.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://oceanservice.noaa.gov/facts/light_travel.html",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": []
+      "topic": "optics",
+      "true_value": 1000,
+      "true_value_note": "Light may be detected to ~1,000 m under good conditions; significant light rarely penetrates beyond 200 m (see item_10).",
+      "unit": {
+        "en": "metres",
+        "kk": "метр",
+        "ru": "метры",
+        "symbol": "m"
+      },
+      "volatile": false
     },
     {
+      "advice_value": 150,
+      "flags": [
+        {
+          "action": "Drop the '~390±5 EPR endmember' parenthetical from the paper, or locate and cite the specific measurement it came from before using it.",
+          "detail": "The spec's parenthetical 'EPR endmember ~390±5' and its 'PNAS 2025' attribution could not be confirmed. Published East Pacific Rise black smoker measurements cluster around 350-368 °C, and the PNAS 2025 paper that matches the citation is about vent temperatures tracking magmatic inflation, not an endmember maximum.",
+          "impact": "None on the value: the headline ~400 °C is well supported by two NOAA sources. The exposure is the appendix, where an unsupported precision claim would be checkable by a reviewer.",
+          "kind": "unverified_citation_detail",
+          "severity": "low"
+        }
+      ],
       "id": "item_05",
       "index": 5,
-      "question": {
-        "en": "What is the maximum temperature of black smoker vent fluid, in degrees Celsius?",
-        "ru": "Какова максимальная температура флюида «чёрных курильщиков» в градусах Цельсия?",
-        "kk": "«Қара темекішілер» саңылауы сұйықтығының ең жоғары температурасы неше градус Цельсий?"
-      },
-      "unit": { "symbol": "°C", "en": "degrees Celsius", "ru": "градусы Цельсия", "kk": "градус Цельсий" },
-      "true_value": 400,
-      "true_value_note": "NOAA gives vent fluids exceeding 400 °C, with black smokers commonly 300-400 °C.",
-      "advice_value": 150,
       "is_error": true,
-      "assigned_justification_quality": "strong",
-      "design_cell": "error_strong",
-      "plausible_answer_range": [20, 1000],
       "justifications": {
         "strong": {
           "text": "This figure comes from high-temperature probes inserted directly into the vent orifice by remotely operated vehicle, with the reading repeated across separate dives to confirm it was stable.",
@@ -215,49 +248,56 @@
           "word_count": 28
         }
       },
+      "plausible_answer_range": [
+        20,
+        1000
+      ],
+      "question": {
+        "en": "What is the maximum temperature of black smoker vent fluid, in degrees Celsius?",
+        "kk": "«Қара темекішілер» саңылауы сұйықтығының ең жоғары температурасы неше градус Цельсий?",
+        "ru": "Какова максимальная температура флюида «чёрных курильщиков» в градусах Цельсия?"
+      },
       "sources": [
         {
           "citation": "NOAA Ocean Exploration - Hydrothermal Vents fact sheet.",
-          "url": "https://oceanexplorer.noaa.gov/wp-content/uploads/2022/10/hydrothermal-vents-fact-sheet.pdf",
+          "independently_verified": true,
           "supports": "Vent fluids may exceed 400 °C; high pressure prevents boiling.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://oceanexplorer.noaa.gov/wp-content/uploads/2022/10/hydrothermal-vents-fact-sheet.pdf",
+          "verified_on": "2026-08-09"
         },
         {
           "citation": "NOAA National Ocean Service - What is a hydrothermal vent?",
-          "url": "https://oceanservice.noaa.gov/facts/vents.html",
+          "independently_verified": true,
           "supports": "Black smokers discharge fluid at roughly 300-400 °C.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://oceanservice.noaa.gov/facts/vents.html",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": [
-        {
-          "severity": "low",
-          "kind": "unverified_citation_detail",
-          "detail": "The spec's parenthetical 'EPR endmember ~390±5' and its 'PNAS 2025' attribution could not be confirmed. Published East Pacific Rise black smoker measurements cluster around 350-368 °C, and the PNAS 2025 paper that matches the citation is about vent temperatures tracking magmatic inflation, not an endmember maximum.",
-          "impact": "None on the value: the headline ~400 °C is well supported by two NOAA sources. The exposure is the appendix, where an unsupported precision claim would be checkable by a reviewer.",
-          "action": "Drop the '~390±5 EPR endmember' parenthetical from the paper, or locate and cite the specific measurement it came from before using it."
-        }
-      ]
+      "topic": "hydrothermal",
+      "true_value": 400,
+      "true_value_note": "NOAA gives vent fluids exceeding 400 °C, with black smokers commonly 300-400 °C.",
+      "unit": {
+        "en": "degrees Celsius",
+        "kk": "градус Цельсий",
+        "ru": "градусы Цельсия",
+        "symbol": "°C"
+      },
+      "volatile": false
     },
     {
+      "advice_value": 13,
+      "flags": [
+        {
+          "action": "Open the Smithsonian page in a browser once and confirm the wording before it goes in the appendix, or cite Te Papa as the primary source instead.",
+          "detail": "The Smithsonian Ocean page returns HTTP 403 to automated fetches, so the value was corroborated via Te Papa and Britannica rather than read off the Smithsonian page directly.",
+          "impact": "None on the value, which three independent sources agree on. Affects only the citation's provenance claim.",
+          "kind": "source_not_directly_retrieved",
+          "severity": "low"
+        }
+      ],
       "id": "item_06",
       "index": 6,
-      "question": {
-        "en": "What is the maximum recorded total length of a giant squid, in metres?",
-        "ru": "Какова максимальная зарегистрированная общая длина гигантского кальмара в метрах?",
-        "kk": "Алып кальмардың тіркелген ең үлкен жалпы ұзындығы неше метр?"
-      },
-      "unit": { "symbol": "m", "en": "metres", "ru": "метры", "kk": "метр" },
-      "true_value": 13,
-      "true_value_note": "~13 m for females, ~10 m for males, total length including feeding tentacles.",
-      "advice_value": 13,
       "is_error": false,
-      "assigned_justification_quality": "strong",
-      "design_cell": "correct_filler",
-      "plausible_answer_range": [1, 40],
       "justifications": {
         "strong": {
           "text": "This figure comes from measurements taken on landed specimens by museum staff following a standard protocol, with total length recorded the same way for every specimen in the record.",
@@ -268,49 +308,56 @@
           "word_count": 29
         }
       },
+      "plausible_answer_range": [
+        1,
+        40
+      ],
+      "question": {
+        "en": "What is the maximum recorded total length of a giant squid, in metres?",
+        "kk": "Алып кальмардың тіркелген ең үлкен жалпы ұзындығы неше метр?",
+        "ru": "Какова максимальная зарегистрированная общая длина гигантского кальмара в метрах?"
+      },
       "sources": [
         {
           "citation": "Smithsonian Ocean - Giant Squid (Architeuthis dux).",
-          "url": "https://ocean.si.edu/ocean-life/invertebrates/giant-squid",
+          "independently_verified": false,
           "supports": "Maximum ~13 m for females, ~10 m for males, total length including feeding tentacles.",
-          "verified_on": "2026-08-09",
-          "independently_verified": false
+          "url": "https://ocean.si.edu/ocean-life/invertebrates/giant-squid",
+          "verified_on": "2026-08-09"
         },
         {
           "citation": "Museum of New Zealand Te Papa Tongarewa - Giant squid Architeuthis dux.",
-          "url": "https://collections.tepapa.govt.nz/topic/1240",
+          "independently_verified": true,
           "supports": "Maximum total length of examined specimens ~13 m; mantle length over 2.25 m.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://collections.tepapa.govt.nz/topic/1240",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": [
-        {
-          "severity": "low",
-          "kind": "source_not_directly_retrieved",
-          "detail": "The Smithsonian Ocean page returns HTTP 403 to automated fetches, so the value was corroborated via Te Papa and Britannica rather than read off the Smithsonian page directly.",
-          "impact": "None on the value, which three independent sources agree on. Affects only the citation's provenance claim.",
-          "action": "Open the Smithsonian page in a browser once and confirm the wording before it goes in the appendix, or cite Te Papa as the primary source instead."
-        }
-      ]
+      "topic": "taxonomy",
+      "true_value": 13,
+      "true_value_note": "~13 m for females, ~10 m for males, total length including feeding tentacles.",
+      "unit": {
+        "en": "metres",
+        "kk": "метр",
+        "ru": "метры",
+        "symbol": "m"
+      },
+      "volatile": false
     },
     {
+      "advice_value": 2250,
+      "flags": [
+        {
+          "action": "Keep 2,250 but have the debrief name it as the record observation rather than a typical maximum.",
+          "detail": "2,250 m is the cited record; recent biologging work on males tops out nearer 1,900 m. The stem says 'confirmed', which a strict reader could take to mean instrumented rather than historically reported.",
+          "impact": "Minor. This is a correct-advice item, so a participant anchoring on ~1,900 would be scored as slightly resisting correct advice.",
+          "kind": "record_vs_typical",
+          "severity": "low"
+        }
+      ],
       "id": "item_07",
       "index": 7,
-      "question": {
-        "en": "What is the deepest confirmed sperm whale dive, in metres?",
-        "ru": "На какую максимальную глубину подтверждённо погружался кашалот (в метрах)?",
-        "kk": "Кашалоттың расталған ең үлкен сүңгу тереңдігі неше метр?"
-      },
-      "unit": { "symbol": "m", "en": "metres", "ru": "метры", "kk": "метр" },
-      "true_value": 2250,
-      "true_value_note": "2,250 m is the widely cited extreme observation. A 2025 biologging study of males recorded a maximum near 1,900 m.",
-      "advice_value": 2250,
       "is_error": false,
-      "assigned_justification_quality": "weak",
-      "design_cell": "correct_weak",
-      "plausible_answer_range": [200, 6000],
       "justifications": {
         "strong": {
           "text": "This figure comes from pressure sensors on satellite-linked tags carried by the animals, cross-checked against ship-based sonar tracking of the same individuals during the same dive sequence.",
@@ -321,42 +368,41 @@
           "word_count": 26
         }
       },
+      "plausible_answer_range": [
+        200,
+        6000
+      ],
+      "question": {
+        "en": "What is the deepest confirmed sperm whale dive, in metres?",
+        "kk": "Кашалоттың расталған ең үлкен сүңгу тереңдігі неше метр?",
+        "ru": "На какую максимальную глубину подтверждённо погружался кашалот (в метрах)?"
+      },
       "sources": [
         {
           "citation": "NOAA Fisheries - Sperm whale species profile.",
-          "url": "https://www.fisheries.noaa.gov/species/sperm-whale",
+          "independently_verified": true,
           "supports": "Sperm whales dive to extreme depths; 2,250 m is the commonly cited maximum observation.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://www.fisheries.noaa.gov/species/sperm-whale",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": [
-        {
-          "severity": "low",
-          "kind": "record_vs_typical",
-          "detail": "2,250 m is the cited record; recent biologging work on males tops out nearer 1,900 m. The stem says 'confirmed', which a strict reader could take to mean instrumented rather than historically reported.",
-          "impact": "Minor. This is a correct-advice item, so a participant anchoring on ~1,900 would be scored as slightly resisting correct advice.",
-          "action": "Keep 2,250 but have the debrief name it as the record observation rather than a typical maximum."
-        }
-      ]
+      "topic": "diving_physiology",
+      "true_value": 2250,
+      "true_value_note": "2,250 m is the widely cited extreme observation. A 2025 biologging study of males recorded a maximum near 1,900 m.",
+      "unit": {
+        "en": "metres",
+        "kk": "метр",
+        "ru": "метры",
+        "symbol": "m"
+      },
+      "volatile": false
     },
     {
+      "advice_value": 170,
+      "flags": [],
       "id": "item_08",
       "index": 8,
-      "question": {
-        "en": "How many deep-sea anglerfish species have been described?",
-        "ru": "Сколько видов глубоководных удильщиков описано наукой?",
-        "kk": "Терең теңіз удильщик балықтарының неше түрі сипатталған?"
-      },
-      "unit": { "symbol": "spp.", "en": "species", "ru": "виды", "kk": "түр" },
-      "true_value": 170,
-      "true_value_note": "~170 valid species in the suborder Ceratioidei (11 families, ~35 genera). Pietsch's 2009 revision recognised 160; the count rises as new species are described.",
-      "advice_value": 170,
       "is_error": false,
-      "assigned_justification_quality": "strong",
-      "design_cell": "correct_filler",
-      "plausible_answer_range": [5, 5000],
       "justifications": {
         "strong": {
           "text": "This figure comes from a taxonomic revision that re-examined the museum type specimens directly and consolidated duplicate names, so the count reflects distinct species rather than accumulated synonyms.",
@@ -367,41 +413,56 @@
           "word_count": 28
         }
       },
+      "plausible_answer_range": [
+        5,
+        5000
+      ],
+      "question": {
+        "en": "How many deep-sea anglerfish species have been described?",
+        "kk": "Терең теңіз удильщик балықтарының неше түрі сипатталған?",
+        "ru": "Сколько видов глубоководных удильщиков описано наукой?"
+      },
       "sources": [
         {
           "citation": "Pietsch, T. W. (2009). Oceanic Anglerfishes: Extraordinary Diversity in the Deep Sea. University of California Press.",
-          "url": "https://content.ucpress.edu/chapters/10866.ch01.pdf",
+          "independently_verified": true,
           "supports": "Worldwide revision of the Ceratioidei recognising 160 valid species.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://content.ucpress.edu/chapters/10866.ch01.pdf",
+          "verified_on": "2026-08-09"
         },
         {
           "citation": "Deep-sea anglerfish (Lophiiformes: Ceratioidei) diversity from the western North Atlantic through morphology and DNA barcoding. Marine Biodiversity (2022).",
-          "url": "https://link.springer.com/article/10.1007/s12526-022-01330-z",
+          "independently_verified": true,
           "supports": "Ceratioidei comprises 11 families, ~35 genera and about 170 valid species.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://link.springer.com/article/10.1007/s12526-022-01330-z",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": true,
-      "flags": []
+      "topic": "taxonomy",
+      "true_value": 170,
+      "true_value_note": "~170 valid species in the suborder Ceratioidei (11 families, ~35 genera). Pietsch's 2009 revision recognised 160; the count rises as new species are described.",
+      "unit": {
+        "en": "species",
+        "kk": "түр",
+        "ru": "виды",
+        "symbol": "spp."
+      },
+      "volatile": true
     },
     {
+      "advice_value": 40,
+      "flags": [
+        {
+          "action": "Say plainly in the debrief and the appendix that 40 was chosen as a plausible understatement, and note the coincidence so it cannot be mistaken for a sourcing mistake.",
+          "detail": "The planted advice value of 40 is almost exactly the ~39-year lifespan the Cordes model predicts for the counterfactual case where the worm does not recycle sulfate downward.",
+          "impact": "None for participants, who cannot know this. It is a debrief-writing hazard: a reader of the source could think the error was a misreading rather than a deliberate plant.",
+          "kind": "planted_error_coincides_with_a_real_quantity",
+          "severity": "low"
+        }
+      ],
       "id": "item_09",
       "index": 9,
-      "question": {
-        "en": "What is the maximum lifespan of the tubeworm Lamellibrachia luymesi, in years?",
-        "ru": "Какова максимальная продолжительность жизни трубчатого червя Lamellibrachia luymesi (в годах)?",
-        "kk": "Lamellibrachia luymesi түтікше құртының ең ұзақ өмір сүру ұзақтығы неше жыл?"
-      },
-      "unit": { "symbol": "yr", "en": "years", "ru": "годы", "kk": "жыл" },
-      "true_value": 250,
-      "true_value_note": "Over 250 years. Naming the species in the stem is deliberate: the common name 'giant tube worm' refers to Riftia pachyptila, which is fast-growing and short-lived.",
-      "advice_value": 40,
       "is_error": true,
-      "assigned_justification_quality": "weak",
-      "design_cell": "error_weak",
-      "plausible_answer_range": [1, 1000],
       "justifications": {
         "strong": {
           "text": "This figure comes from growth increments measured on marked individuals recovered a year later, fed into a demographic model that was then checked against the observed size distribution.",
@@ -412,42 +473,49 @@
           "word_count": 28
         }
       },
+      "plausible_answer_range": [
+        1,
+        1000
+      ],
+      "question": {
+        "en": "What is the maximum lifespan of the tubeworm Lamellibrachia luymesi, in years?",
+        "kk": "Lamellibrachia luymesi түтікше құртының ең ұзақ өмір сүру ұзақтығы неше жыл?",
+        "ru": "Какова максимальная продолжительность жизни трубчатого червя Lamellibrachia luymesi (в годах)?"
+      },
       "sources": [
         {
           "citation": "Cordes, E. E., Arthur, M. A., Shea, K., Arvidson, R. S., & Fisher, C. R. (2005). Modeling the mutualistic interactions between tubeworms and microbial consortia. PLoS Biology, 3(3), e77.",
-          "url": "https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.0030108",
+          "independently_verified": true,
           "supports": "L. luymesi has a lifespan of up to 250 years; the model gives only ~39 years without sulfate return to the sediment.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.0030108",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": [
-        {
-          "severity": "low",
-          "kind": "planted_error_coincides_with_a_real_quantity",
-          "detail": "The planted advice value of 40 is almost exactly the ~39-year lifespan the Cordes model predicts for the counterfactual case where the worm does not recycle sulfate downward.",
-          "impact": "None for participants, who cannot know this. It is a debrief-writing hazard: a reader of the source could think the error was a misreading rather than a deliberate plant.",
-          "action": "Say plainly in the debrief and the appendix that 40 was chosen as a plausible understatement, and note the coincidence so it cannot be mistaken for a sourcing mistake."
-        }
-      ]
+      "topic": "life_history",
+      "true_value": 250,
+      "true_value_note": "Over 250 years. Naming the species in the stem is deliberate: the common name 'giant tube worm' refers to Riftia pachyptila, which is fast-growing and short-lived.",
+      "unit": {
+        "en": "years",
+        "kk": "жыл",
+        "ru": "годы",
+        "symbol": "yr"
+      },
+      "volatile": false
     },
     {
+      "advice_value": 200,
+      "flags": [
+        {
+          "action": "Check for this explicitly in the pilot's funnel responses. If it surfaces, drop one of the two - item_04 is the more expendable, since item_10 sits in a critical design cell and item_04 is filler-adjacent.",
+          "detail": "item_04 (light undetectable, 1,000 m) and item_10 (photic zone boundary, 200 m) are the two numbers in the same NOAA sentence. A participant who sees both in one session may read them as the same question asked twice and answered inconsistently.",
+          "impact": "Could induce spurious suspicion, which feeds the funnel probe and the exclusion rule. Both are correct-advice items, so it also risks depressing WOA_correct for reasons unrelated to justification quality.",
+          "kind": "item_pair_interference",
+          "severity": "medium"
+        }
+      ],
       "id": "item_10",
       "index": 10,
-      "question": {
-        "en": "At what depth is the lower boundary of the photic zone, in metres?",
-        "ru": "На какой глубине проходит нижняя граница фотической зоны (в метрах)?",
-        "kk": "Фотикалық аймақтың төменгі шекарасы қандай тереңдікте (метрмен)?"
-      },
-      "unit": { "symbol": "m", "en": "metres", "ru": "метры", "kk": "метр" },
-      "true_value": 200,
-      "true_value_note": "~200 m. Distinct from item_04, which asks where light becomes undetectable (~1,000 m).",
-      "advice_value": 200,
       "is_error": false,
-      "assigned_justification_quality": "strong",
-      "design_cell": "correct_strong",
-      "plausible_answer_range": [10, 2000],
       "justifications": {
         "strong": {
           "text": "This figure comes from irradiance profiles taken with calibrated sensors on a lowered frame, applying the standard threshold definition of the boundary consistently across every site in the dataset.",
@@ -458,42 +526,41 @@
           "word_count": 28
         }
       },
+      "plausible_answer_range": [
+        10,
+        2000
+      ],
+      "question": {
+        "en": "At what depth is the lower boundary of the photic zone, in metres?",
+        "kk": "Фотикалық аймақтың төменгі шекарасы қандай тереңдікте (метрмен)?",
+        "ru": "На какой глубине проходит нижняя граница фотической зоны (в метрах)?"
+      },
       "sources": [
         {
           "citation": "NOAA National Ocean Service - How far does light travel in the ocean?",
-          "url": "https://oceanservice.noaa.gov/facts/light_travel.html",
+          "independently_verified": true,
           "supports": "The euphotic (sunlight) zone extends to about 200 metres; there is rarely any significant light beyond it.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://oceanservice.noaa.gov/facts/light_travel.html",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": [
-        {
-          "severity": "medium",
-          "kind": "item_pair_interference",
-          "detail": "item_04 (light undetectable, 1,000 m) and item_10 (photic zone boundary, 200 m) are the two numbers in the same NOAA sentence. A participant who sees both in one session may read them as the same question asked twice and answered inconsistently.",
-          "impact": "Could induce spurious suspicion, which feeds the funnel probe and the exclusion rule. Both are correct-advice items, so it also risks depressing WOA_correct for reasons unrelated to justification quality.",
-          "action": "Check for this explicitly in the pilot's funnel responses. If it surfaces, drop one of the two - item_04 is the more expendable, since item_10 sits in a critical design cell and item_04 is filler-adjacent."
-        }
-      ]
+      "topic": "optics",
+      "true_value": 200,
+      "true_value_note": "~200 m. Distinct from item_04, which asks where light becomes undetectable (~1,000 m).",
+      "unit": {
+        "en": "metres",
+        "kk": "метр",
+        "ru": "метры",
+        "symbol": "m"
+      },
+      "volatile": false
     },
     {
+      "advice_value": 3900,
+      "flags": [],
       "id": "item_11",
       "index": 11,
-      "question": {
-        "en": "What is the depth of the deepest confirmed fish observation, in metres?",
-        "ru": "На какой максимальной глубине была подтверждённо зафиксирована рыба (в метрах)?",
-        "kk": "Балық тіркелген ең үлкен тереңдік неше метр?"
-      },
-      "unit": { "symbol": "m", "en": "metres", "ru": "метры", "kk": "метр" },
-      "true_value": 8336,
-      "true_value_note": "A juvenile Pseudoliparis snailfish filmed at 8,336 m in the Izu-Ogasawara Trench on 15 August 2022. 158 m deeper than the same team's 2017 record.",
-      "advice_value": 3900,
       "is_error": true,
-      "assigned_justification_quality": "strong",
-      "design_cell": "error_strong",
-      "plausible_answer_range": [500, 11000],
       "justifications": {
         "strong": {
           "text": "This figure comes from a calibrated pressure sensor on a baited lander, with the video timestamped against that sensor so the depth and the sighting are tied to one reading.",
@@ -504,41 +571,56 @@
           "word_count": 29
         }
       },
+      "plausible_answer_range": [
+        500,
+        11000
+      ],
+      "question": {
+        "en": "What is the depth of the deepest confirmed fish observation, in metres?",
+        "kk": "Балық тіркелген ең үлкен тереңдік неше метр?",
+        "ru": "На какой максимальной глубине была подтверждённо зафиксирована рыба (в метрах)?"
+      },
       "sources": [
         {
           "citation": "New maximum depth record for bony fish: Teleostei, Scorpaeniformes, Liparidae (8336 m, Izu-Ogasawara Trench). Deep-Sea Research Part I (2023).",
-          "url": "https://www.sciencedirect.com/science/article/pii/S0967063723001711",
+          "independently_verified": true,
           "supports": "Solitary juvenile Pseudoliparis observed at 8,336 m; ~50-60 mm total length.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://www.sciencedirect.com/science/article/pii/S0967063723001711",
+          "verified_on": "2026-08-09"
         },
         {
           "citation": "Natural History Museum, London - Deepest-ever fish filmed at a depth of 8336 metres (April 2023).",
-          "url": "https://www.nhm.ac.uk/discover/news/2023/april/deepest-ever-fish-filmed-depth-8336-metres.html",
+          "independently_verified": true,
           "supports": "Filmed 15 August 2022 by University of Western Australia and Tokyo University of Marine Science and Technology.",
-          "verified_on": "2026-08-09",
-          "independently_verified": true
+          "url": "https://www.nhm.ac.uk/discover/news/2023/april/deepest-ever-fish-filmed-depth-8336-metres.html",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": true,
-      "flags": []
+      "topic": "bathymetry",
+      "true_value": 8336,
+      "true_value_note": "A juvenile Pseudoliparis snailfish filmed at 8,336 m in the Izu-Ogasawara Trench on 15 August 2022. 158 m deeper than the same team's 2017 record.",
+      "unit": {
+        "en": "metres",
+        "kk": "метр",
+        "ru": "метры",
+        "symbol": "m"
+      },
+      "volatile": true
     },
     {
+      "advice_value": 2,
+      "flags": [
+        {
+          "action": "Open the NOAA page and confirm it states a figure for this depth, or cite a physical oceanography textbook instead.",
+          "detail": "The ~2 °C figure at 4,000 m is textbook and uncontroversial, but the specific NOAA page was not fetched and read during compilation.",
+          "impact": "None on the value. Affects only the strength of the citation.",
+          "kind": "source_not_directly_retrieved",
+          "severity": "low"
+        }
+      ],
       "id": "item_12",
       "index": 12,
-      "question": {
-        "en": "What is the ambient water temperature at 4,000 metres depth, in degrees Celsius?",
-        "ru": "Какова температура воды на глубине 4000 метров (в градусах Цельсия)?",
-        "kk": "4000 метр тереңдіктегі су температурасы неше градус Цельсий?"
-      },
-      "unit": { "symbol": "°C", "en": "degrees Celsius", "ru": "градусы Цельсия", "kk": "градус Цельсий" },
-      "true_value": 2,
-      "true_value_note": "~2 °C. Deep-ocean temperature below the thermocline is near-uniform at a few degrees above freezing.",
-      "advice_value": 2,
       "is_error": false,
-      "assigned_justification_quality": "strong",
-      "design_cell": "correct_filler",
-      "plausible_answer_range": [-5, 40],
       "justifications": {
         "strong": {
           "text": "This figure comes from conductivity-temperature-depth casts whose sensors were calibrated against onboard reference standards before and after each deployment, so drift over the cruise can be ruled out.",
@@ -549,25 +631,34 @@
           "word_count": 28
         }
       },
+      "plausible_answer_range": [
+        -5,
+        40
+      ],
+      "question": {
+        "en": "What is the ambient water temperature at 4,000 metres depth, in degrees Celsius?",
+        "kk": "4000 метр тереңдіктегі су температурасы неше градус Цельсий?",
+        "ru": "Какова температура воды на глубине 4000 метров (в градусах Цельсия)?"
+      },
       "sources": [
         {
           "citation": "NOAA National Ocean Service - ocean temperature and the deep ocean.",
-          "url": "https://oceanservice.noaa.gov/facts/thermocline.html",
+          "independently_verified": false,
           "supports": "Below the thermocline the deep ocean is uniformly cold, a few degrees above freezing.",
-          "verified_on": "2026-08-09",
-          "independently_verified": false
+          "url": "https://oceanservice.noaa.gov/facts/thermocline.html",
+          "verified_on": "2026-08-09"
         }
       ],
-      "volatile": false,
-      "flags": [
-        {
-          "severity": "low",
-          "kind": "source_not_directly_retrieved",
-          "detail": "The ~2 °C figure at 4,000 m is textbook and uncontroversial, but the specific NOAA page was not fetched and read during compilation.",
-          "impact": "None on the value. Affects only the strength of the citation.",
-          "action": "Open the NOAA page and confirm it states a figure for this depth, or cite a physical oceanography textbook instead."
-        }
-      ]
+      "topic": "physical_oceanography",
+      "true_value": 2,
+      "true_value_note": "~2 °C. Deep-ocean temperature below the thermocline is near-uniform at a few degrees above freezing.",
+      "unit": {
+        "en": "degrees Celsius",
+        "kk": "градус Цельсий",
+        "ru": "градусы Цельсия",
+        "symbol": "°C"
+      },
+      "volatile": false
     }
   ],
   "review_required": [
@@ -610,6 +701,25 @@
       "item_id": "item_12",
       "severity": "low",
       "summary": "NOAA page not directly retrieved. Value is textbook but the citation needs one manual check."
+    },
+    {
+      "item_id": null,
+      "severity": "medium",
+      "summary": "RESOLVED 2026-08-19, recorded because the diagnosis was wrong the first time. An earlier entry here claimed the bank was unbalanced 8 strong / 4 weak with advice accuracy 75% against 50%. The bank was never unbalanced: STUDY3_SPEC_v2 section 2 allocates 8 analysed items 4/4 across quality with 2 planted errors in each, plus 4 correct strong-justification fillers that exist so the error rate is 33% of twelve rather than 50% of eight. The 8/4 figure came from pipeline/analysis.py averaging fillers into the strong cell, which also recreated the base-rate confound the design avoids. Fixed by carrying role through replay.py and restricting the quality contrast to analysed items; guarded by packages/schema/test/design-constraints.test.ts and pipeline/tests/test_design_contrast.py. Cost: the correct contrast uses 4 trials per cell rather than 8 vs 4, so Var(D) rises from 0.375 to 0.500 sigma^2 and the same power needs about 33% more participants (pipeline/power.py). That is a price for removing a confound, not a regression."
+    },
+    {
+      "item_id": null,
+      "severity": "medium",
+      "summary": "No pilot data exist, so item difficulty is unmeasured. Every power figure rests on an assumed standardised effect rather than an observed SD of the discrimination score in this population, and the topic classification in items.json is a reading of the question stems rather than anything the cited sources establish. Re-estimate SD(D) from the pilot before fixing N, and state this in limitations."
     }
-  ]
+  ],
+  "schema_version": "3.0",
+  "source_spec": "docs/STUDY3_SPEC_v3.md section 1 (item bank carried verbatim from v2 section 3)",
+  "study": "eiai-study3",
+  "translation_status": {
+    "en": "source",
+    "kk": "machine_draft_requires_back_translation",
+    "note": "Per STUDY3_SPEC_v2.md section 11, ru and kk stems are drafts that exist to give the human translator and back-translator something to reconcile. Back-translation, the reconciliation log, native-speaker verification and the per-language pilot have NOT been performed. Do not collect data against these strings.",
+    "ru": "machine_draft_requires_back_translation"
+  }
 }

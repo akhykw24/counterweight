@@ -28,27 +28,33 @@ Placeholders can never be silently mistaken for real stimuli.
 Usage
 -----
     python pipeline/generate.py --offline            # no API key needed
-    export ANTHROPIC_API_KEY=...
+    # key from eiai-study3/.env (GEMINI_API_KEY)
     python pipeline/generate.py                      # real generation
     python pipeline/generate.py --languages en --conditions warm
     python pipeline/generate.py --dry-run
 
 Exit codes
 ----------
-    0  every record generated and validated
+    0  every planned variant generated and validated
     1  at least one record failed validation (files still written)
-    2  configuration or I/O error before generation started
+    2  configuration or I/O error, or the provider's quota stopped the run with
+       variants still outstanding -- the set is incomplete and must not be
+       manifested or fielded until a later run exits 0
 """
 
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import sys
 import time
 from typing import Any, Iterable
 
 from _common import (
     FOLLOWUP_IDS,
+    MATERIALS,
+    load_dotenv,
     LANGUAGE_NAMES,
     LANGUAGES,
     RESPONSES_DIR,
@@ -69,15 +75,95 @@ from _common import (
     write_json,
 )
 
-GENERATOR_VERSION = "2.0.0"
-DEFAULT_MODEL = "claude-opus-5"
-DEFAULT_MAX_TOKENS = 4096
-DEFAULT_EFFORT = "medium"
-DEFAULT_MAX_ATTEMPTS = 4
+GENERATOR_VERSION = "2.1.0"
+
+# Every provider detail lives here so swapping one is a single edit, per the
+# repo convention. All of them speak the OpenAI chat-completions shape, so the
+# call site below does not change with the provider.
+PROVIDERS: dict[str, dict[str, str]] = {
+    "gemini": {
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "api_key_env": "GEMINI_API_KEY",
+        # Chosen by measurement, not by version number:
+        #   2.5-flash      undershot both bands (52/60 body, 29/30 follow-up)
+        #                  and dropped the required value from some fields
+        #   3.7 / 3.6      persistently 503 / 400 at time of writing
+        #   3.1-flash-lite passes, but sits near the TOP of both bands (83,
+        #                  53-57) -- Russian and Kazakh run longer than English,
+        #                  so it would overshoot there
+        #   3.5-flash      passes mid-band (77, 44-48), leaving headroom
+        "default_model": "gemini-3.5-flash",
+        # Gemini draws reasoning tokens from the same budget as the answer, so
+        # leaving thinking on truncates replies mid-sentence.
+        "default_thinking": "none",
+        "console": "https://aistudio.google.com/apikey",
+    },
+    "groq": {
+        "base_url": "https://api.groq.com/openai/v1",
+        "api_key_env": "GROQ_API_KEY",
+        # Chosen on a three-language test, not an English one:
+        #   llama-3.3-70b / 3.1-8b  no json_schema support at all
+        #   qwen3.6-27b             best English of the lot, but returns 400
+        #                           "Failed to validate JSON" for ru and kk --
+        #                           an English-only trial would have picked it
+        #                           and then died at the Russian phase
+        #   gpt-oss-20b             passes, but leaks consensus-appeal phrasing
+        #                           into the body, which is weak-justification
+        #                           content and would contaminate the within-
+        #                           subjects manipulation
+        #   gpt-oss-120b            passes validation in en, ru and kk
+        "default_model": "openai/gpt-oss-120b",
+        # Groq rejects reasoning_effort="none" outright (400: must be low,
+        # medium or high). "default" omits the parameter, which is what the
+        # calls that were measured against the word-count bands actually sent --
+        # so this reproduces the configuration the model was validated under
+        # rather than an untested neighbouring one.
+        "default_thinking": "default",
+        "console": "https://console.groq.com/keys",
+    },
+}
+# Groq, not Gemini: the Gemini free tier allows 20 requests per day PER MODEL,
+# and a full run is 168. Spreading those across models would mean stimuli
+# written by different models inside one experiment, which defeats the point of
+# freezing them. Groq allows 1000/day, so the whole set comes from one model.
+DEFAULT_PROVIDER = "groq"
+# Groq charges the daily token budget for what a request RESERVES, not what it
+# returns: a call whose prompt is ~1200 tokens was billed 5253 against the cap
+# with max_tokens at 4096. The longest response the set actually contains is
+# 1545 characters of Kazakh, roughly 700 tokens, so 4096 was reserving about
+# five times what any stimulus needs and paying for it in wall-clock days.
+# 1536 keeps more than double the observed worst case -- a truncated body fails
+# validation and gets retried, which would cost far more than the headroom.
+# This caps length only; it cannot change a response that fits.
+DEFAULT_MAX_TOKENS = 1536
+# A 503 here means the model is busy, not that the request is wrong; a long
+# run needs the patience to sit one out rather than dying at call 3 of 168.
+DEFAULT_MAX_ATTEMPTS = 6
+# Paced by Groq's 8000 tokens/minute cap. Measured rather than assumed: 11s was
+# set from the size of a justification call, and phase 2 then collected a 429 on
+# nearly every body call because a body carries the persona and register blocks
+# in and four fields out. With max_tokens reduced the per-call reservation is
+# roughly 2700 tokens, which the 8000/minute cap divides into 2.9 calls -- so
+# 22s, not the 20s that sits exactly on the line.
+DEFAULT_SLEEP = 22.0
+
+# Running total of tokens spent by call_model, reported at the end of a run.
+TOKENS_USED = 0
 
 BODY_WORDS = (60, 90)
 FOLLOWUP_WORDS = (30, 60)
 WORD_HARD_SLACK = 0.5
+# Rendered justifications are checked against their own source's length rather
+# than a shared band, because the pairs are word-count-matched per item.
+JUSTIFICATION_WORD_SLACK = 0.25
+
+# Operational scaffolding for the justification call, kept here rather than in
+# materials/prompts/ for the same reason as OUTPUT_FORMAT_BLOCK: that file is
+# reported verbatim in the appendix as pre-registered manipulation text, and
+# JSON plumbing is not part of the manipulation.
+JUSTIFICATION_FORMAT_BLOCK = """\
+Reply with a JSON object containing exactly one key, "justification", whose
+value is the rendered sentence. No other keys, and no text outside the object."""
 
 REGISTER_PROMPTS = {
     "LOW": "warm_register_low.txt",
@@ -266,7 +352,37 @@ def build_justification_prompt(item: dict[str, Any], language: str) -> str:
         .replace("{LANGUAGE_CODE}", language)
         .replace("{JUSTIFICATION_SOURCE}", str(source["text"]))
         .replace("{TARGET_WORDS}", str(source["word_count"]))
-    )
+    ) + "\n\n" + JUSTIFICATION_FORMAT_BLOCK
+
+
+def validate_justification(text: str, target_words: int) -> list[str]:
+    """Reasons the rendered justification is unusable, empty if it is fine.
+
+    Every source justification in the bank is number-free -- they describe how a
+    figure was established, never what it is -- so "introduce no numeric value
+    that is not in the source" reduces to "contains no digits at all". That is
+    worth enforcing rather than trusting, because a justification that states a
+    value is not merely off-spec: on an error item it leaks the true value into
+    text that is shown identically in both conditions, which is the one thing
+    the design cannot survive.
+    """
+    problems: list[str] = []
+    if not text.strip():
+        return ["empty"]
+    numbers = extract_numbers(text)
+    if numbers:
+        problems.append(f"introduces numeric content {sorted(set(numbers))}; sources have none")
+    # The prompt asks for the source length within two words. Enforcing exactly
+    # that would burn quota re-rolling a three-word miss, and Kazakh and Russian
+    # legitimately compress or expand against English. Check #5 in
+    # verify_equivalence.py is the real gate on length: it compares mean strong
+    # against mean weak per language, which is what would confound the
+    # manipulation. This band only catches a rendering that lost the sentence.
+    slack = max(3, round(target_words * JUSTIFICATION_WORD_SLACK))
+    count = word_count(text)
+    if abs(count - target_words) > slack:
+        problems.append(f"{count} words against a target of {target_words} (+/-{slack})")
+    return problems
 
 
 # ---------------------------------------------------------------------------
@@ -317,54 +433,142 @@ def validate_record(
 # ---------------------------------------------------------------------------
 
 
-def make_client(max_retries: int = 5):
+class QuotaExhausted(RuntimeError):
+    """The provider is refusing further requests for the rest of the quota window."""
+
+
+def make_client(args: argparse.Namespace):
     try:
-        import anthropic
+        from openai import OpenAI
     except ImportError:  # pragma: no cover - dependency guard
-        sys.exit("The `anthropic` package is required for online generation.\n    pip install anthropic")
-    return anthropic.Anthropic(max_retries=max_retries)
+        sys.exit("The `openai` package is required.\n    pip install openai")
+
+    provider = PROVIDERS[args.provider]
+    key = os.environ.get(provider["api_key_env"], "").strip()
+    if not key:
+        sys.exit(
+            f"{provider['api_key_env']} is not set.\n"
+            f"  Get a key at {provider['console']}\n"
+            f"  Then put it in eiai-study3/.env as {provider['api_key_env']}=..."
+        )
+
+    return OpenAI(
+        api_key=key,
+        base_url=provider["base_url"],
+        max_retries=0,  # retries are handled here, so backoff can respect 429s
+        timeout=120.0,
+    )
+
+
+def _retry_after_seconds(error: Exception) -> float | None:
+    """Provider-suggested wait, when the 429 carries one.
+
+    Two spellings: Gemini's `retryDelay: 30s` and Groq's prose
+    `Please try again in 4m59.808s`.
+    """
+    match = re.search(r"retryDelay[\"':\s]+(\d+(?:\.\d+)?)s", str(error))
+    if match:
+        return float(match.group(1))
+    match = re.search(r"try again in (?:(\d+)m)?(\d+(?:\.\d+)?)s", str(error))
+    if match:
+        return float(match.group(1) or 0) * 60 + float(match.group(2))
+    return None
+
+
+def _is_daily_limit(error: Exception) -> bool:
+    """True when a 429 is a per-day cap rather than a per-minute one.
+
+    Groq spells these out: "on tokens per day (TPD)" versus "on tokens per
+    minute (TPM)"; Gemini uses "PerDay" inside the quota id. Waiting is only
+    useful for the second kind.
+    """
+    text = str(error).lower()
+    return "per day" in text or "(tpd)" in text or "(rpd)" in text or "perday" in text
 
 
 def call_model(
-    client: Any, system_prompt: str, user_message: str, schema: dict[str, Any], args: argparse.Namespace
+    client: Any,
+    system_prompt: str,
+    user_message: str,
+    schema: dict[str, Any],
+    schema_name: str,
+    args: argparse.Namespace,
 ) -> dict[str, Any]:
-    import anthropic
+    """One structured-output completion, with 429 backoff.
+
+    Raises QuotaExhausted when the provider keeps refusing -- on a free tier
+    that usually means the daily cap, and hammering it further only wastes
+    time. The caller writes what it has and tells the user to resume.
+    """
     import json as _json
 
-    output_config: dict[str, Any] = {"format": {"type": "json_schema", "schema": schema}}
-    if args.effort:
-        output_config["effort"] = args.effort
+    request: dict[str, Any] = {
+        "model": args.model,
+        "max_tokens": args.max_tokens,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {"name": schema_name, "schema": schema, "strict": True},
+        },
+    }
+    # Gemini 2.5 reasoning tokens are drawn from the same budget as the visible
+    # answer, so leaving thinking on truncates replies mid-sentence. These are
+    # tightly constrained writing tasks; thinking buys nothing here.
+    if args.thinking != "default":
+        request["reasoning_effort"] = args.thinking
 
-    try:
-        message = client.messages.create(
-            model=args.model,
-            max_tokens=args.max_tokens,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_message}],
-            output_config=output_config,
-        )
-    except anthropic.BadRequestError:
-        if not args.effort:
-            raise
-        print("  ! output_config.effort rejected; retrying without it", file=sys.stderr)
-        message = client.messages.create(
-            model=args.model,
-            max_tokens=args.max_tokens,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_message}],
-            output_config={"format": {"type": "json_schema", "schema": schema}},
-        )
+    delay = 8.0
+    for attempt in range(1, args.max_attempts + 1):
+        try:
+            completion = client.chat.completions.create(**request)
+        except Exception as error:  # noqa: BLE001 - provider SDKs vary
+            status = getattr(error, "status_code", None)
+            # A 400 is normally a bug in the request and must not be retried.
+            # json_validate_failed is the exception: the request was accepted,
+            # the model simply sampled something that did not fit the schema.
+            # That is a re-roll, not a defect, so it gets the same treatment as
+            # a 503 rather than killing a 168-call run.
+            malformed_sample = status == 400 and "json_validate_failed" in str(error)
+            transient = status in (408, 409, 429, 500, 502, 503, 504) or malformed_sample
 
-    for block in message.content:
-        if getattr(block, "type", None) == "text":
-            return {
-                "payload": _json.loads(block.text),
-                "usage": {
-                    "input_tokens": message.usage.input_tokens,
-                    "output_tokens": message.usage.output_tokens,
-                },
-            }
-    raise ValueError("response contained no text block")
+            # A per-minute 429 clears in seconds and is worth waiting out. A
+            # per-DAY one does not clear until tomorrow, so backing off through
+            # 8-16-32-64-120s only wastes four minutes per call and then fails
+            # anyway -- on a 144-call run that is hours of grinding to reach a
+            # conclusion available from the first response.
+            if status == 429 and _is_daily_limit(error):
+                raise QuotaExhausted(str(error)[:300]) from error
+            if not transient or attempt == args.max_attempts:
+                if status == 429:
+                    raise QuotaExhausted(str(error)[:300]) from error
+                raise
+            wait = _retry_after_seconds(error) or delay
+            print(f"    ! {status}; ждём {wait:.0f}s", file=sys.stderr)
+            time.sleep(wait)
+            delay = min(delay * 2, 120.0)
+            continue
+
+        text = (completion.choices[0].message.content or "").strip()
+        if not text:
+            raise ValueError("provider returned empty content")
+
+        usage = completion.usage
+        spent = {
+            "input_tokens": getattr(usage, "prompt_tokens", 0) or 0,
+            "output_tokens": getattr(usage, "completion_tokens", 0) or 0,
+        }
+        # The binding free-tier limit is tokens per DAY, and a body call costs
+        # far more than its output suggests -- the persona, register and
+        # constraint blocks go in on every call. Without a running total the
+        # budget is invisible until the provider refuses mid-run.
+        global TOKENS_USED
+        TOKENS_USED += spent["input_tokens"] + spent["output_tokens"]
+        return {"payload": _json.loads(text), "usage": spent}
+
+    raise QuotaExhausted("exhausted retries")
 
 
 # ---------------------------------------------------------------------------
@@ -372,30 +576,107 @@ def call_model(
 # ---------------------------------------------------------------------------
 
 
+JUSTIFICATION_CACHE = MATERIALS / "justifications.json"
+
+
 def build_justifications(
     items: list[dict[str, Any]], languages: Iterable[str], client: Any, args: argparse.Namespace
 ) -> dict[tuple[str, str], str]:
-    """Phase 1: one justification per (language, item), reused across all variants."""
+    """Phase 1: one justification per (language, item), reused across all variants.
+
+    Persisted to disk as it goes. Phase 1 is 24 paid calls whose output phase 2
+    depends on; without the cache, any phase-2 failure would spend them again
+    on the next run -- and on a free tier the quota is the scarce resource.
+    """
     out: dict[tuple[str, str], str] = {}
+    cache: dict[str, str] = {}
+    if JUSTIFICATION_CACHE.exists() and not args.force and not args.offline:
+        cached = read_json(JUSTIFICATION_CACHE)
+        if cached.get("model") == args.model:
+            cache = cached.get("justifications", {})
+
     print("Phase 1: justifications")
+    reused = 0
 
     for language in languages:
         for item in items:
             key = (language, item["id"])
+            flat = f"{language}/{item['id']}"
+
             if args.offline or language == "en":
                 out[key] = offline_justification(item, language)
                 continue
 
+            if flat in cache:
+                out[key] = cache[flat]
+                reused += 1
+                continue
+
             prompt = build_justification_prompt(item, language)
-            result = call_model(client, prompt, str(item["question"][language]), JUSTIFICATION_SCHEMA, args)
-            out[key] = str(result["payload"]["justification"]).strip()
+            source = assigned_justification(item)
+            # The user turn is the sentence to render, NOT item["question"].
+            # Passing the question invited the model to answer it instead of
+            # translating: on item_11 it replied with the real snailfish depth,
+            # which is the true value of an error item and would have leaked it
+            # into text shown identically in both conditions.
+            rendered = ""
+            for attempt in range(1, args.max_attempts + 1):
+                result = call_model(
+                    client, prompt, str(source["text"]),
+                    JUSTIFICATION_SCHEMA, "justification", args,
+                )
+                rendered = str(result["payload"]["justification"]).strip()
+                problems = validate_justification(rendered, int(source["word_count"]))
+                if not problems:
+                    break
+                print(f"    ! {flat} attempt {attempt}: {'; '.join(problems)}", file=sys.stderr)
+                if args.sleep:
+                    time.sleep(args.sleep)
+            else:
+                raise SystemExit(
+                    f"{flat}: justification still invalid after {args.max_attempts} attempts "
+                    f"({'; '.join(problems)}). Nothing downstream is safe to build on it."
+                )
+
+            out[key] = cache[flat] = rendered
+            write_json(JUSTIFICATION_CACHE, {"model": args.model, "justifications": cache})
             if args.sleep:
                 time.sleep(args.sleep)
 
         rendered = "source" if language == "en" else ("placeholder" if args.offline else "generated")
         print(f"  {language}: {len(items)} ({rendered})")
 
+    if reused:
+        print(f"  ({reused} reused from {JUSTIFICATION_CACHE.name})")
     return out
+
+
+def already_done(language: str, condition: str, state: str | None, item_ids: set[str],
+                 args: argparse.Namespace) -> dict[str, Any] | None:
+    """Existing records that can be kept, keyed by item id.
+
+    Free-tier quotas mean a run can stop part-way through; without this a resume
+    would re-spend the quota regenerating work that already validated. Only
+    real, validated, same-model records count -- placeholders never do.
+    """
+    if args.force or args.offline:
+        return None
+    path = RESPONSES_DIR / stimulus_filename(language, condition, state)
+    if not path.exists():
+        return None
+    try:
+        document = read_json(path)
+    except Exception:  # noqa: BLE001 - a corrupt file is simply not resumable
+        return None
+    if document.get("meta", {}).get("model") != args.model:
+        return None
+    keep = {
+        r["item_id"]: r
+        for r in document.get("responses", [])
+        if not r.get("placeholder") and r.get("validation", {}).get("ok")
+        and r["item_id"] in item_ids
+    }
+    return keep or None
 
 
 def build_variant_file(
@@ -410,9 +691,15 @@ def build_variant_file(
     """Phase 2: one stimulus file — all 12 items for one (language, condition, register)."""
     responses: list[dict[str, Any]] = []
     failures: list[str] = []
+    resumable = already_done(language, condition, state, {i["id"] for i in items}, args) or {}
 
     for item in items:
         rid = response_id(language, condition, state, item["id"])
+
+        cached = resumable.get(item["id"])
+        if cached is not None:
+            responses.append(cached)
+            continue
 
         if args.offline:
             payload = offline_body(item, language, condition, state)
@@ -462,7 +749,14 @@ def build_variant_file(
             "register_state": state,
             "generator": "pipeline/generate.py",
             "generator_version": GENERATOR_VERSION,
-            "generator_mode": "offline_placeholder" if args.offline else "anthropic_api",
+            # "anthropic_api" until now, which was a leftover from v1: generation
+            # runs against whichever OpenAI-compatible provider is configured,
+            # and this string ends up in the paper's provenance record. The
+            # provider is named explicitly because the model id alone is
+            # ambiguous -- "openai/gpt-oss-120b" is served by Groq and reads as
+            # though it came from OpenAI.
+            "generator_mode": "offline_placeholder" if args.offline else "live_api",
+            "provider": "none (offline placeholder)" if args.offline else args.provider,
             "model": "none (offline placeholder)" if args.offline else args.model,
             "placeholder": bool(args.offline),
             "prompt_hashes": prompt_hashes(condition, state),
@@ -494,7 +788,9 @@ def generate_body(
     last: dict[str, str] = {}
 
     for attempt in range(1, args.max_attempts + 1):
-        result = call_model(client, system_prompt, user_message, BODY_SCHEMA, args)
+        result = call_model(
+            client, system_prompt, user_message, BODY_SCHEMA, "stimulus", args,
+        )
         last = {k: str(v) for k, v in result["payload"].items()}
         if validate_record(last, item, language)["ok"]:
             return last, attempt
@@ -510,6 +806,13 @@ def prompt_hashes(condition: str, state: str | None) -> dict[str, str]:
         "shared_constraints": sha256_text(load_prompt("shared_constraints.txt")),
         "output_format_block": sha256_text(OUTPUT_FORMAT_BLOCK),
         "language_block": sha256_text(LANGUAGE_BLOCK),
+        # The justification is part of every record but is produced by its own
+        # call, so without these two the provenance trail would cover the body
+        # and silently stop at the text that carries the within-subjects
+        # manipulation. Templates are hashed unsubstituted; the per-item values
+        # are recoverable from items.json.
+        "justification_translation": sha256_text(load_prompt("justification_translation.txt")),
+        "justification_format_block": sha256_text(JUSTIFICATION_FORMAT_BLOCK),
     }
     if condition == "warm":
         hashes["warm_components"] = sha256_text(load_prompt("warm_components.txt"))
@@ -530,20 +833,36 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--conditions", nargs="+", choices=["warm", "neutral"], default=["warm", "neutral"])
     parser.add_argument("--items", nargs="+", default=None, help="item ids, e.g. item_03")
     parser.add_argument("--offline", action="store_true", help="deterministic placeholders, no API calls")
+    parser.add_argument("--force", action="store_true",
+                        help="regenerate even where valid records already exist")
     parser.add_argument("--dry-run", action="store_true", help="print prompts and exit")
-    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--provider", default=DEFAULT_PROVIDER, choices=sorted(PROVIDERS))
+    parser.add_argument("--model", default=None, help="defaults to the provider's model")
     parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
-    parser.add_argument("--effort", default=DEFAULT_EFFORT, choices=["low", "medium", "high", "xhigh", "max", "none"])
+    parser.add_argument(
+        "--thinking",
+        default=None,
+        choices=["none", "low", "medium", "high", "default"],
+        help="reasoning effort; defaults per provider (see PROVIDERS). 'default' omits the "
+             "parameter entirely, which is not the same as sending 'none'",
+    )
     parser.add_argument("--max-attempts", type=int, default=DEFAULT_MAX_ATTEMPTS)
-    parser.add_argument("--sleep", type=float, default=0.4)
+    parser.add_argument("--sleep", type=float, default=DEFAULT_SLEEP,
+                        help="seconds between calls; free tiers are rate-limited")
     args = parser.parse_args(list(argv) if argv is not None else None)
-    if args.effort == "none":
-        args.effort = None
+    if args.model is None:
+        args.model = PROVIDERS[args.provider]["default_model"]
+    if args.thinking is None:
+        args.thinking = PROVIDERS[args.provider]["default_thinking"]
     return args
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(argv)
+    if not args.offline and not args.dry_run:
+        loaded = load_dotenv()
+        if loaded:
+            print("env: " + ", ".join(loaded))
 
     bank = load_items()
     all_items = bank["items"]
@@ -568,18 +887,38 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(f"dry run: {planned} body calls + {justification_calls} justification calls")
         return 0
 
-    client = None if args.offline else make_client()
-    justifications = build_justifications(items, args.languages, client, args)
+    client = None if args.offline else make_client(args)
+    if not args.offline:
+        print(f"provider: {args.provider} / {args.model} (thinking={args.thinking})")
+
+    try:
+        justifications = build_justifications(items, args.languages, client, args)
+    except QuotaExhausted as stop:
+        print(f"\nQuota exhausted during phase 1: {stop}", file=sys.stderr)
+        print("Nothing was written. Re-run when the quota resets.", file=sys.stderr)
+        return 2
 
     print("Phase 2: bodies and follow-ups")
     failures: list[str] = []
     written = 0
+    written_responses = 0
+    planned = [(lang, c, s) for lang in args.languages for c, s in variants]
+    completed: set[tuple[str, str, str | None]] = set()
+    exhausted: QuotaExhausted | None = None
 
     for language in args.languages:
         for condition, state in variants:
-            document, file_failures = build_variant_file(
-                items, language, condition, state, justifications, client, args
-            )
+            if exhausted is not None:
+                break
+            try:
+                document, file_failures = build_variant_file(
+                    items, language, condition, state, justifications, client, args
+                )
+            except QuotaExhausted as stop:
+                # Stop cleanly and keep everything already on disk; a resume
+                # skips finished variants rather than re-spending the quota.
+                exhausted = stop
+                break
             failures.extend(file_failures)
 
             path = RESPONSES_DIR / stimulus_filename(language, condition, state)
@@ -596,13 +935,39 @@ def main(argv: Iterable[str] | None = None) -> int:
 
             write_json(path, document)
             written += 1
+            written_responses += len(document["responses"])
+            completed.add((language, condition, state))
             print(f"  -> materials/responses/{path.name} ({len(document['responses'])} responses)")
 
-    total = sum(1 for _ in args.languages for _ in variants) * len(items)
+    # Counted from what reached disk, not from what was planned. These used to
+    # be the planned totals, so a run that produced one file of twelve still
+    # printed "144 responses" and then, because the eleven variants it never
+    # reached contributed no validation failures, "all records passed
+    # validation" and exit 0. On a free tier that stops mid-run routinely, a
+    # partial set reported as complete is the worst possible failure mode.
+    remaining = [v for v in planned if v not in completed]
     print("\n" + "-" * 60)
-    print(f"{written} files, {total} responses, {total * 3} follow-up branches")
+    print(
+        f"{written} of {len(planned)} files, {written_responses} responses, "
+        f"{written_responses * 3} follow-up branches"
+    )
+    if TOKENS_USED:
+        print(f"{TOKENS_USED:,} tokens spent this run")
     if args.offline:
         print("MODE: offline placeholders. NOT launch-ready. Re-run without --offline before piloting.")
+
+    if exhausted is not None:
+        print(f"\nSTOPPED: provider quota exhausted -- {exhausted}", file=sys.stderr)
+        print(f"\n{len(remaining)} of {len(planned)} variant files were not generated:", file=sys.stderr)
+        for lang, cond, st in remaining:
+            print(f"  - {stimulus_filename(lang, cond, st)}", file=sys.stderr)
+        print(
+            "\nEverything already written is kept. Re-run the same command when the quota\n"
+            "resets; finished variants are skipped rather than regenerated. The set is NOT\n"
+            "complete and must not be manifested or fielded until this prints zero remaining.",
+            file=sys.stderr,
+        )
+        return 2
 
     if failures:
         print(f"\n{len(failures)} validation failure(s):")

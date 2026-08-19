@@ -28,8 +28,41 @@ for _stream in (sys.stdout, sys.stderr):
             pass
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_dotenv() -> list[str]:
+    """Loads .env files into os.environ without overwriting real env vars.
+
+    Checks this repo first, then the enclosing counterweight checkout, so a key
+    already configured there is picked up without being duplicated. Existing
+    environment variables always win -- a shell export overrides a file.
+    """
+    import os
+
+    loaded: list[str] = []
+    candidates = [
+        REPO_ROOT / ".env",
+        REPO_ROOT / ".env.local",
+        REPO_ROOT.parent / ".env",
+        REPO_ROOT.parent / ".env.local",
+    ]
+    for path in candidates:
+        if not path.exists():
+            continue
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and value and key not in os.environ:
+                os.environ[key] = value
+                loaded.append(f"{key} <- {path.name}")
+    return loaded
 MATERIALS = REPO_ROOT / "materials"
 ITEMS_PATH = MATERIALS / "items.json"
+QUALITY_ASSIGNMENT_PATH = MATERIALS / "quality_assignment.json"
 PROMPTS_DIR = MATERIALS / "prompts"
 RESPONSES_DIR = MATERIALS / "responses"
 CODING_DIR = MATERIALS / "coding"
@@ -187,8 +220,47 @@ def all_stimulus_files() -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+def design_cell(is_error: bool, quality: str, role: str) -> str:
+    """The cell an item occupies, derived rather than stored.
+
+    Storing it alongside quality and role would allow the three to disagree,
+    and a design cell that contradicts the assignment is the kind of error that
+    survives review because every individual file looks right.
+    """
+    if role == "filler":
+        return "correct_filler"
+    return f"{'error' if is_error else 'correct'}_{quality}"
+
+
 def load_items() -> dict[str, Any]:
-    return read_json(ITEMS_PATH)
+    """The item bank with the quality assignment merged in.
+
+    Justification quality and analysed/filler role live in
+    materials/quality_assignment.json, not in the bank: reassigning an item is
+    then a config edit plus a stimulus regeneration rather than a code change,
+    and there is exactly one place the assignment can be read from.
+    """
+    bank = read_json(ITEMS_PATH)
+    assignment = read_json(QUALITY_ASSIGNMENT_PATH)["assignment"]
+
+    missing = {i["id"] for i in bank["items"]} ^ set(assignment)
+    if missing:
+        raise ValueError(
+            f"quality_assignment.json and items.json disagree on which items exist: "
+            f"{sorted(missing)}"
+        )
+
+    for item in bank["items"]:
+        entry = assignment[item["id"]]
+        item["assigned_justification_quality"] = entry["quality"]
+        item["role"] = entry["role"]
+        item["design_cell"] = design_cell(bool(item["is_error"]), entry["quality"], entry["role"])
+    return bank
+
+
+def analysed_items(bank: dict[str, Any]) -> list[dict[str, Any]]:
+    """Items that enter the justification-quality contrast, fillers excluded."""
+    return [i for i in bank["items"] if i["role"] == "analysed"]
 
 
 def load_prompt(name: str) -> str:

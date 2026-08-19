@@ -355,8 +355,7 @@ One item bank entry.
 | `true_value_note` | string \| null | yes |  | Precision, CI, or scope qualification on the true value. |
 | `advice_value` | number | yes |  | The value the AI states. Differs from truth on error items. |
 | `is_error` | boolean | yes |  |  |
-| `assigned_justification_quality` | `strong` \| `weak` | yes |  | Which variant is deployed for this item per the spec's allocation table. |
-| `design_cell` | `error_weak` \| `error_strong` \| `correct_weak` \| `correct_strong` \| `correct_filler` | yes |  | Cell in the 2x2 item allocation (STUDY3_SPEC_v2.md section 2). |
+| `topic` | `bathymetry` \| `diving_physiology` \| `optics` \| `hydrothermal` \| `taxonomy` \| `life_history` \| `physical_oceanography` | yes |  | Sub-domain of deep-sea biology the item asks about. A classification of the question stems, not a property carried by the cited sources. Exists so that topic diversity within each justification-quality cell is machine-checkable: a cell drawn entirely from one sub-domain would confound justification quality with subject-matter familiarity. |
 | `plausible_answer_range` | [number, number] | yes |  | Sanity bounds for the estimate input. Not a correctness check. |
 | `justifications` | object | yes |  | Word-count-matched justification pair. Only reasoning quality varies; no factual content differs. |
 | `justifications.strong` | object | yes |  | Method-referencing and in principle checkable. Names how the figure was obtained. |
@@ -368,6 +367,21 @@ One item bank entry.
 | `sources` | object[] | yes | minItems 1 |  |
 | `volatile` | boolean | yes |  | True when the value moves over time and must be re-verified immediately before launch. |
 | `flags` | object[] | yes |  |  |
+
+#### `QualityAssignment`
+
+materials/quality_assignment.json. The single source of truth for justification-quality allocation; the item bank carries neither the quality nor the design cell.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `schema_version` | string | yes | minLen 1 |  |
+| `study` | `"eiai-study3"` | yes |  |  |
+| `source` | string | yes | minLen 1 |  |
+| `note` | string | yes | minLen 1 |  |
+| `roles` | object | yes |  |  |
+| `roles.analysed` | string | yes | minLen 1 |  |
+| `roles.filler` | string | yes | minLen 1 |  |
+| `assignment` | object | yes |  |  |
 
 #### `JustificationPair`
 
@@ -396,7 +410,8 @@ One materials/responses/{lang}_{condition}_{state}.json file. Carries no timesta
 | `meta.register_state` | `LOW` \| `MODERATE` \| `HIGH` \| null | yes |  |  |
 | `meta.generator` | string | yes | minLen 1 |  |
 | `meta.generator_version` | string | yes | minLen 1 |  |
-| `meta.generator_mode` | `anthropic_api` \| `offline_placeholder` | yes |  | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. |
+| `meta.generator_mode` | `live_api` \| `offline_placeholder` | yes |  | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. Was 'anthropic_api', which named the wrong thing: generation runs against whichever OpenAI-compatible provider is configured, and the provider is recorded separately. |
+| `meta.provider` | string | yes | minLen 1 | Which configured provider served the generation. Recorded because the model id alone is ambiguous: 'openai/gpt-oss-120b' is served by Groq and reads as though it came from OpenAI. |
 | `meta.model` | string | yes | minLen 1 |  |
 | `meta.placeholder` | boolean | yes |  |  |
 | `meta.prompt_hashes` | object | yes |  |  |
@@ -442,7 +457,8 @@ Committed before collection opens. CI recomputes it and fails on any drift.
 |---|---|---|---|---|
 | `generated_at` | string(date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]00\|[13579][26]00)-02-29\|\d{4}-(?:(?:0[13578]\|1[02])-(?:0[1-9]\|[12]\d\|3[01])\|(?:0[469]\|11)-(?:0[1-9]\|[12]\d\|30)\|(?:02)-(?:0[1-9]\|1\d\|2[0-8])))T(?:(?:[01]\d\|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$` |  |
 | `generator_version` | string | yes | minLen 1 |  |
-| `generator_mode` | `anthropic_api` \| `offline_placeholder` | yes |  | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. |
+| `generator_mode` | `live_api` \| `offline_placeholder` | yes |  | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. Was 'anthropic_api', which named the wrong thing: generation runs against whichever OpenAI-compatible provider is configured, and the provider is recorded separately. |
+| `provider` | string | yes | minLen 1 |  |
 | `model` | string | yes | minLen 1 |  |
 | `launch_ready` | boolean | yes |  | False whenever any stimulus is a placeholder. The loader refuses to serve a set with this false. |
 | `items_file_sha256` | string | yes | pattern `^[a-f0-9]{64}$` | Lowercase hex SHA-256 digest. |
@@ -558,4 +574,6 @@ Funnelled suspicion probe, administered in order without backtracking.
 | `FollowupId` | `measurement`, `certainty`, `challenge` | Fixed follow-up options. 'challenge' ("I think that might be wrong") is itself a behavioural measure. |
 | `FunnelStage` | `purpose`, `anomaly`, `belief` | Funnelled suspicion probe stage, administered in this order without backtracking. |
 | `QuestionnaireScale` | `warmth`, `competence`, `trust`, `covariates` | Which questionnaire instrument an answer belongs to. |
-| `GeneratorMode` | `anthropic_api`, `offline_placeholder` | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. |
+| `GeneratorMode` | `live_api`, `offline_placeholder` | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. Was 'anthropic_api', which named the wrong thing: generation runs against whichever OpenAI-compatible provider is configured, and the provider is recorded separately. |
+| `ItemRole` | `analysed`, `filler` | Whether an item enters the justification-quality contrast, or exists only to keep planted errors at 33% of twelve rather than 50% of eight. |
+| `ItemTopic` | `bathymetry`, `diving_physiology`, `optics`, `hydrothermal`, `taxonomy`, `life_history`, `physical_oceanography` | Sub-domain of deep-sea biology the item asks about. A classification of the question stems, not a property carried by the cited sources. Exists so that topic diversity within each justification-quality cell is machine-checkable: a cell drawn entirely from one sub-domain would confound justification quality with subject-matter familiarity. |

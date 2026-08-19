@@ -72,7 +72,16 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
 
   await expect(page.locator(testId("screen-consent"))).toBeVisible();
   await page.locator(testId("give-consent")).click();
-  await page.locator(testId("allocate")).click();
+
+  // The condition now comes from the committed allocation sequence keyed on the
+  // session id, so it is genuinely either arm from one run to the next. This
+  // test used to assert `warm` outright, which passed only because allocation
+  // was hard-coded -- and would therefore never have exercised the neutral arm.
+  const allocateButton = page.locator(testId("allocate"));
+  const condition = await allocateButton.getAttribute("data-condition");
+  expect(condition === "warm" || condition === "neutral").toBe(true);
+  expect(await allocateButton.getAttribute("data-stratum")).toBe("en:adult");
+  await allocateButton.click();
 
   for (let i = 0; i < 12; i += 1) {
     await expect(page.locator(testId("screen-item-estimate"))).toBeVisible();
@@ -83,10 +92,16 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
     await setSlider(page, "initial-confidence", i < 4 ? 15 : i < 8 ? 55 : 90);
     await page.locator(testId("submit-initial")).click();
 
-    // The frozen stimulus the register selected.
+    // The frozen stimulus the register selected. In the warm arm the register
+    // must track confidence; the neutral arm does not branch at all, and that
+    // non-branching is constitutive of the control rather than an omission.
     const responseId = await page.locator(testId("advice")).getAttribute("data-response-id");
-    const expectedRegister = i < 4 ? "low" : i < 8 ? "moderate" : "high";
-    expect(responseId).toContain(`warm_${expectedRegister}`);
+    if (condition === "warm") {
+      const expectedRegister = i < 4 ? "low" : i < 8 ? "moderate" : "high";
+      expect(responseId).toContain(`warm_${expectedRegister}`);
+    } else {
+      expect(responseId).toContain("neutral_na");
+    }
     await expect(page.locator(testId("advice-justification"))).not.toBeEmpty();
 
     // Exercise a follow-up and the verify button on the first item.

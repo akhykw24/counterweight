@@ -15,6 +15,7 @@ createRoot(root).render(
   <StrictMode>
     <App
       recorder={session.recorder}
+      sessionId={session.sessionId}
       resumed={session.resumed}
       snapshot={session.snapshot}
       onSnapshot={session.persist}

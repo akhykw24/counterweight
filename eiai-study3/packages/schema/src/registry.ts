@@ -37,6 +37,9 @@ import {
 import { GeneratorMode } from "./stimuli.js";
 import {
   ItemBank,
+  ItemRole,
+  ItemTopic,
+  QualityAssignment,
   ItemRecord,
   JustificationPair,
   StimulusFile,
@@ -110,6 +113,7 @@ export const schemaRegistry: readonly RegistrySection[] = [
     entries: [
       { name: "ItemBank", schema: ItemBank },
       { name: "ItemRecord", schema: ItemRecord },
+      { name: "QualityAssignment", schema: QualityAssignment },
       { name: "JustificationPair", schema: JustificationPair },
       { name: "StimulusFile", schema: StimulusFile },
       { name: "StimulusResponse", schema: StimulusResponse },
@@ -146,4 +150,6 @@ export const enumRegistry: readonly RegistryEntry[] = [
   { name: "FunnelStage", schema: FunnelStage },
   { name: "QuestionnaireScale", schema: QuestionnaireScale },
   { name: "GeneratorMode", schema: GeneratorMode },
+  { name: "ItemRole", schema: ItemRole },
+  { name: "ItemTopic", schema: ItemTopic },
 ];

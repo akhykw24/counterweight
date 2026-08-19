@@ -3,7 +3,7 @@
     "condition": "warm",
     "generator": "pipeline/generate.py",
     "generator_mode": "offline_placeholder",
-    "generator_version": "2.0.0",
+    "generator_version": "2.1.0",
     "human_verification": {
       "back_translation_completed": false,
       "component_coding_completed": false,
@@ -14,12 +14,15 @@
     "model": "none (offline placeholder)",
     "placeholder": true,
     "prompt_hashes": {
+      "justification_format_block": "4f6d1673323903218b3f98e87aad99b4b932d97e20a8bad22be23e53f0151501",
+      "justification_translation": "257f949ba278e9f206139c6094f9a8e984d064d7f6ae6a429a9ff256bf6f1651",
       "language_block": "c0c83c44fd20f10a1fceafab9046a1ea403ca706203eac00be6ee7f3197df1de",
       "output_format_block": "10c50a778706b1a42b04ca1c454048acaa245c4db70a820fb9a641a61a913c78",
       "register": "227ab4bfe79e05f9716f5514ba4505bc457dccee18730788fc83298ad06f1a70",
       "shared_constraints": "d0f60f1f5de7e25dff27092f0ac5f05b2432ecbc8ba65785b8e3dd551cd5156a",
       "warm_components": "8ea3c6a762108ccd172e992455467273bb9ce7cb59b45f48de974828b000614d"
     },
+    "provider": "none (offline placeholder)",
     "register_state": "LOW",
     "schema_version": "1.0",
     "study": "eiai-study3",

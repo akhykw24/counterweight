@@ -20,12 +20,16 @@ Days 1-5 of the seven-day build (`STUDY3_SPEC_v3.md` §10) are complete.
 | 3 | Statechart + model-based tests; consent flows; item screen | **done** |
 | 4 | Telemetry package; IndexedDB WAL; ingest service | **done** |
 | 5 | Follow-ups, verify button, questionnaire, funnel, debrief; i18n | **done** |
-| 6 | Simulation bots + parameter recovery | not started |
-| 7 | `replay.py`, `analysis.py`, multiverse, Docker, CI repro gate, `make paper` | not started |
+| 6 | Simulation bots + parameter recovery | **done** (exposed and fixed the allocation stub — see below) |
+| 7 | `replay.py`, `analysis.py`, multiverse, Docker, CI repro gate, `make paper` | **done** |
 
 ## Commands
 
 ```bash
+make install             # dependencies + Playwright's Chromium
+make paper               # clean clone -> paper/results.pdf from bot data
+make repro               # every generated artefact regenerates identically
+
 pnpm install
 pnpm verify              # everything CI runs
 pnpm typecheck
@@ -34,7 +38,8 @@ pnpm codegen             # regenerate docs/DATA_DICTIONARY.md from the Zod schem
 
 # stimulus pipeline (Python, no extra deps for offline mode)
 python pipeline/generate.py --offline    # deterministic placeholders, no API key
-python pipeline/generate.py              # real generation; needs ANTHROPIC_API_KEY
+python pipeline/generate.py              # real generation; needs GEMINI_API_KEY in .env
+python pipeline/generate.py --provider groq   # or any OpenAI-compatible provider
 pnpm stimuli:equivalence                 # content equivalence across conditions
 pnpm stimuli:manifest                    # rebuild materials/manifest.json
 pnpm coding:export                       # blinded kappa coding sheets for 2 raters
@@ -45,6 +50,13 @@ pnpm e2e
 
 # run the participant app
 pnpm --dir apps/study dev                # http://localhost:5173
+
+# simulation and analysis (days 6-7)
+pnpm allocation                          # regenerate the seeded allocation sequence
+pnpm recover                             # simulate -> replay -> parameter recovery
+pnpm multiverse                          # 48-specification curve
+pnpm e2e:bots                            # bot policies through the real browser
+pnpm bridge                              # simulated and real event streams agree
 ```
 
 ## Layout
@@ -71,6 +83,48 @@ anything that can be computed later.** A fancier analysis can be added in month
 two. A scroll event from a participant who left in week three cannot.
 
 That is why `packages/schema` is Day 1 and the analysis pipeline is Day 7.
+
+## Days 6-7 notes
+
+- **The bots exposed the allocation stub, which is what they were for.** The
+  spec says day 6 "will expose something". It exposed that `ALLOCATE` carried
+  the literals `warm` and `en:adult`, with two consequences neither the unit
+  suite nor the model-based suite could see: **the neutral arm was unreachable**,
+  so half the design had never been walked end to end in a browser; and the
+  **recorded stratum contradicted the participant's own eligibility answers**
+  for anyone who was not an English-speaking adult. `pipeline/allocation.py`
+  now generates a committed, seeded, block-randomised sequence and the app
+  draws from it against the real stratum. The e2e run now sees both arms.
+- **Assignment needs no backend, and pays for it.** The index is derived from
+  the session id with FNV-1a, so anyone holding the log can recompute which
+  entry a session should have drawn. The cost is that two participants can land
+  on the same index, so the sequence's exact block balance holds only in
+  expectation until the ingest service hands out indices. `allocation_seq` is in
+  every `ALLOCATED` event either way, so realised balance is checkable rather
+  than assumed. The hash is tested for uniformity, not just for returning a
+  valid arm — a modulus bug that skipped half the sequence would still look
+  random in the log.
+- **Recovery is only worth something because of the bridge.**
+  `pipeline/simulate.py` writes event streams directly, which is the only way
+  to get 360 sessions in seconds — and on its own it would be testing my
+  assumptions about the app rather than the app. `e2e/bots.spec.ts` walks the
+  same policies through the real UI and `pipeline/verify_bridge.py` compares
+  the two logs on structure: event types, payload keys, per-item shape. Deleting
+  one payload key from the simulator fails it.
+- **Every check was mutation-tested.** A check that cannot fail is not a check.
+  Feeding the analysis a WOA computed against the true value instead of the
+  advice fails 2 of 11 recovery checks — and leaves the scroll-depth and
+  null-bot checks green, which is exactly right.
+- **H1 and H3 are asserted to be the same number.** With two within-subject
+  levels the interaction reduces to a between-groups contrast on the difference
+  score, so `F = t²`. The report prints the identity check; if it ever stops
+  holding, one of the two is computed wrongly.
+- **`make paper` prints through Chromium, not LaTeX.** Playwright's browser is
+  already a dependency for the e2e suite, so the results document goes HTML →
+  PDF through it rather than adding a two-gigabyte TeX toolchain for one file.
+- **Not done: `data/` is derived and gitignored.** `make paper` rebuilds all of
+  it from the committed seed. Committing it would create a second source of
+  truth that can drift from the first.
 
 ## Day 5 notes
 
@@ -167,14 +221,37 @@ That is why `packages/schema` is Day 1 and the analysis pipeline is Day 7.
 
 ## Day 2 notes
 
-- **The committed stimuli are offline placeholders.** There is no
-  `ANTHROPIC_API_KEY` in this environment, so `generate.py --offline` produced
-  144 structurally valid placeholder responses instead. They exist so the rest
+- **The committed stimuli are offline placeholders.** Real generation has been
+  run end to end and works — one variant file (12 Kazakh responses) came back
+  with every record valid on the first attempt — but a full set is about
+  394,000 tokens against a free-tier budget of 200,000 per day, so it spans
+  roughly two days. A half-generated set cannot be manifested (the twelve files
+  would disagree on provenance), so the committed state stays entirely
+  placeholder until a run completes. See `pipeline/README.md`. They exist so the rest
   of the chain — equivalence, manifest, golden-file test, coding sheets — could
   be built and proven. `materials/manifest.json` records `launch_ready: false`,
   every response carries `"placeholder": true`, and
   `assertLaunchReady()` throws. Re-run `python pipeline/generate.py` with a key
   before piloting; nothing else changes.
+- **Generation runs against any OpenAI-compatible provider**, configured in one
+  `PROVIDERS` block in `pipeline/generate.py`. Default is Groq
+  (`openai/gpt-oss-120b`) reading `GROQ_API_KEY`; Gemini is one flag away but
+  its free tier allows only 20 requests per day **per model** against a
+  168-call run, which would mean splitting the set across models — and stimuli
+  written by different models are not one frozen stimulus set. Candidates were
+  tested in all three languages, which decided it: the best English writer of
+  the lot returned 400 for Russian and Kazakh. See `pipeline/README.md` for the
+  full selection record, including the model rejected for *passing* every
+  automated check while quietly adding consensus-appeal phrasing to the body.
+  A run stopped by an exhausted quota keeps everything already written —
+  re-running skips finished variants instead of re-spending the quota.
+- **The justification call takes the source sentence as its user turn, not the
+  item's question.** It used to take the question, so the model answered rather
+  than translated: on item_11 it returned the real snailfish depth. That item
+  carries a planted value, so this would have leaked the true value into text
+  shown identically in both conditions. Rendered justifications are now
+  validated — every source justification in the bank is number-free, so the
+  rule is simply that the rendering must contain no digits at all.
 - **Justifications are rendered once per (language, item)** and reused across
   all four condition variants, so they are byte-identical across warm and
   neutral by construction rather than by inspection. That is the property

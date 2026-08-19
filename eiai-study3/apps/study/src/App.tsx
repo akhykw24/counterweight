@@ -36,6 +36,8 @@ const TERMINAL = new Set(["done", "withdrawn", "ineligible"]);
 export interface AppProps {
   machine?: SessionMachine;
   recorder?: Recorder;
+  /** Drives condition assignment from the committed sequence. */
+  sessionId?: string;
   resumed?: boolean;
   snapshot?: unknown;
   onSnapshot?: (snapshot: unknown) => void;
@@ -45,6 +47,7 @@ export interface AppProps {
 export function App({
   machine = sessionMachine,
   recorder = noopRecorder,
+  sessionId = "00000000-0000-4000-8000-000000000000",
   resumed = false,
   snapshot,
   onSnapshot,
@@ -274,7 +277,9 @@ export function App({
         )}
         {name === "consent" && <ConsentScreen send={send} />}
         {name === "assent" && <AssentScreen context={context} send={send} />}
-        {name === "allocating" && <AllocatingScreen send={send} />}
+        {name === "allocating" && (
+          <AllocatingScreen context={context} send={send} sessionId={sessionId} />
+        )}
 
         {name === "task.estimate" && (
           <ItemScreen context={context} send={send} phase="estimate" />

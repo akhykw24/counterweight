@@ -3,7 +3,7 @@
     "condition": "neutral",
     "generator": "pipeline/generate.py",
     "generator_mode": "offline_placeholder",
-    "generator_version": "2.0.0",
+    "generator_version": "2.1.0",
     "human_verification": {
       "back_translation_completed": false,
       "component_coding_completed": false,
@@ -14,11 +14,14 @@
     "model": "none (offline placeholder)",
     "placeholder": true,
     "prompt_hashes": {
+      "justification_format_block": "4f6d1673323903218b3f98e87aad99b4b932d97e20a8bad22be23e53f0151501",
+      "justification_translation": "257f949ba278e9f206139c6094f9a8e984d064d7f6ae6a429a9ff256bf6f1651",
       "language_block": "c0c83c44fd20f10a1fceafab9046a1ea403ca706203eac00be6ee7f3197df1de",
       "neutral": "edae9bdedf48e2acc210a71dc5c9019fb892556c5384c29a00147854f4b5ceb0",
       "output_format_block": "10c50a778706b1a42b04ca1c454048acaa245c4db70a820fb9a641a61a913c78",
       "shared_constraints": "d0f60f1f5de7e25dff27092f0ac5f05b2432ecbc8ba65785b8e3dd551cd5156a"
     },
+    "provider": "none (offline placeholder)",
     "register_state": null,
     "schema_version": "1.0",
     "study": "eiai-study3",

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   ItemBank,
+  QualityAssignment,
   StimulusFile,
   type Condition,
   type Language,
@@ -125,6 +126,14 @@ describe("stimulus space", () => {
 describe("content equivalence, checked from the TypeScript side too", () => {
   const itemsPath = fileURLToPath(new URL("../../../materials/items.json", import.meta.url));
   const bank = ItemBank.parse(JSON.parse(readFileSync(itemsPath, "utf8")));
+  const assignmentPath = fileURLToPath(
+    new URL("../../../materials/quality_assignment.json", import.meta.url),
+  );
+  // Which justification each response should carry now lives in its own file,
+  // so this reads the assignment rather than the bank.
+  const assignment = QualityAssignment.parse(
+    JSON.parse(readFileSync(assignmentPath, "utf8")),
+  );
 
   it("keeps the justification byte-identical across all four condition variants", () => {
     // The load-bearing equivalence claim. If this drifts, warm and neutral
@@ -148,7 +157,7 @@ describe("content equivalence, checked from the TypeScript side too", () => {
         for (const [condition, state] of VARIANTS) {
           const response = resolveResponse(stimuli, language, condition, state, item.id);
           expect(response.justification_quality, response.response_id).toBe(
-            item.assigned_justification_quality,
+            assignment.assignment[item.id]!.quality,
           );
         }
       }

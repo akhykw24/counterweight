@@ -1,0 +1,60 @@
+{
+  "assignment": {
+    "item_01": {
+      "quality": "strong",
+      "role": "filler"
+    },
+    "item_02": {
+      "quality": "weak",
+      "role": "analysed"
+    },
+    "item_03": {
+      "quality": "weak",
+      "role": "analysed"
+    },
+    "item_04": {
+      "quality": "strong",
+      "role": "analysed"
+    },
+    "item_05": {
+      "quality": "strong",
+      "role": "analysed"
+    },
+    "item_06": {
+      "quality": "strong",
+      "role": "filler"
+    },
+    "item_07": {
+      "quality": "weak",
+      "role": "analysed"
+    },
+    "item_08": {
+      "quality": "strong",
+      "role": "filler"
+    },
+    "item_09": {
+      "quality": "weak",
+      "role": "analysed"
+    },
+    "item_10": {
+      "quality": "strong",
+      "role": "analysed"
+    },
+    "item_11": {
+      "quality": "strong",
+      "role": "analysed"
+    },
+    "item_12": {
+      "quality": "strong",
+      "role": "filler"
+    }
+  },
+  "note": "Single source of truth for which justification each item carries and whether the item is part of the analysed 2x2 or a filler. Reassignment is an edit here plus a stimulus regeneration -- never a code change. design_cell is derived from (is_error, quality, role) rather than stored, so the two cannot disagree.",
+  "roles": {
+    "analysed": "Enters the H1/H3 justification-quality contrast.",
+    "filler": "Correct, strong-justification item present so that planted errors are 33% of twelve rather than 50% of eight. Excluded from the quality contrast: fillers are all correct, so counting them as 'strong' would make the strong side 75% accurate against the weak side's 50% and reintroduce a base-rate confound the design exists to avoid."
+  },
+  "schema_version": "1.0",
+  "source": "STUDY3_SPEC_v2.md section 2, item allocation table",
+  "study": "eiai-study3"
+}

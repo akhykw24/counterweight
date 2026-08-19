@@ -18,7 +18,15 @@ pipeline/out/
 # raw data is never committed (docs/STUDY3_SPEC_v3.md section 3)
 data/raw/
 
+# Everything under data/ is derived: synthetic logs, projected tables, the
+# specification curve. `make paper` rebuilds all of it from the committed seed,
+# so committing it would only create a second source of truth that can drift
+# from the first.
+data/
+paper/
+
 .DS_Store
 *.log
 .env
 .env.local
+materials/justifications.json
