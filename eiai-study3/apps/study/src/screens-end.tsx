@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { questionnaireDefinition, type QuestionDefinition } from "@eiai/schema";
+import { questionnaireDefinition, type Language, type QuestionDefinition } from "@eiai/schema";
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import type { Translate } from "./i18n";
 import { items } from "./stimuli";
@@ -252,7 +252,7 @@ export function DebriefScreen({
 }: {
   send: Send;
   t: Translate;
-  language: "kk" | "ru" | "en";
+  language: Language;
 }) {
   // Generated from the item bank rather than written out, so a corrected true
   // value can never disagree with what the debrief tells the participant.

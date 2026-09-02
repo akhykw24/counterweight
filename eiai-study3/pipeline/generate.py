@@ -77,78 +77,21 @@ from _common import (
 
 GENERATOR_VERSION = "2.1.0"
 
-# Every provider detail lives here so swapping one is a single edit, per the
-# repo convention. All of them speak the OpenAI chat-completions shape, so the
-# call site below does not change with the provider.
-PROVIDERS: dict[str, dict[str, str]] = {
-    "gemini": {
-        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
-        "api_key_env": "GEMINI_API_KEY",
-        # Chosen by measurement, not by version number:
-        #   2.5-flash      undershot both bands (52/60 body, 29/30 follow-up)
-        #                  and dropped the required value from some fields
-        #   3.7 / 3.6      persistently 503 / 400 at time of writing
-        #   3.1-flash-lite passes, but sits near the TOP of both bands (83,
-        #                  53-57) -- Russian and Kazakh run longer than English,
-        #                  so it would overshoot there
-        #   3.5-flash      passes mid-band (77, 44-48), leaving headroom
-        "default_model": "gemini-3.5-flash",
-        # Gemini draws reasoning tokens from the same budget as the answer, so
-        # leaving thinking on truncates replies mid-sentence.
-        "default_thinking": "none",
-        "console": "https://aistudio.google.com/apikey",
-    },
-    "groq": {
-        "base_url": "https://api.groq.com/openai/v1",
-        "api_key_env": "GROQ_API_KEY",
-        # Chosen on a three-language test, not an English one:
-        #   llama-3.3-70b / 3.1-8b  no json_schema support at all
-        #   qwen3.6-27b             best English of the lot, but returns 400
-        #                           "Failed to validate JSON" for ru and kk --
-        #                           an English-only trial would have picked it
-        #                           and then died at the Russian phase
-        #   gpt-oss-20b             passes, but leaks consensus-appeal phrasing
-        #                           into the body, which is weak-justification
-        #                           content and would contaminate the within-
-        #                           subjects manipulation
-        #   gpt-oss-120b            passes validation in en, ru and kk
-        "default_model": "openai/gpt-oss-120b",
-        # Groq rejects reasoning_effort="none" outright (400: must be low,
-        # medium or high). "default" omits the parameter, which is what the
-        # calls that were measured against the word-count bands actually sent --
-        # so this reproduces the configuration the model was validated under
-        # rather than an untested neighbouring one.
-        "default_thinking": "default",
-        "console": "https://console.groq.com/keys",
-    },
-}
-# Groq, not Gemini: the Gemini free tier allows 20 requests per day PER MODEL,
-# and a full run is 168. Spreading those across models would mean stimuli
-# written by different models inside one experiment, which defeats the point of
-# freezing them. Groq allows 1000/day, so the whole set comes from one model.
-DEFAULT_PROVIDER = "groq"
-# Groq charges the daily token budget for what a request RESERVES, not what it
-# returns: a call whose prompt is ~1200 tokens was billed 5253 against the cap
-# with max_tokens at 4096. The longest response the set actually contains is
-# 1545 characters of Kazakh, roughly 700 tokens, so 4096 was reserving about
-# five times what any stimulus needs and paying for it in wall-clock days.
-# 1536 keeps more than double the observed worst case -- a truncated body fails
-# validation and gets retried, which would cost far more than the headroom.
-# This caps length only; it cannot change a response that fits.
-DEFAULT_MAX_TOKENS = 1536
-# A 503 here means the model is busy, not that the request is wrong; a long
-# run needs the patience to sit one out rather than dying at call 3 of 168.
-DEFAULT_MAX_ATTEMPTS = 6
-# Paced by Groq's 8000 tokens/minute cap. Measured rather than assumed: 11s was
-# set from the size of a justification call, and phase 2 then collected a 429 on
-# nearly every body call because a body carries the persona and register blocks
-# in and four fields out. With max_tokens reduced the per-call reservation is
-# roughly 2700 tokens, which the 8000/minute cap divides into 2.9 calls -- so
-# 22s, not the 20s that sits exactly on the line.
-DEFAULT_SLEEP = 22.0
-
-# Running total of tokens spent by call_model, reported at the end of a run.
-TOKENS_USED = 0
+# Provider configuration, retry policy and budget constants live in
+# pipeline/providers.py. They are re-exported here only so that existing call
+# sites and the CLI defaults keep one import.
+from providers import (  # noqa: E402
+    DAILY_TOKEN_BUDGET,
+    DEFAULT_MAX_ATTEMPTS,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_PROVIDER,
+    DEFAULT_SLEEP,
+    PROVIDERS,
+    ProviderError,
+    QuotaExhausted,
+    build_provider,
+)
+from cell_cache import CellCache, cell_id  # noqa: E402
 
 BODY_WORDS = (60, 90)
 FOLLOWUP_WORDS = (30, 60)
@@ -433,184 +376,249 @@ def validate_record(
 # ---------------------------------------------------------------------------
 
 
-class QuotaExhausted(RuntimeError):
-    """The provider is refusing further requests for the rest of the quota window."""
+JUSTIFICATION_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "justification": {"type": "string", "description": "The rendered justification sentence."},
+    },
+    "required": ["justification"],
+    "additionalProperties": False,
+}
 
 
-def make_client(args: argparse.Namespace):
-    try:
-        from openai import OpenAI
-    except ImportError:  # pragma: no cover - dependency guard
-        sys.exit("The `openai` package is required.\n    pip install openai")
+# ---------------------------------------------------------------------------
+# Offline placeholder generation
+# ---------------------------------------------------------------------------
 
-    provider = PROVIDERS[args.provider]
-    key = os.environ.get(provider["api_key_env"], "").strip()
-    if not key:
-        sys.exit(
-            f"{provider['api_key_env']} is not set.\n"
-            f"  Get a key at {provider['console']}\n"
-            f"  Then put it in eiai-study3/.env as {provider['api_key_env']}=..."
+_OFFLINE_LEAD = {
+    "en": {
+        ("warm", "LOW"): "It sounds like this one felt uncertain, which is an ordinary way to feel about it.",
+        ("warm", "MODERATE"): "This is one of those questions where working it through together helps.",
+        ("warm", "HIGH"): "Feeling settled about this is reasonable, and here is where the figure sits.",
+        ("neutral", None): "The value is as follows.",
+    },
+    "ru": {
+        ("warm", "LOW"): "Похоже, здесь была неуверенность, и это совершенно обычная реакция.",
+        ("warm", "MODERATE"): "Это один из тех вопросов, которые полезно разобрать вместе.",
+        ("warm", "HIGH"): "Уверенность здесь вполне оправдана, и вот где находится значение.",
+        ("neutral", None): "Значение следующее.",
+    },
+    "kk": {
+        ("warm", "LOW"): "Мұнда сенімсіздік болған сияқты, бұл әбден қалыпты жағдай.",
+        ("warm", "MODERATE"): "Бұл бірге талқылағанда пайдалы болатын сұрақтардың бірі.",
+        ("warm", "HIGH"): "Мұндағы сенімділік орынды, ал мән мынадай.",
+        ("neutral", None): "Мән мынадай.",
+    },
+}
+
+_OFFLINE_HEDGE = {"en": "approximately", "ru": "примерно", "kk": "шамамен"}
+_OFFLINE_FILLER = {
+    "en": "This sentence is placeholder filler and carries no content.",
+    "ru": "Это предложение является заполнителем и не несёт содержания.",
+    "kk": "Бұл сөйлем толтырғыш болып табылады және мазмұн тасымалдамайды.",
+}
+_OFFLINE_FOLLOWUP_LEAD = {
+    "measurement": {"en": "On how it is measured:", "ru": "О том, как это измеряется:", "kk": "Мұның қалай өлшенетіні туралы:"},
+    "certainty": {"en": "On how certain this is:", "ru": "О степени уверенности:", "kk": "Сенімділік дәрежесі туралы:"},
+    "challenge": {"en": "I hear that, and the figure stands:", "ru": "Понимаю, и значение остаётся прежним:", "kk": "Түсінемін, мән өзгеріссіз қалады:"},
+}
+
+
+def _pad_to(text: str, language: str, target: int) -> str:
+    filler = _OFFLINE_FILLER[language]
+    while word_count(text) < target:
+        text = f"{text} {filler}"
+    words = text.split()
+    return " ".join(words[:target]) if len(words) > target else text
+
+
+def offline_body(item: dict[str, Any], language: str, condition: str, state: str | None) -> dict[str, str]:
+    """Deterministic placeholder that satisfies every structural constraint.
+
+    Contains the advice value in digits and a real hedge marker, so the
+    validator and verify_equivalence.py exercise their real code paths rather
+    than being skipped.
+    """
+    value = format_number(item["advice_value"])
+    hedge = _OFFLINE_HEDGE[language]
+    lead = _OFFLINE_LEAD[language][(condition, state)]
+    head = f"[PLACEHOLDER] {lead} {hedge} {value}."
+    body = _pad_to(head, language, 75)
+
+    followups: dict[str, str] = {}
+    for followup_id in FOLLOWUP_IDS:
+        lead_text = _OFFLINE_FOLLOWUP_LEAD[followup_id][language]
+        followups[followup_id] = _pad_to(
+            f"[PLACEHOLDER] {lead_text} {hedge} {value}.", language, 45
         )
 
-    return OpenAI(
-        api_key=key,
-        base_url=provider["base_url"],
-        max_retries=0,  # retries are handled here, so backoff can respect 429s
-        timeout=120.0,
+    return {"body": body, **{f"followup_{k}": v for k, v in followups.items()}}
+
+
+def offline_justification(item: dict[str, Any], language: str) -> str:
+    source = assigned_justification(item)
+    if language == "en":
+        return str(source["text"])
+    marker = {"ru": "[ЗАПОЛНИТЕЛЬ]", "kk": "[ТОЛТЫРҒЫШ]"}[language]
+    return _pad_to(f"{marker} {source['text']}", language, int(source["word_count"]) + 1)
+
+
+# ---------------------------------------------------------------------------
+# Prompt assembly
+# ---------------------------------------------------------------------------
+
+
+def build_system_prompt(item: dict[str, Any], language: str, condition: str, state: str | None) -> str:
+    unit = item["unit"]["en"]
+    value_text = f"{format_number(item['advice_value'])} {unit}".strip()
+
+    shared = (
+        load_prompt("shared_constraints.txt")
+        .replace("{VALUE}", value_text)
+        .replace("{HEDGE_LEVEL}", "moderate")
     )
 
+    blocks = [shared]
+    if condition == "warm":
+        blocks.append(load_prompt("warm_components.txt"))
+        blocks.append(load_prompt(REGISTER_PROMPTS[str(state)]))
+    else:
+        blocks.append(load_prompt("neutral.txt"))
 
-def _retry_after_seconds(error: Exception) -> float | None:
-    """Provider-suggested wait, when the 429 carries one.
+    blocks.append(OUTPUT_FORMAT_BLOCK)
+    blocks.append(
+        LANGUAGE_BLOCK.replace("{LANGUAGE_NAME}", LANGUAGE_NAMES[language]).replace(
+            "{LANGUAGE_CODE}", language
+        )
+    )
+    return "\n\n".join(blocks)
 
-    Two spellings: Gemini's `retryDelay: 30s` and Groq's prose
-    `Please try again in 4m59.808s`.
+
+def build_justification_prompt(item: dict[str, Any], language: str) -> str:
+    source = assigned_justification(item)
+    return (
+        load_prompt("justification_translation.txt")
+        .replace("{LANGUAGE_NAME}", LANGUAGE_NAMES[language])
+        .replace("{LANGUAGE_CODE}", language)
+        .replace("{JUSTIFICATION_SOURCE}", str(source["text"]))
+        .replace("{TARGET_WORDS}", str(source["word_count"]))
+    ) + "\n\n" + JUSTIFICATION_FORMAT_BLOCK
+
+
+def validate_justification(text: str, target_words: int) -> list[str]:
+    """Reasons the rendered justification is unusable, empty if it is fine.
+
+    Every source justification in the bank is number-free -- they describe how a
+    figure was established, never what it is -- so "introduce no numeric value
+    that is not in the source" reduces to "contains no digits at all". That is
+    worth enforcing rather than trusting, because a justification that states a
+    value is not merely off-spec: on an error item it leaks the true value into
+    text that is shown identically in both conditions, which is the one thing
+    the design cannot survive.
     """
-    match = re.search(r"retryDelay[\"':\s]+(\d+(?:\.\d+)?)s", str(error))
-    if match:
-        return float(match.group(1))
-    match = re.search(r"try again in (?:(\d+)m)?(\d+(?:\.\d+)?)s", str(error))
-    if match:
-        return float(match.group(1) or 0) * 60 + float(match.group(2))
-    return None
+    problems: list[str] = []
+    if not text.strip():
+        return ["empty"]
+    numbers = extract_numbers(text)
+    if numbers:
+        problems.append(f"introduces numeric content {sorted(set(numbers))}; sources have none")
+    # The prompt asks for the source length within two words. Enforcing exactly
+    # that would burn quota re-rolling a three-word miss, and Kazakh and Russian
+    # legitimately compress or expand against English. Check #5 in
+    # verify_equivalence.py is the real gate on length: it compares mean strong
+    # against mean weak per language, which is what would confound the
+    # manipulation. This band only catches a rendering that lost the sentence.
+    slack = max(3, round(target_words * JUSTIFICATION_WORD_SLACK))
+    count = word_count(text)
+    if abs(count - target_words) > slack:
+        problems.append(f"{count} words against a target of {target_words} (+/-{slack})")
+    return problems
 
 
-def _is_daily_limit(error: Exception) -> bool:
-    """True when a 429 is a per-day cap rather than a per-minute one.
-
-    Groq spells these out: "on tokens per day (TPD)" versus "on tokens per
-    minute (TPM)"; Gemini uses "PerDay" inside the quota id. Waiting is only
-    useful for the second kind.
-    """
-    text = str(error).lower()
-    return "per day" in text or "(tpd)" in text or "(rpd)" in text or "perday" in text
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
 
 
-def call_model(
-    client: Any,
-    system_prompt: str,
-    user_message: str,
-    schema: dict[str, Any],
-    schema_name: str,
-    args: argparse.Namespace,
+def validate_record(
+    payload: dict[str, str], item: dict[str, Any], language: str
 ) -> dict[str, Any]:
-    """One structured-output completion, with 429 backoff.
+    errors: list[str] = []
+    warnings: list[str] = []
+    advice = float(item["advice_value"])
 
-    Raises QuotaExhausted when the provider keeps refusing -- on a free tier
-    that usually means the daily cap, and hammering it further only wastes
-    time. The caller writes what it has and tells the user to resume.
-    """
-    import json as _json
-
-    request: dict[str, Any] = {
-        "model": args.model,
-        "max_tokens": args.max_tokens,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {"name": schema_name, "schema": schema, "strict": True},
-        },
-    }
-    # Gemini 2.5 reasoning tokens are drawn from the same budget as the visible
-    # answer, so leaving thinking on truncates replies mid-sentence. These are
-    # tightly constrained writing tasks; thinking buys nothing here.
-    if args.thinking != "default":
-        request["reasoning_effort"] = args.thinking
-
-    delay = 8.0
-    for attempt in range(1, args.max_attempts + 1):
-        try:
-            completion = client.chat.completions.create(**request)
-        except Exception as error:  # noqa: BLE001 - provider SDKs vary
-            status = getattr(error, "status_code", None)
-            # A 400 is normally a bug in the request and must not be retried.
-            # json_validate_failed is the exception: the request was accepted,
-            # the model simply sampled something that did not fit the schema.
-            # That is a re-roll, not a defect, so it gets the same treatment as
-            # a 503 rather than killing a 168-call run.
-            malformed_sample = status == 400 and "json_validate_failed" in str(error)
-            transient = status in (408, 409, 429, 500, 502, 503, 504) or malformed_sample
-
-            # A per-minute 429 clears in seconds and is worth waiting out. A
-            # per-DAY one does not clear until tomorrow, so backing off through
-            # 8-16-32-64-120s only wastes four minutes per call and then fails
-            # anyway -- on a 144-call run that is hours of grinding to reach a
-            # conclusion available from the first response.
-            if status == 429 and _is_daily_limit(error):
-                raise QuotaExhausted(str(error)[:300]) from error
-            if not transient or attempt == args.max_attempts:
-                if status == 429:
-                    raise QuotaExhausted(str(error)[:300]) from error
-                raise
-            wait = _retry_after_seconds(error) or delay
-            print(f"    ! {status}; ждём {wait:.0f}s", file=sys.stderr)
-            time.sleep(wait)
-            delay = min(delay * 2, 120.0)
+    fields = ["body"] + [f"followup_{k}" for k in FOLLOWUP_IDS]
+    for field in fields:
+        text = payload.get(field, "")
+        if not text.strip():
+            errors.append(f"{field}: empty")
             continue
 
-        text = (completion.choices[0].message.content or "").strip()
-        if not text:
-            raise ValueError("provider returned empty content")
+        if not contains_value(text, advice):
+            errors.append(
+                f"{field}: missing required value {format_number(advice)} "
+                f"(found {sorted(set(extract_numbers(text)))})"
+            )
 
-        usage = completion.usage
-        spent = {
-            "input_tokens": getattr(usage, "prompt_tokens", 0) or 0,
-            "output_tokens": getattr(usage, "completion_tokens", 0) or 0,
-        }
-        # The binding free-tier limit is tokens per DAY, and a body call costs
-        # far more than its output suggests -- the persona, register and
-        # constraint blocks go in on every call. Without a running total the
-        # budget is invisible until the provider refuses mid-run.
-        global TOKENS_USED
-        TOKENS_USED += spent["input_tokens"] + spent["output_tokens"]
-        return {"payload": _json.loads(text), "usage": spent}
+        if item["is_error"] and contains_value(text, float(item["true_value"])):
+            errors.append(
+                f"{field}: leaks the true value {format_number(item['true_value'])} on an error item"
+            )
 
-    raise QuotaExhausted("exhausted retries")
+        if not has_hedge_marker(text, language):
+            warnings.append(f"{field}: no recognised {language} hedge marker")
+
+        lo, hi = BODY_WORDS if field == "body" else FOLLOWUP_WORDS
+        n = word_count(text)
+        if not lo <= n <= hi:
+            hard_lo, hard_hi = int(lo * (1 - WORD_HARD_SLACK)), int(hi * (1 + WORD_HARD_SLACK))
+            message = f"{field}: {n} words, outside {lo}-{hi}"
+            (warnings if hard_lo <= n <= hard_hi else errors).append(message)
+
+    return {"ok": not errors, "errors": errors, "warnings": warnings}
 
 
 # ---------------------------------------------------------------------------
-# Phases
+# API
 # ---------------------------------------------------------------------------
-
-
-JUSTIFICATION_CACHE = MATERIALS / "justifications.json"
 
 
 def build_justifications(
-    items: list[dict[str, Any]], languages: Iterable[str], client: Any, args: argparse.Namespace
+    items: list[dict[str, Any]],
+    languages: Iterable[str],
+    provider: Any,
+    cache: CellCache,
+    args: argparse.Namespace,
 ) -> dict[tuple[str, str], str]:
     """Phase 1: one justification per (language, item), reused across all variants.
 
-    Persisted to disk as it goes. Phase 1 is 24 paid calls whose output phase 2
-    depends on; without the cache, any phase-2 failure would spend them again
-    on the next run -- and on a free tier the quota is the scarce resource.
+    Every rendered justification is written to the cell cache the moment it
+    arrives. Phase 1 is 24 paid calls that phase 2 depends on; before the cache
+    existed, a phase-2 failure spent them all again on the next run.
     """
     out: dict[tuple[str, str], str] = {}
-    cache: dict[str, str] = {}
-    if JUSTIFICATION_CACHE.exists() and not args.force and not args.offline:
-        cached = read_json(JUSTIFICATION_CACHE)
-        if cached.get("model") == args.model:
-            cache = cached.get("justifications", {})
-
     print("Phase 1: justifications")
     reused = 0
+    generated = 0
 
     for language in languages:
         for item in items:
             key = (language, item["id"])
-            flat = f"{language}/{item['id']}"
 
-            if args.offline or language == "en":
-                out[key] = offline_justification(item, language)
+            # English is the source language: the bank's own sentence IS the
+            # stimulus, so there is nothing to render and nothing to pay for.
+            # Offline is NOT special-cased -- it is a provider like any other.
+            if language == "en":
+                out[key] = str(assigned_justification(item)["text"])
                 continue
 
-            if flat in cache:
-                out[key] = cache[flat]
-                reused += 1
-                continue
+            cid = cell_id("justification", language, item["id"])
+            if not provider.placeholder and not args.force:
+                hit = cache.get(cid)
+                if hit is not None:
+                    out[key] = str(hit["justification"])
+                    reused += 1
+                    continue
 
             prompt = build_justification_prompt(item, language)
             source = assigned_justification(item)
@@ -620,34 +628,36 @@ def build_justifications(
             # which is the true value of an error item and would have leaked it
             # into text shown identically in both conditions.
             rendered = ""
+            problems: list[str] = []
             for attempt in range(1, args.max_attempts + 1):
-                result = call_model(
-                    client, prompt, str(source["text"]),
-                    JUSTIFICATION_SCHEMA, "justification", args,
+                result = provider.complete(
+                    prompt, str(source["text"]), JUSTIFICATION_SCHEMA, "justification", cid,
                 )
                 rendered = str(result["payload"]["justification"]).strip()
                 problems = validate_justification(rendered, int(source["word_count"]))
                 if not problems:
                     break
-                print(f"    ! {flat} attempt {attempt}: {'; '.join(problems)}", file=sys.stderr)
-                if args.sleep:
-                    time.sleep(args.sleep)
+                print(f"    ! {cid} attempt {attempt}: {'; '.join(problems)}", file=sys.stderr)
+                if provider.sleep_seconds:
+                    time.sleep(provider.sleep_seconds)
             else:
                 raise SystemExit(
-                    f"{flat}: justification still invalid after {args.max_attempts} attempts "
+                    f"{cid}: justification still invalid after {args.max_attempts} attempts "
                     f"({'; '.join(problems)}). Nothing downstream is safe to build on it."
                 )
 
-            out[key] = cache[flat] = rendered
-            write_json(JUSTIFICATION_CACHE, {"model": args.model, "justifications": cache})
-            if args.sleep:
-                time.sleep(args.sleep)
+            out[key] = rendered
+            if not provider.placeholder:
+                cache.put(cid, {"justification": rendered}, result.get("tokens", 0))
+            generated += 1
+            if provider.sleep_seconds:
+                time.sleep(provider.sleep_seconds)
 
-        rendered = "source" if language == "en" else ("placeholder" if args.offline else "generated")
-        print(f"  {language}: {len(items)} ({rendered})")
+        label = "source" if language == "en" else ("placeholder" if provider.placeholder else "ready")
+        print(f"  {language}: {len(items)} ({label})")
 
-    if reused:
-        print(f"  ({reused} reused from {JUSTIFICATION_CACHE.name})")
+    if reused or generated:
+        print(f"  ({reused} from cache, {generated} generated)")
     return out
 
 
@@ -685,7 +695,8 @@ def build_variant_file(
     condition: str,
     state: str | None,
     justifications: dict[tuple[str, str], str],
-    client: Any,
+    provider: Any,
+    cache: CellCache,
     args: argparse.Namespace,
 ) -> tuple[dict[str, Any], list[str]]:
     """Phase 2: one stimulus file — all 12 items for one (language, condition, register)."""
@@ -701,11 +712,12 @@ def build_variant_file(
             responses.append(cached)
             continue
 
-        if args.offline:
-            payload = offline_body(item, language, condition, state)
-            attempts = 0
-        else:
-            payload, attempts = generate_body(item, language, condition, state, client, args)
+        # No offline branch here. OfflineProvider exists so that the caller
+        # cannot tell placeholders from live output; branching on args.offline
+        # would leave the offline path untested by everything below it.
+        payload, attempts = generate_body(
+            item, language, condition, state, provider, cache, args
+        )
 
         validation = validate_record(payload, item, language)
         if not validation["ok"]:
@@ -729,7 +741,7 @@ def build_variant_file(
                 "justification_quality": item["assigned_justification_quality"],
                 "justification_text": justification,
                 "followups": content["followups"],
-                "placeholder": bool(args.offline),
+                "placeholder": bool(provider.placeholder),
                 "sha256": sha256_text(
                     "\n".join(
                         [content["body"], justification, *[content["followups"][k] for k in FOLLOWUP_IDS]]
@@ -755,10 +767,10 @@ def build_variant_file(
             # provider is named explicitly because the model id alone is
             # ambiguous -- "openai/gpt-oss-120b" is served by Groq and reads as
             # though it came from OpenAI.
-            "generator_mode": "offline_placeholder" if args.offline else "live_api",
-            "provider": "none (offline placeholder)" if args.offline else args.provider,
-            "model": "none (offline placeholder)" if args.offline else args.model,
-            "placeholder": bool(args.offline),
+            "generator_mode": "offline_placeholder" if provider.placeholder else "live_api",
+            "provider": provider.name,
+            "model": provider.model,
+            "placeholder": bool(provider.placeholder),
             "prompt_hashes": prompt_hashes(condition, state),
             "translation_status": "source" if language == "en" else "machine_draft_requires_back_translation",
             "human_verification": {
@@ -780,24 +792,44 @@ def generate_body(
     language: str,
     condition: str,
     state: str | None,
-    client: Any,
+    provider: Any,
+    cache: CellCache,
     args: argparse.Namespace,
 ) -> tuple[dict[str, str], int]:
+    """One body cell, from cache when possible, written to cache when not.
+
+    The cache write happens before this returns, so a quota exhaustion on the
+    next cell cannot discard this one. That was the failure mode: variant files
+    were written only after all twelve of their cells finished, so running out
+    of budget on the eighth call threw away seven paid-for cells.
+    """
+    cid = cell_id("body", language, item["id"], condition, state)
+    # Placeholders are deterministic and free, so caching them would only create
+    # a route for placeholder text to survive into a live run.
+    cacheable = not provider.placeholder
+
+    if cacheable and not args.force:
+        hit = cache.get(cid)
+        if hit is not None:
+            return {k: str(v) for k, v in hit.items()}, 0
+
     system_prompt = build_system_prompt(item, language, condition, state)
     user_message = str(item["question"][language])
     last: dict[str, str] = {}
 
     for attempt in range(1, args.max_attempts + 1):
-        result = call_model(
-            client, system_prompt, user_message, BODY_SCHEMA, "stimulus", args,
-        )
+        result = provider.complete(system_prompt, user_message, BODY_SCHEMA, "stimulus", cid)
         last = {k: str(v) for k, v in result["payload"].items()}
         if validate_record(last, item, language)["ok"]:
+            if cacheable:
+                cache.put(cid, last, result.get("tokens", 0))
             return last, attempt
-        print(f"    ! attempt {attempt} failed validation; retrying", file=sys.stderr)
-        if args.sleep:
-            time.sleep(args.sleep)
+        print(f"    ! {cid} attempt {attempt} failed validation; retrying", file=sys.stderr)
+        if provider.sleep_seconds:
+            time.sleep(provider.sleep_seconds)
 
+    # Deliberately NOT cached: caching a record that never validated would make
+    # the next run skip it and inherit the defect silently.
     return last, args.max_attempts
 
 
@@ -836,7 +868,12 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--force", action="store_true",
                         help="regenerate even where valid records already exist")
     parser.add_argument("--dry-run", action="store_true", help="print prompts and exit")
-    parser.add_argument("--provider", default=DEFAULT_PROVIDER, choices=sorted(PROVIDERS))
+    parser.add_argument(
+        "--provider",
+        default=DEFAULT_PROVIDER,
+        choices=sorted(PROVIDERS) + ["manual"],
+        help="an API, or 'manual' to read hand-authored cells from materials/manual/",
+    )
     parser.add_argument("--model", default=None, help="defaults to the provider's model")
     parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
     parser.add_argument(
@@ -850,18 +887,124 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--sleep", type=float, default=DEFAULT_SLEEP,
                         help="seconds between calls; free tiers are rate-limited")
     args = parser.parse_args(list(argv) if argv is not None else None)
-    if args.model is None:
-        args.model = PROVIDERS[args.provider]["default_model"]
-    if args.thinking is None:
-        args.thinking = PROVIDERS[args.provider]["default_thinking"]
+    if args.provider == "manual":
+        # Hand-authored cells have no model and no reasoning setting; the
+        # manifest still records "manual" so the provenance is explicit.
+        args.model = args.model or "hand-authored"
+        args.thinking = args.thinking or "default"
+    else:
+        if args.model is None:
+            args.model = PROVIDERS[args.provider]["default_model"]
+        if args.thinking is None:
+            args.thinking = PROVIDERS[args.provider]["default_thinking"]
     return args
+
+
+def _offline_render(items: list[dict[str, Any]], args: argparse.Namespace):
+    """Adapts the placeholder generators to the provider interface.
+
+    The renderers know about items and prompts; the provider protocol knows only
+    about cell ids. This closure is the seam, so OfflineProvider needs no import
+    from this module and the dependency stays one-directional.
+    """
+    by_id = {i["id"]: i for i in items}
+
+    def render(schema_name: str, cid: str) -> dict[str, Any]:
+        parts = cid.split("/")
+        if parts[0] == "justification":
+            _, language, item_id = parts
+            return {"justification": offline_justification(by_id[item_id], language)}
+        _, language, condition, slug, item_id = parts
+        state = None if slug == "na" else slug.upper()
+        return offline_body(by_id[item_id], language, condition, state)
+
+    return render
+
+
+def plan_cells(
+    items: list[dict[str, Any]],
+    languages: Iterable[str],
+    variants: list[tuple[str, str | None]],
+) -> list[tuple[str, str, dict[str, Any], str, str | None]]:
+    """Every cell a full run would need, in the order it would be produced."""
+    cells: list[tuple[str, str, dict[str, Any], str, str | None]] = []
+    for language in languages:
+        if language != "en":
+            for item in items:
+                cells.append((cell_id("justification", language, item["id"]),
+                              language, item, "", None))
+    for language in languages:
+        for condition, state in variants:
+            for item in items:
+                cells.append((cell_id("body", language, item["id"], condition, state),
+                              language, item, condition, state))
+    return cells
+
+
+def dry_run(
+    items: list[dict[str, Any]],
+    languages: Iterable[str],
+    variants: list[tuple[str, str | None]],
+    provider: Any,
+    cache: CellCache,
+    args: argparse.Namespace,
+) -> int:
+    """What a run would cost, before spending any of it.
+
+    The point is to see the number in advance rather than discover it by hitting
+    a limit two thirds of the way through a set.
+    """
+    languages = list(languages)
+    cells = plan_cells(items, languages, variants)
+    outstanding = [c for c in cells if c[0] not in cache]
+
+    tokens = 0
+    for cid, language, item, condition, state in outstanding:
+        if cid.startswith("justification/"):
+            system = build_justification_prompt(item, language)
+            user = str(assigned_justification(item)["text"])
+        else:
+            system = build_system_prompt(item, language, condition, state)
+            user = str(item["question"][language])
+        tokens += provider.estimate_tokens(system, user)
+
+    print(f"provider: {provider.name} / {provider.model}")
+    print(f"cells:    {len(cells)} planned, {len(cache)} cached, "
+          f"{len(outstanding)} outstanding")
+    print(f"requests: {len(outstanding)}")
+    print(f"tokens:   {tokens:,} estimated (reservation included)")
+
+    budget = DAILY_TOKEN_BUDGET.get(provider.name)
+    if budget and tokens:
+        days = tokens / budget
+        print(f"budget:   {budget:,}/day -> {days:.1f} day(s) at best")
+        if days > 1:
+            # Saying this plainly is the whole point: a run that cannot finish
+            # today should be planned for, not discovered at cell 90.
+            print(f"          this does NOT finish in one day. The run stops cleanly")
+            print(f"          when the budget is gone and resumes from the cache.")
+    pace = getattr(provider, "sleep_seconds", 0.0)
+    if pace and outstanding:
+        minutes = len(outstanding) * pace / 60
+        print(f"pacing:   {pace:.0f}s between calls -> {minutes:.0f} min of wall clock")
+
+    if outstanding:
+        print()
+        print(f"next cell: {outstanding[0][0]}")
+    else:
+        print()
+        print("nothing outstanding: every cell is cached")
+    return 0
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(argv)
-    if not args.offline and not args.dry_run:
+    # Loaded for --dry-run too: the estimate is built from the real provider's
+    # real settings, so it needs the same key the run would need. Only the
+    # offline provider genuinely has no credentials to find.
+    if not args.offline:
         loaded = load_dotenv()
-        if loaded:
+        if loaded and not args.dry_run:
             print("env: " + ", ".join(loaded))
 
     bank = load_items()
@@ -873,26 +1016,27 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     variants = [(c, s) for c, s in VARIANTS if c in args.conditions]
 
-    if args.dry_run:
-        for language in args.languages:
-            for condition, state in variants:
-                item = items[0]
-                print("=" * 72)
-                print(f"{stimulus_filename(language, condition, state)} :: {item['id']}")
-                print("=" * 72)
-                print(build_system_prompt(item, language, condition, state))
-                print()
-        planned = len(args.languages) * len(variants) * len(items)
-        justification_calls = len([l for l in args.languages if l != "en"]) * len(items)
-        print(f"dry run: {planned} body calls + {justification_calls} justification calls")
-        return 0
+    # The provider is built before --dry-run so the estimate uses the real
+    # max_tokens and the real budget rather than a guess about them.
+    try:
+        provider = build_provider(args, _offline_render(items, args))
+    except ProviderError as error:
+        print(str(error), file=sys.stderr)
+        return 2
 
-    client = None if args.offline else make_client(args)
+    cache = CellCache(provider=provider.name, model=provider.model)
+
+    if args.dry_run:
+        return dry_run(items, args.languages, variants, provider, cache, args)
+
     if not args.offline:
-        print(f"provider: {args.provider} / {args.model} (thinking={args.thinking})")
+        print(f"provider: {provider.name} / {provider.model} (thinking={args.thinking})")
+    if len(cache):
+        print(f"cache: {len(cache)} cells already on disk")
+
 
     try:
-        justifications = build_justifications(items, args.languages, client, args)
+        justifications = build_justifications(items, args.languages, provider, cache, args)
     except QuotaExhausted as stop:
         print(f"\nQuota exhausted during phase 1: {stop}", file=sys.stderr)
         print("Nothing was written. Re-run when the quota resets.", file=sys.stderr)
@@ -912,7 +1056,7 @@ def main(argv: Iterable[str] | None = None) -> int:
                 break
             try:
                 document, file_failures = build_variant_file(
-                    items, language, condition, state, justifications, client, args
+                    items, language, condition, state, justifications, provider, cache, args
                 )
             except QuotaExhausted as stop:
                 # Stop cleanly and keep everything already on disk; a resume
@@ -951,8 +1095,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         f"{written} of {len(planned)} files, {written_responses} responses, "
         f"{written_responses * 3} follow-up branches"
     )
-    if TOKENS_USED:
-        print(f"{TOKENS_USED:,} tokens spent this run")
+    if provider.tokens_used:
+        print(f"{provider.tokens_used:,} tokens spent this run "
+              f"across {provider.requests_made} request(s); {len(cache)} cells cached")
     if args.offline:
         print("MODE: offline placeholders. NOT launch-ready. Re-run without --offline before piloting.")
 

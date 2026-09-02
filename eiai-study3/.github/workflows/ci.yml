@@ -93,6 +93,10 @@ jobs:
         # React in jsdom, where IndexedDB is faked and layout does not exist;
         # only this catches a stimulus that fails to bundle or a write-ahead
         # log that will not open.
+        #
+        # Includes e2e/minor-flow.spec.ts, which walks BOTH consent arms to the
+        # debrief. The minor branch existed in the statechart but no test had
+        # ever completed it -- the same topology as the allocation stub.
         run: pnpm e2e
 
       - name: Simulation bots through the real app

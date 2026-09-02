@@ -3,7 +3,7 @@ import type { AgeBand, FollowupId, Language, StimulusResponse } from "@eiai/sche
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import { currentItemId, stratumFor } from "@eiai/fsm";
 import { allocate } from "./allocation";
-import { itemById, resolveStimulus } from "./stimuli";
+import { itemById, requireLanguage, stimulusFor } from "./stimuli";
 
 /**
  * Eligibility, consent, allocation and the item screen.
@@ -291,7 +291,7 @@ export function ItemScreen({
   const itemId = currentItemId(context);
   if (!itemId) return null;
   const item = itemById(itemId);
-  const language = context.language ?? "en";
+  const language = requireLanguage(context, "the item screen");
   const [lo, hi] = item.plausible_answer_range;
 
   const position = context.itemIndex + 1;
@@ -411,12 +411,7 @@ function AdviceBlock({
   onScroll?: ((fraction: number) => void) | undefined;
   readOnly?: boolean | undefined;
 }) {
-  const stimulus = resolveStimulus(
-    context.language ?? "en",
-    context.condition ?? "neutral",
-    context.registerState,
-    itemId,
-  );
+  const stimulus = stimulusFor(context, itemId);
 
   // Fraction of the scrollable extent reached. A response that fits entirely on
   // screen has no extent, and counts as fully seen rather than as zero -- the

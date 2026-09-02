@@ -7,6 +7,8 @@ _common.py             locale-aware numeric matching, hashing, .env loading, pat
 
   materials
 generate.py            12 files, 144 responses, 432 follow-up branches
+providers.py           live API / offline placeholders / hand-authored, one interface
+cell_cache.py          per-cell durability, so a stopped run loses nothing
 verify_equivalence.py  content equivalence across the four condition variants
 hash_manifest.py       SHA-256 manifest; --check is the integrity gate
 verify_components.py   blinded kappa coding sheets, Cohen's kappa
@@ -27,9 +29,9 @@ of them.
 
 ## Generating stimuli
 
-Provider settings live in one `PROVIDERS` block at the top of `generate.py`.
-Every supported provider speaks the OpenAI chat-completions shape, so switching
-one is a single edit.
+Provider settings live in one `PROVIDERS` block in `providers.py`. Every
+supported API speaks the OpenAI chat-completions shape, so switching one is a
+single edit and nothing above the generation layer changes.
 
 ```bash
 python pipeline/generate.py --offline     # placeholders, no key needed
@@ -77,8 +79,8 @@ That is expected, not a fault:
 - The run stops cleanly, prints how many of the twelve variant files are still
   missing and names them, and exits **2**.
 - Re-running the same command the next day skips what is finished.
-- Phase 1 is cached in `materials/justifications.json`, so the 24 justification
-  calls are paid once even across days.
+- Every finished cell is cached, so nothing already paid for is paid for twice
+  — see "Generation is idempotent per cell" below.
 
 A partial set cannot be manifested: `hash_manifest.py` fails when the twelve
 files disagree on provider, model or generator mode. So the set is either
@@ -102,11 +104,59 @@ can be committed and fielded by accident.
   low, medium or high), so its default is `default`, which omits the parameter —
   matching the configuration the model was actually measured under.
 
-If the daily quota runs out mid-run, the process stops cleanly and keeps every
-file already written. Re-run the same command when the quota resets — finished
-variants are skipped rather than regenerated. Use `--force` to override that.
-Placeholder records and records from a different model never count as finished,
-so switching model or coming from `--offline` always regenerates.
+`--force` regenerates cells that are already cached. Placeholder records and
+records from a different model never count as finished, so switching model or
+coming from `--offline` always regenerates.
+
+## Generation is idempotent per cell
+
+A cell is one `(language, condition, register, item)` body, or one
+`(language, item)` justification. Each is written to
+`materials/generation_cache.json` the moment it arrives, keyed by provider and
+model:
+
+```bash
+pnpm stimuli:estimate            # what a run would cost, before spending it
+python pipeline/generate.py      # resumes; cached cells cost nothing
+```
+
+Before this, a variant file was written only after all twelve of its cells
+finished, so running out of budget on the eighth call discarded seven cells that
+had already been paid for. On a free tier that stops mid-run routinely, that is
+the difference between finishing and not.
+
+The cache is keyed by provider **and** model, so a Groq cell is never reused in
+a Gemini run: two models inside one stimulus set is not one frozen set. A
+key mismatch simply misses and the cell regenerates. Placeholders never enter
+the cache at all — they are deterministic and free, and caching them would
+create a route for placeholder text to survive into a live run.
+
+`--dry-run` prices the work first:
+
+```
+cells:    168 planned, 0 cached, 168 outstanding
+tokens:   455,517 estimated (reservation included)
+budget:   200,000/day -> 2.3 day(s) at best
+          this does NOT finish in one day.
+next cell: justification/kk/item_01
+```
+
+When the budget does run out the run exits **2**, names the next cell, and keeps
+everything cached. Re-running the same command resumes there.
+
+## Three sources, one interface
+
+`pipeline/providers.py` holds `LiveProvider` (any OpenAI-compatible API),
+`OfflineProvider` (deterministic placeholders) and `ManualProvider`
+(hand-authored JSON in `materials/manual/`). Nothing above the generation layer
+branches on which is in use — `--provider manual` and `--offline` go through the
+same code path as Groq, including validation, caching and the manifest.
+
+Hand-authored cells are not a fallback. Stimuli are frozen material: once a
+Kazakh phrasing has been corrected by hand, that text *is* the stimulus, and a
+pipeline that could only consume model output would force the correction back
+through a prompt and re-sample it. A missing manual cell is an error naming the
+file to create, never a silently skipped cell.
 
 ## Parameter recovery, and why the bridge matters
 

@@ -22,7 +22,7 @@
       "shared_constraints": "d0f60f1f5de7e25dff27092f0ac5f05b2432ecbc8ba65785b8e3dd551cd5156a",
       "warm_components": "8ea3c6a762108ccd172e992455467273bb9ce7cb59b45f48de974828b000614d"
     },
-    "provider": "none (offline placeholder)",
+    "provider": "offline",
     "register_state": "MODERATE",
     "schema_version": "1.0",
     "study": "eiai-study3",
@@ -30,7 +30,7 @@
   },
   "responses": [
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -53,7 +53,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -76,7 +76,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -99,7 +99,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -122,7 +122,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -145,7 +145,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -168,7 +168,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -191,7 +191,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -214,7 +214,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -237,7 +237,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -260,7 +260,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {
@@ -283,7 +283,7 @@
       }
     },
     {
-      "attempts_used": 0,
+      "attempts_used": 1,
       "body": "[PLACEHOLDER] This is one of those questions where working it through together helps. approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and",
       "condition": "warm",
       "followups": {

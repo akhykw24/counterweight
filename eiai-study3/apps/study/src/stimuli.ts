@@ -5,6 +5,7 @@ import type {
   RegisterState,
   StimulusResponse,
 } from "@eiai/schema";
+import type { SessionContext } from "@eiai/fsm";
 import { registerSlug } from "@eiai/fsm";
 import itemBank from "../../../materials/items.json";
 
@@ -36,6 +37,55 @@ export function itemById(itemId: string): ItemRecord {
   const item = items.find((candidate) => candidate.id === itemId);
   if (!item) throw new Error(`unknown item ${itemId}`);
   return item;
+}
+
+export class AllocationMissingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AllocationMissingError";
+  }
+}
+
+/**
+ * The participant's language, or a loud failure.
+ *
+ * Anything a participant reads as part of the task -- the question stem, the
+ * advice, the debrief that discloses the planted errors -- must be in the
+ * language they chose. Falling back to English would show a Kazakh participant
+ * an English question and leave nothing in the log to say it happened.
+ */
+export function requireLanguage(context: SessionContext, what: string): Language {
+  if (context.language === null) {
+    throw new AllocationMissingError(
+      `${what} was rendered before the participant chose a language. ` +
+        `Defaulting would silently show them the wrong one.`,
+    );
+  }
+  return context.language;
+}
+
+/**
+ * The stimulus for the participant's actual allocation.
+ *
+ * Both call sites used to read `context.language ?? "en"` and
+ * `context.condition ?? "neutral"`. Those defaults are the same defect as the
+ * hard-coded `warm` / `en:adult` the bots found, and quieter: a participant
+ * allocated to warm Kazakh would have been served English neutral, and
+ * `RESPONSE_REVEALED` would have recorded that stimulus's own response_id --
+ * internally consistent, indistinguishable in the log from a correct trial, and
+ * wrong. Throwing means a statechart that ever reaches the advice screen
+ * without an allocation fails loudly in the pilot instead of silently in the
+ * data.
+ */
+export function stimulusFor(context: SessionContext, itemId: string): StimulusResponse {
+  if (context.language === null || context.condition === null) {
+    throw new AllocationMissingError(
+      `reached the advice screen for ${itemId} without an allocation ` +
+        `(language=${String(context.language)}, condition=${String(context.condition)}). ` +
+        `Serving a default would put an uncontrolled stimulus in front of a participant.`,
+    );
+  }
+  return resolveStimulus(context.language, context.condition, context.registerState, itemId);
 }
 
 export function resolveStimulus(

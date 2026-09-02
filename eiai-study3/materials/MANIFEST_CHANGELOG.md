@@ -70,3 +70,28 @@ Three further edits to `materials/items.json`:
    figure rests on an assumed effect size rather than an observed SD.
 
 Still no stimulus regeneration: none of this changes a frozen response.
+
+### Rebuild 3 — offline becomes a provider like any other
+
+| Digest | Now |
+|---|---|
+| `manifest_sha256` | `471cef6f8cc11faa4348f6b4...` |
+| all twelve stimulus file digests | **changed** |
+
+The twelve digests moved for the first time, and it is worth being precise that
+**no stimulus text changed**. The diff is thirteen lines per file, all metadata:
+
+- `meta.provider` is now `offline` rather than `none (offline placeholder)`.
+  The field names the provider; `generator_mode: offline_placeholder` and
+  `placeholder: true` already say the material is not fieldable, so repeating it
+  inside the provider name was redundant and inconsistent with `groq`/`manual`.
+- `attempts_used` is `1` rather than `0` on placeholder records, because the
+  offline path is now a provider call rather than a branch that skipped the
+  provider entirely.
+
+Both follow from removing the `if args.offline:` short-circuit in the generation
+loop. That branch meant `OfflineProvider` was never exercised for bodies, so the
+placeholder path was untested by everything below the branch -- the same shape of
+defect as the hard-coded allocation literal.
+
+`launch_ready` is still `false`.

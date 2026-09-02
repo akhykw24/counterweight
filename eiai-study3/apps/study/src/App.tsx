@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useMachine } from "@xstate/react";
 import type { StateValue } from "xstate";
+import type { Language } from "@eiai/schema";
 import { currentItemId, sessionMachine, type SessionMachine } from "@eiai/fsm";
 import {
   APP_VERSION,
@@ -9,7 +10,7 @@ import {
   noopRecorder,
   type Recorder,
 } from "./telemetry";
-import { resolveStimulus } from "./stimuli";
+import { requireLanguage, stimulusFor } from "./stimuli";
 import { translator } from "./i18n";
 import {
   AllocatingScreen,
@@ -32,6 +33,17 @@ export function stateName(value: StateValue): string {
 }
 
 const TERMINAL = new Set(["done", "withdrawn", "ineligible"]);
+
+/**
+ * The only assumed language in the app.
+ *
+ * The eligibility screen has to render in something before the participant has
+ * chosen, so this covers UI chrome up to that first click and nothing else.
+ * Everything the participant reads as part of the task -- question stems,
+ * advice, the debrief that discloses the planted errors -- goes through
+ * `requireLanguage`, which throws rather than assuming.
+ */
+const BOOTSTRAP_LANGUAGE: Language = "en";
 
 export interface AppProps {
   machine?: SessionMachine;
@@ -59,7 +71,10 @@ export function App({
   );
   const name = stateName(state.value);
   const context = state.context;
-  const t = translator(context.language ?? "en");
+  // BOOTSTRAP_LANGUAGE: the eligibility screen has to render in something
+  // before the participant has chosen. This is the only assumed language in the
+  // app, it applies to UI chrome only, and it is replaced the moment they pick.
+  const t = translator(context.language ?? BOOTSTRAP_LANGUAGE);
 
   const startedAt = useRef(Date.now());
   const itemPresentedAt = useRef(Date.now());
@@ -145,12 +160,7 @@ export function App({
     if (name === "task.advice" && itemId && lastRevealed.current !== itemId) {
       lastRevealed.current = itemId;
       revealedAt.current = Date.now();
-      const stimulus = resolveStimulus(
-        context.language ?? "en",
-        context.condition ?? "neutral",
-        context.registerState,
-        itemId,
-      );
+      const stimulus = stimulusFor(context, itemId);
       recorder.record("RESPONSE_REVEALED", {
         item_id: itemId,
         response_id: stimulus.response_id,
@@ -168,7 +178,18 @@ export function App({
 
     switch (event.type) {
       case "GIVE_CONSENT":
-        recorder.record("CONSENT_GIVEN", { flow: "adult" });
+        // The flow the PARTICIPANT is on, read from their age group. A literal
+        // here would describe which screen fired the event, which is only
+        // accidentally the same thing -- and defaulting would file a minor as
+        // an adult in the consent record, which is the one field in this log
+        // that has to be right for reasons beyond the analysis.
+        if (context.ageGroup === null) {
+          throw new Error(
+            "GIVE_CONSENT with no age group: eligibility cannot have completed. " +
+              "Refusing to guess which consent flow this participant is on.",
+          );
+        }
+        recorder.record("CONSENT_GIVEN", { flow: context.ageGroup });
         break;
       case "GIVE_ASSENT":
         recorder.record("ASSENT_GIVEN", {
@@ -310,7 +331,7 @@ export function App({
         {name === "funnel.belief" && <FunnelScreen stage="belief" send={send} t={t} />}
 
         {name === "debrief" && (
-          <DebriefScreen send={send} t={t} language={context.language ?? "en"} />
+          <DebriefScreen send={send} t={t} language={requireLanguage(context, "the debrief")} />
         )}
 
         {name === "done" && (

@@ -260,7 +260,17 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
         "condition": condition,
         "stratum": stratum,
         "allocation_seq": (allocated or {}).get("payload", {}).get("allocation_seq"),
-        "locale": (started or {}).get("payload", {}).get("locale"),
+        # Two different things, and conflating them misreports the language for
+        # anyone whose browser disagrees with their choice -- which in a
+        # trilingual sample is most of them.
+        #
+        #   browser_locale  what the browser reported at first load, BEFORE the
+        #                   participant picked anything. Useful for knowing what
+        #                   they were defaulted to; not their language.
+        #   language        the language they chose, taken from the allocation
+        #                   stratum, which is where it becomes authoritative.
+        "browser_locale": (started or {}).get("payload", {}).get("locale"),
+        "language": str(stratum).split(":")[0] if stratum else None,
         "app_version": (started or {}).get("payload", {}).get("app_version"),
         "stimuli_manifest_hash": (started or {}).get("payload", {}).get("stimuli_manifest_hash"),
         "resumed": int(bool((started or {}).get("payload", {}).get("resumed"))),
@@ -351,7 +361,8 @@ TRIAL_COLUMNS = [
 
 PARTICIPANT_COLUMNS = [
     "session_id", "condition", "stratum", "allocation_seq", "locale", "app_version",
-    "stimuli_manifest_hash", "resumed", "consent_flow", "age_band", "primary_language",
+    "stimuli_manifest_hash", "resumed", "consent_flow", "browser_locale", "language",
+    "age_band", "primary_language",
     "ai_usage", "prior_knowledge",
     "completed", "withdrawn", "withdrawn_at_state", "total_duration_ms",
     "n_trials_presented", "n_trials_complete", "n_events",

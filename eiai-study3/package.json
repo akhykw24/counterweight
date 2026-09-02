@@ -33,7 +33,8 @@
     "e2e:bots": "playwright test e2e/bots.spec.ts",
     "bridge": "python pipeline/verify_bridge.py",
     "test:py": "python -m pytest pipeline/tests -q",
-    "power": "python pipeline/power.py --tables data/tables"
+    "power": "python pipeline/power.py --tables data/tables",
+    "stimuli:estimate": "python pipeline/generate.py --dry-run"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
