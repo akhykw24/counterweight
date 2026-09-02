@@ -3,7 +3,7 @@ import {
   ClientTimestamp,
   Condition,
   Confidence,
-  ConsentFlow,
+  ScreenedOutReason,
   DurationMs,
   Estimate,
   EstimatePhase,
@@ -76,21 +76,16 @@ export const SessionStarted = defineEvent(
   },
 );
 
-export const ConsentGiven = defineEvent(
-  "CONSENT_GIVEN",
-  "Adult informed consent, or the guardian-facing half of the minor flow.",
-  { flow: ConsentFlow },
+export const ScreenedOut = defineEvent(
+  "SCREENED_OUT",
+  "A visitor was turned away before consent. This is the only event such a session produces: no age band, no answers, no allocation. It exists so screening counts can be reported in the participant-flow diagram without storing anything about the person.",
+  { reason: ScreenedOutReason },
 );
 
-export const AssentGiven = defineEvent(
-  "ASSENT_GIVEN",
-  "Minor assent, given in-app after a parental consent form was returned out of band.",
-  {
-    parental_consent_code: z
-      .string()
-      .min(1)
-      .describe("Opaque session code linking to a returned parental form. Carries no name and no contact detail."),
-  },
+export const ConsentGiven = defineEvent(
+  "CONSENT_GIVEN",
+  "Adult informed consent. Carries no flow discriminator: v2 admits adults only, so there is one flow and naming it would only invite the literal to drift from the participant.",
+  {},
 );
 
 export const Allocated = defineEvent(
@@ -245,8 +240,8 @@ export const SessionWithdrawn = defineEvent(
 /** Every event type, in taxonomy order. */
 export const eventSchemas = [
   SessionStarted,
+  ScreenedOut,
   ConsentGiven,
-  AssentGiven,
   Allocated,
   ItemPresented,
   EstimateChanged,
@@ -266,8 +261,8 @@ export const eventSchemas = [
 
 export const StudyEvent = z.discriminatedUnion("type", [
   SessionStarted,
+  ScreenedOut,
   ConsentGiven,
-  AssentGiven,
   Allocated,
   ItemPresented,
   EstimateChanged,

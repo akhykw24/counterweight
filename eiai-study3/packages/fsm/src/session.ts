@@ -2,6 +2,8 @@ import { assign, setup } from "xstate";
 import type {
   AgeBand,
   AgeGroup,
+  AgeScreenAnswer,
+  ScreenedOutReason,
   Condition,
   FollowupId,
   FunnelStage,
@@ -14,7 +16,7 @@ import { registerFor } from "./register.js";
 /**
  * Session flow as a statechart (STUDY3_SPEC_v3.md section 5).
  *
- * eligibility -> consent/assent fork -> allocation -> 12 items ->
+ * eligibility -> screening gate -> consent -> allocation -> 12 items ->
  * questionnaire -> funnel -> debrief -> done, with withdrawal reachable from
  * every screen.
  *
@@ -26,10 +28,13 @@ import { registerFor } from "./register.js";
 
 export interface SessionContext {
   language: Language | null;
+  /** What the screen was told. `under-18` never becomes an `ageBand`. */
+  ageAnswer: AgeScreenAnswer | null;
   ageBand: AgeBand | null;
   ageGroup: AgeGroup | null;
   priorTraining: boolean | null;
-  parentalConsentCode: string | null;
+  /** Why the visitor was turned away, or null if they were not. */
+  screenedOutReason: ScreenedOutReason | null;
 
   condition: Condition | null;
   stratum: Stratum | null;
@@ -68,12 +73,10 @@ export const DEFAULT_ITEM_IDS: readonly string[] = Array.from(
 
 export type SessionEvent =
   | { type: "SET_LANGUAGE"; language: Language }
-  | { type: "SET_AGE_BAND"; ageBand: AgeBand }
+  | { type: "SET_AGE_ANSWER"; ageAnswer: AgeScreenAnswer }
   | { type: "SET_PRIOR_TRAINING"; priorTraining: boolean }
   | { type: "SUBMIT_ELIGIBILITY" }
-  | { type: "SET_PARENTAL_CODE"; code: string }
   | { type: "GIVE_CONSENT" }
-  | { type: "GIVE_ASSENT" }
   | { type: "ALLOCATE"; condition: Condition; stratum: Stratum; allocationSeq: number }
   | { type: "SELECT_FOLLOWUP"; followupId: FollowupId }
   | { type: "CLICK_VERIFY" }
@@ -92,7 +95,29 @@ export type SessionEvent =
   // participant left.
   | { type: "WITHDRAW"; atState: string };
 
-const MINOR_BANDS: readonly AgeBand[] = ["14-15", "16-17"];
+/**
+ * Ages the study does not admit.
+ *
+ * One value today, and deliberately still a list: the screen has to be able to
+ * offer an option that fails, and a boolean "is adult" flag on the event would
+ * put the judgement in the UI instead of here.
+ */
+const EXCLUDED_AGE_ANSWERS: readonly AgeScreenAnswer[] = ["under-18"];
+
+/** True when the answer names an age the study admits. */
+export function isAdmissibleAge(answer: AgeScreenAnswer): boolean {
+  return !EXCLUDED_AGE_ANSWERS.includes(answer);
+}
+
+/**
+ * The stored band, or null when the visitor is turned away.
+ *
+ * Returning null rather than a sentinel is the point: v2 says a screened-out
+ * visitor contributes no age at all, so there must be no band to leak.
+ */
+export function ageBandFor(answer: AgeScreenAnswer): AgeBand | null {
+  return isAdmissibleAge(answer) ? (answer as AgeBand) : null;
+}
 
 /**
  * Every questionnaire item that must be answered before the funnel opens.
@@ -107,8 +132,11 @@ export const REQUIRED_QUESTION_IDS: readonly string[] = [
   "cov_ai_usage", "cov_prior_knowledge",
 ];
 
-export function ageGroupFor(band: AgeBand): AgeGroup {
-  return MINOR_BANDS.includes(band) ? "minor" : "adult";
+export function ageGroupFor(_band: AgeBand): AgeGroup {
+  // Every admitted participant is an adult in v2. The function survives because
+  // the stratum key is still built from an age group; item 4 of the v2 code
+  // migration replaces the stratum scheme entirely.
+  return "adult";
 }
 
 export function stratumFor(language: Language, ageGroup: AgeGroup): Stratum {
@@ -148,11 +176,14 @@ export function createSessionMachine(
     // Screening excludes formal training in marine biology or oceanography.
     isEligible: ({ context }) =>
       context.language !== null &&
-      context.ageBand !== null &&
+      context.ageAnswer !== null &&
+      isAdmissibleAge(context.ageAnswer) &&
       context.priorTraining === false,
-    isMinor: ({ context }) => context.ageGroup === "minor",
-    hasParentalCode: ({ context }) =>
-      context.parentalConsentCode !== null && context.parentalConsentCode.trim().length > 0,
+    // Screening runs in a fixed order so the recorded reason is deterministic:
+    // someone who is both under 18 and untrained is turned away for age.
+    failsAge: ({ context }) =>
+      context.ageAnswer !== null && !isAdmissibleAge(context.ageAnswer),
+    failsPriorTraining: ({ context }) => context.priorTraining === true,
     // `typeof === "number"`, not `!== null`: a malformed event with no payload
     // would set the field to `undefined`, which passes a null check and then
     // throws inside selectRegister. A bad event must not be able to crash a
@@ -182,16 +213,23 @@ export function createSessionMachine(
     setLanguage: assign(({ event }) => ({
       language: event.type === "SET_LANGUAGE" ? event.language : null,
     })),
-    setAgeBand: assign(({ event }) =>
-      event.type === "SET_AGE_BAND"
-        ? { ageBand: event.ageBand, ageGroup: ageGroupFor(event.ageBand) }
-        : {},
-    ),
+    setAgeAnswer: assign(({ event }) => {
+      if (event.type !== "SET_AGE_ANSWER") return {};
+      const band = ageBandFor(event.ageAnswer);
+      // The band stays null for an inadmissible answer, so there is no age to
+      // leak for someone the study turns away.
+      return {
+        ageAnswer: event.ageAnswer,
+        ageBand: band,
+        ageGroup: band === null ? null : ageGroupFor(band),
+      };
+    }),
     setPriorTraining: assign(({ event }) => ({
       priorTraining: event.type === "SET_PRIOR_TRAINING" ? event.priorTraining : null,
     })),
-    setParentalCode: assign(({ event }) => ({
-      parentalConsentCode: event.type === "SET_PARENTAL_CODE" ? event.code : null,
+    screenOutForAge: assign(() => ({ screenedOutReason: "age" as const })),
+    screenOutForPriorTraining: assign(() => ({
+      screenedOutReason: "prior_training" as const,
     })),
     applyAllocation: assign(({ event }) =>
       event.type === "ALLOCATE"
@@ -277,10 +315,11 @@ export function createSessionMachine(
   initial: "eligibility",
   context: ({ input }) => ({
     language: null,
+    ageAnswer: null,
     ageBand: null,
     ageGroup: null,
     priorTraining: null,
-    parentalConsentCode: null,
+    screenedOutReason: null,
     condition: null,
     stratum: null,
     allocationSeq: null,
@@ -312,32 +351,31 @@ export function createSessionMachine(
       meta: { screen: "eligibility" },
       on: {
         SET_LANGUAGE: { actions: "setLanguage" },
-        SET_AGE_BAND: { actions: "setAgeBand" },
+        SET_AGE_ANSWER: { actions: "setAgeAnswer" },
         SET_PRIOR_TRAINING: { actions: "setPriorTraining" },
         SUBMIT_ELIGIBILITY: [
-          { guard: "isEligible", target: "consentFork" },
+          // Screened-out arms come FIRST and each records its own reason, so a
+          // visitor never reaches consent and never reaches allocation.
+          { guard: "failsAge", target: "screenedOut", actions: "screenOutForAge" },
+          {
+            guard: "failsPriorTraining",
+            target: "screenedOut",
+            actions: "screenOutForPriorTraining",
+          },
+          { guard: "isEligible", target: "consent" },
           { target: "ineligible" },
         ],
       },
     },
 
-    // Transient: routes to the correct consent flow and renders nothing.
-    consentFork: {
-      always: [{ guard: "isMinor", target: "assent" }, { target: "consent" }],
-    },
-
     consent: {
-      meta: { screen: "consent", flow: "adult" },
+      meta: { screen: "consent" },
       on: { GIVE_CONSENT: { target: "allocating" } },
     },
 
-    assent: {
-      meta: { screen: "assent", flow: "minor" },
-      on: {
-        SET_PARENTAL_CODE: { actions: "setParentalCode" },
-        GIVE_ASSENT: { guard: "hasParentalCode", target: "allocating" },
-      },
-    },
+    // Terminal. A screened-out visitor has contributed one event carrying the
+    // reason and nothing else -- no age band, no answers, no allocation.
+    screenedOut: { type: "final", meta: { screen: "screened-out" } },
 
     // Allocation is a real screen, not a transient state: the sequence is
     // served by the backend, so this is a round trip that can fail and must be

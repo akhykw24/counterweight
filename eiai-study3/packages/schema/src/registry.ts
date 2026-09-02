@@ -1,9 +1,9 @@
 import type { z } from "zod";
 import {
   Allocated,
-  AssentGiven,
   ConfidenceSet,
   ConsentGiven,
+  ScreenedOut,
   EstimateChanged,
   EstimateFinalized,
   EventBatch,
@@ -23,8 +23,9 @@ import {
 import {
   AgeBand,
   AgeGroup,
+  AgeScreenAnswer,
   Condition,
-  ConsentFlow,
+  ScreenedOutReason,
   EstimatePhase,
   FollowupId,
   FunnelStage,
@@ -82,8 +83,8 @@ export const schemaRegistry: readonly RegistrySection[] = [
       "The append-only log. Every analytic table is a projection computed by replaying these. A measure absent here cannot be recovered after collection.",
     entries: [
       { name: "SESSION_STARTED", schema: SessionStarted, emittedBy: "first load, and on resume" },
+      { name: "SCREENED_OUT", schema: ScreenedOut, emittedBy: "eligibility screening gate" },
       { name: "CONSENT_GIVEN", schema: ConsentGiven, emittedBy: "consent screen" },
-      { name: "ASSENT_GIVEN", schema: AssentGiven, emittedBy: "minor assent screen" },
       { name: "ALLOCATED", schema: Allocated, emittedBy: "after eligibility" },
       { name: "ITEM_PRESENTED", schema: ItemPresented, emittedBy: "item screen mount" },
       { name: "ESTIMATE_CHANGED", schema: EstimateChanged, emittedBy: "every slider or keystroke change" },
@@ -142,9 +143,10 @@ export const enumRegistry: readonly RegistryEntry[] = [
   { name: "RegisterState", schema: RegisterState },
   { name: "JustificationQuality", schema: JustificationQuality },
   { name: "AgeGroup", schema: AgeGroup },
+  { name: "AgeScreenAnswer", schema: AgeScreenAnswer },
   { name: "AgeBand", schema: AgeBand },
   { name: "Stratum", schema: Stratum },
-  { name: "ConsentFlow", schema: ConsentFlow },
+  { name: "ScreenedOutReason", schema: ScreenedOutReason },
   { name: "EstimatePhase", schema: EstimatePhase },
   { name: "FollowupId", schema: FollowupId },
   { name: "FunnelStage", schema: FunnelStage },

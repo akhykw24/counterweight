@@ -46,9 +46,22 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | `payload.viewport.height` | integer | yes | > 0 |  |
 | `payload.resumed` | boolean | yes |  | True when continuing an interrupted session. Pre-registered as an exclusion candidate. |
 
+#### `SCREENED_OUT`
+
+A visitor was turned away before consent. This is the only event such a session produces: no age band, no answers, no allocation. It exists so screening counts can be reported in the participant-flow diagram without storing anything about the person.
+
+*Emitted when:* eligibility screening gate
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"SCREENED_OUT"` | yes |  |  |
+| `payload.reason` | `age` \| `language` \| `prior_training` | yes |  | Why a visitor was turned away before consent. This is the ONLY thing a screened-out visitor contributes: no age, no answers, no session (spec v2 §3). It exists so the participant-flow diagram can report screening counts. |
+
 #### `CONSENT_GIVEN`
 
-Adult informed consent, or the guardian-facing half of the minor flow.
+Adult informed consent. Carries no flow discriminator: v2 admits adults only, so there is one flow and naming it would only invite the literal to drift from the participant.
 
 *Emitted when:* consent screen
 
@@ -57,20 +70,6 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
 | `type` | `"CONSENT_GIVEN"` | yes |  |  |
-| `payload.flow` | `minor` \| `adult` | yes |  | Which consent path the participant took. |
-
-#### `ASSENT_GIVEN`
-
-Minor assent, given in-app after a parental consent form was returned out of band.
-
-*Emitted when:* minor assent screen
-
-Envelope fields are omitted; see [Event envelope](#event-envelope).
-
-| Field | Type | Req. | Constraints | Description |
-|---|---|---|---|---|
-| `type` | `"ASSENT_GIVEN"` | yes |  |  |
-| `payload.parental_consent_code` | string | yes | minLen 1 | Opaque session code linking to a returned parental form. Carries no name and no contact detail. |
 
 #### `ALLOCATED`
 
@@ -492,7 +491,7 @@ A complete questionnaire submission, assembled by replay from QUESTIONNAIRE_ANSW
 | `trust.trust_03` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
 | `trust.trust_04` | integer | yes | >= 1, <= 7 | Seven-point Likert response. |
 | `covariates` | object | yes |  | Covariates for the ANCOVA model. |
-| `covariates.age_band` | `14-15` \| `16-17` \| `18-24` \| `25+` | yes |  | Coarsened age. Recorded as a band at source; an exact age is never collected. |
+| `covariates.age_band` | `18-24` \| `25-34` \| `35+` | yes |  | Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away. |
 | `covariates.gender` | `female` \| `male` \| `other` \| `prefer_not_to_say` | yes |  |  |
 | `covariates.primary_language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
 | `covariates.ai_usage_frequency` | integer | yes | >= 1, <= 5 | Self-reported frequency of AI assistant use. |
@@ -542,7 +541,7 @@ Covariates for the ANCOVA model.
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
-| `age_band` | `14-15` \| `16-17` \| `18-24` \| `25+` | yes |  | Coarsened age. Recorded as a band at source; an exact age is never collected. |
+| `age_band` | `18-24` \| `25-34` \| `35+` | yes |  | Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away. |
 | `gender` | `female` \| `male` \| `other` \| `prefer_not_to_say` | yes |  |  |
 | `primary_language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
 | `ai_usage_frequency` | integer | yes | >= 1, <= 5 | Self-reported frequency of AI assistant use. |
@@ -566,10 +565,11 @@ Funnelled suspicion probe, administered in order without backtracking.
 | `Condition` | `warm`, `neutral` | Between-subjects emotional style condition. |
 | `RegisterState` | `LOW`, `MODERATE`, `HIGH` | Register selected by initial confidence (LOW < 40, MODERATE 40-70, HIGH > 70). Warm condition only; neutral does not branch. |
 | `JustificationQuality` | `strong`, `weak` | Within-subjects justification quality factor. Strong = method-referencing; weak = circular appeal to consensus. |
-| `AgeGroup` | `minor`, `adult` | Consent-flow-determining age group. Drives the parental-consent fork. |
-| `AgeBand` | `14-15`, `16-17`, `18-24`, `25+` | Coarsened age. Recorded as a band at source; an exact age is never collected. |
+| `AgeGroup` | `adult` | Age group of an admitted participant. Only adults are admitted (spec v2 §1), so this has one value; it is kept as an enum because the stratum key is still built from it. |
+| `AgeScreenAnswer` | `under-18`, `18-24`, `25-34`, `35+` | What the eligibility screen offers. Wider than AgeBand by exactly one option, because the screen has to let someone say they are under 18 in order to turn them away. 'under-18' is never stored: it routes to the screening exit and the session records only the reason. |
+| `AgeBand` | `18-24`, `25-34`, `35+` | Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away. |
 | `Stratum` | `kk:minor`, `kk:adult`, `ru:minor`, `ru:adult`, `en:minor`, `en:adult` | Randomization stratum: language x age group. Six cells, block size 4 (STUDY3_SPEC_v3.md section 1). |
-| `ConsentFlow` | `minor`, `adult` | Which consent path the participant took. |
+| `ScreenedOutReason` | `age`, `language`, `prior_training` | Why a visitor was turned away before consent. This is the ONLY thing a screened-out visitor contributes: no age, no answers, no session (spec v2 §3). It exists so the participant-flow diagram can report screening counts. |
 | `EstimatePhase` | `initial`, `final` | Whether an estimate or confidence reading was taken before or after the AI response. |
 | `FollowupId` | `measurement`, `certainty`, `challenge` | Fixed follow-up options. 'challenge' ("I think that might be wrong") is itself a behavioural measure. |
 | `FunnelStage` | `purpose`, `anomaly`, `belief` | Funnelled suspicion probe stage, administered in this order without backtracking. |

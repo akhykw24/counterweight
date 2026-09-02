@@ -41,7 +41,6 @@ const REQUIRED_QUESTIONS = ["warmth_01"];
 const SCREEN_STATES = [
   "eligibility",
   "consent",
-  "assent",
   "allocating",
   { task: "estimate" },
   { task: "advice" },
@@ -53,30 +52,33 @@ const SCREEN_STATES = [
   "debrief",
   "done",
   "ineligible",
+  "screenedOut",
 ] as const;
 
 /** Non-terminal screens, from which withdrawal must be possible. */
 const WITHDRAWABLE = SCREEN_STATES.filter(
-  (s) => s !== "done" && s !== "ineligible",
+  (s) => s !== "done" && s !== "ineligible" && s !== "screenedOut",
 );
 
-type Arm = { label: string; ageBand: string; forkScreen: string; absent: string };
+type Arm = { label: string; ageAnswer: string; forkScreen: string; absent: string };
 
+/**
+ * v2 admits adults only, so there is one path through consent. The screening
+ * exit is a reachable state in its own right -- prior training reaches it -- so
+ * `absent` names the branch that no longer exists at all.
+ */
 const ARMS: Arm[] = [
-  { label: "adult", ageBand: "25+", forkScreen: "consent", absent: "assent" },
-  { label: "minor", ageBand: "16-17", forkScreen: "assent", absent: "consent" },
+  { label: "adult", ageAnswer: "35+", forkScreen: "consent", absent: "assent" },
 ];
 
-function eventsFor(ageBand: string) {
+function eventsFor(ageAnswer: string) {
   return [
     { type: "SET_LANGUAGE", language: "en" },
-    { type: "SET_AGE_BAND", ageBand },
+    { type: "SET_AGE_ANSWER", ageAnswer },
     { type: "SET_PRIOR_TRAINING", priorTraining: false },
     { type: "SET_PRIOR_TRAINING", priorTraining: true },
     { type: "SUBMIT_ELIGIBILITY" },
-    { type: "SET_PARENTAL_CODE", code: "PC-1" },
     { type: "GIVE_CONSENT" },
-    { type: "GIVE_ASSENT" },
     { type: "ALLOCATE", condition: "warm", stratum: "en:adult", allocationSeq: 0 },
     { type: "SET_ESTIMATE", value: 100 },
     { type: "SET_CONFIDENCE", value: 55 },
@@ -143,18 +145,14 @@ async function execute(user: ReturnType<typeof userEvent.setup>, event: any) {
   switch (event.type) {
     case "SET_LANGUAGE":
       return click(`lang-${event.language}`);
-    case "SET_AGE_BAND":
-      return click(`age-${event.ageBand}`);
+    case "SET_AGE_ANSWER":
+      return click(`age-${event.ageAnswer}`);
     case "SET_PRIOR_TRAINING":
       return click(event.priorTraining ? "training-yes" : "training-no");
     case "SUBMIT_ELIGIBILITY":
       return click("submit-eligibility");
-    case "SET_PARENTAL_CODE":
-      return user.type(screen.getByTestId("parental-code"), event.code);
     case "GIVE_CONSENT":
       return click("give-consent");
-    case "GIVE_ASSENT":
-      return click("give-assent");
     case "ALLOCATE":
       return click("allocate");
     case "SET_ESTIMATE":
@@ -222,7 +220,7 @@ describe.each(ARMS)("$label arm", (arm) => {
       ([, s]) => s !== arm.absent,
     ),
   )("reaches %s and renders it", async (_label, target) => {
-    const path = pathTo(arm.ageBand, target);
+    const path = pathTo(arm.ageAnswer, target);
     expect(path, `no generated path to ${JSON.stringify(target)}`).not.toBeNull();
     await drive(path);
     expect(screen.getByTestId("screen").dataset["state"]).toBe(
@@ -230,16 +228,16 @@ describe.each(ARMS)("$label arm", (arm) => {
     );
   });
 
-  it(`never reaches ${arm.absent}, because the consent fork excludes it`, () => {
-    // The fork is a legal requirement, not a preference: a minor must not be
-    // able to land on the adult consent screen, or an adult on assent.
-    expect(pathTo(arm.ageBand, arm.absent)).toBeNull();
+  it(`never reaches ${arm.absent}, because the branch is gone from the machine`, () => {
+    // Not merely unreachable: the assent state was removed with the minor flow.
+    // An unreachable branch is one refactor away from being reachable again.
+    expect(pathTo(arm.ageAnswer, arm.absent)).toBeNull();
   });
 
   it.each(WITHDRAWABLE.map((s) => [JSON.stringify(s), s] as const).filter(
     ([, s]) => s !== arm.absent,
   ))("allows withdrawal from %s", async (_label, target) => {
-    const path = pathTo(arm.ageBand, target);
+    const path = pathTo(arm.ageAnswer, target);
     expect(path).not.toBeNull();
     await drive(path);
 
@@ -252,7 +250,7 @@ describe.each(ARMS)("$label arm", (arm) => {
   });
 
   it("completes end to end to done", async () => {
-    const path = pathTo(arm.ageBand, "done");
+    const path = pathTo(arm.ageAnswer, "done");
     expect(path).not.toBeNull();
     await drive(path);
     expect(screen.getByTestId("screen-done")).toBeDefined();
@@ -260,19 +258,21 @@ describe.each(ARMS)("$label arm", (arm) => {
 });
 
 describe("screening", () => {
-  it("routes a participant with formal training to ineligible", async () => {
-    const path = pathTo("25+", "ineligible");
+  it("routes a participant with formal training to the screening exit", async () => {
+    // v2 turns prior training into a screening reason rather than a generic
+    // "ineligible", so the reason is countable in the participant-flow diagram.
+    const path = pathTo("35+", "screenedOut");
     expect(path).not.toBeNull();
     await drive(path);
-    expect(screen.getByTestId("screen-ineligible")).toBeDefined();
+    expect(screen.getByTestId("screen-screened-out")).toBeDefined();
   });
 });
 
 describe("withdrawal is offered everywhere it should be, and nowhere else", () => {
   it("hides the withdraw control on terminal screens", async () => {
-    for (const target of ["done", "ineligible"] as const) {
+    for (const target of ["done", "ineligible", "screenedOut"] as const) {
       cleanup();
-      const path = pathTo("25+", target);
+      const path = pathTo("35+", target);
       await drive(path);
       expect(
         screen.queryByTestId("withdraw"),

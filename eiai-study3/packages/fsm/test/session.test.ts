@@ -2,7 +2,9 @@ import { createActor } from "xstate";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ITEM_IDS,
+  ageBandFor,
   ageGroupFor,
+  isAdmissibleAge,
   createSessionMachine,
   currentItemId,
   sessionMachine,
@@ -30,23 +32,19 @@ function send(actor: ReturnType<typeof start>, ...events: SessionEvent[]) {
   return actor;
 }
 
-function throughConsent(actor: ReturnType<typeof start>, adult = true) {
+function throughConsent(actor: ReturnType<typeof start>) {
   send(
     actor,
     { type: "SET_LANGUAGE", language: "en" },
-    { type: "SET_AGE_BAND", ageBand: adult ? "25+" : "16-17" },
+    { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
     { type: "SET_PRIOR_TRAINING", priorTraining: false },
     { type: "SUBMIT_ELIGIBILITY" },
+    { type: "GIVE_CONSENT" },
   );
-  if (adult) {
-    send(actor, { type: "GIVE_CONSENT" });
-  } else {
-    send(actor, { type: "SET_PARENTAL_CODE", code: "PC-1" }, { type: "GIVE_ASSENT" });
-  }
   send(actor, {
     type: "ALLOCATE",
     condition: "warm",
-    stratum: adult ? "en:adult" : "en:minor",
+    stratum: "en:adult",
     allocationSeq: 0,
   });
   return actor;
@@ -67,40 +65,66 @@ function answerItem(actor: ReturnType<typeof start>, confidence = 55) {
 }
 
 describe("age banding and stratification", () => {
-  it.each([
-    ["14-15", "minor"],
-    ["16-17", "minor"],
-    ["18-24", "adult"],
-    ["25+", "adult"],
-  ] as const)("maps %s to %s", (band, group) => {
-    expect(ageGroupFor(band)).toBe(group);
+  it.each(["18-24", "25-34", "35+"] as const)("admits %s", (answer) => {
+    expect(isAdmissibleAge(answer)).toBe(true);
+    expect(ageBandFor(answer)).toBe(answer);
+    expect(ageGroupFor(answer)).toBe("adult");
   });
 
-  it("builds the six strata the randomisation uses", () => {
-    const strata = new Set(
-      (["kk", "ru", "en"] as const).flatMap((lang) =>
-        (["minor", "adult"] as const).map((group) => stratumFor(lang, group)),
-      ),
-    );
-    expect(strata.size).toBe(6);
-    expect(strata).toContain("kk:minor");
-    expect(strata).toContain("en:adult");
+  it("turns away under-18 and stores no band for them", () => {
+    // The band must be null, not a sentinel: v2 says a screened-out visitor
+    // contributes no age at all, so there has to be nothing to leak.
+    expect(isAdmissibleAge("under-18")).toBe(false);
+    expect(ageBandFor("under-18")).toBeNull();
+  });
+
+  it("builds a stratum key from language and age group", () => {
+    // v2 admits adults only, so the age half is constant. Item 4 of the v2 code
+    // migration replaces this scheme with configured proficiency strata.
+    expect(stratumFor("en", "adult")).toBe("en:adult");
   });
 });
 
 describe("eligibility screening", () => {
-  it.each([
-    ["formal training", { type: "SET_PRIOR_TRAINING", priorTraining: true }],
-  ] as const)("excludes a participant with %s", (_label, event) => {
+  it("screens out formal training, recording the reason", () => {
     const actor = start();
     send(
       actor,
       { type: "SET_LANGUAGE", language: "en" },
-      { type: "SET_AGE_BAND", ageBand: "25+" },
-      event as SessionEvent,
+      { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
+      { type: "SET_PRIOR_TRAINING", priorTraining: true },
       { type: "SUBMIT_ELIGIBILITY" },
     );
-    expect(actor.getSnapshot().value).toBe("ineligible");
+    expect(actor.getSnapshot().value).toBe("screenedOut");
+    expect(actor.getSnapshot().context.screenedOutReason).toBe("prior_training");
+  });
+
+  it("screens out under-18 for age, ahead of every other criterion", () => {
+    // Order matters: someone who is both under 18 and trained is turned away
+    // for age, so the recorded reason is deterministic rather than incidental.
+    const actor = start();
+    send(
+      actor,
+      { type: "SET_LANGUAGE", language: "en" },
+      { type: "SET_AGE_ANSWER", ageAnswer: "under-18" },
+      { type: "SET_PRIOR_TRAINING", priorTraining: true },
+      { type: "SUBMIT_ELIGIBILITY" },
+    );
+    expect(actor.getSnapshot().value).toBe("screenedOut");
+    expect(actor.getSnapshot().context.screenedOutReason).toBe("age");
+  });
+
+  it("keeps no age band for a screened-out visitor", () => {
+    const actor = start();
+    send(
+      actor,
+      { type: "SET_LANGUAGE", language: "en" },
+      { type: "SET_AGE_ANSWER", ageAnswer: "under-18" },
+      { type: "SET_PRIOR_TRAINING", priorTraining: false },
+      { type: "SUBMIT_ELIGIBILITY" },
+    );
+    expect(actor.getSnapshot().context.ageBand).toBeNull();
+    expect(actor.getSnapshot().context.ageGroup).toBeNull();
   });
 
   it("refuses to advance on an incomplete screening form", () => {
@@ -116,7 +140,7 @@ describe("eligibility screening", () => {
     send(
       actor,
       { type: "SET_LANGUAGE", language: "en" },
-      { type: "SET_AGE_BAND", ageBand: "25+" },
+      { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
       { type: "SUBMIT_ELIGIBILITY" },
     );
     expect(actor.getSnapshot().value).toBe("ineligible");
@@ -129,51 +153,20 @@ describe("consent fork", () => {
     send(
       actor,
       { type: "SET_LANGUAGE", language: "en" },
-      { type: "SET_AGE_BAND", ageBand: "25+" },
+      { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
       { type: "SET_PRIOR_TRAINING", priorTraining: false },
       { type: "SUBMIT_ELIGIBILITY" },
     );
     expect(actor.getSnapshot().value).toBe("consent");
   });
 
-  it("routes a minor to assent", () => {
+  it("has no assent state at all", () => {
+    // Removed from the active machine rather than left unreachable: an
+    // unreachable branch is one refactor away from being reachable again.
     const actor = start();
-    send(
-      actor,
-      { type: "SET_LANGUAGE", language: "en" },
-      { type: "SET_AGE_BAND", ageBand: "14-15" },
-      { type: "SET_PRIOR_TRAINING", priorTraining: false },
-      { type: "SUBMIT_ELIGIBILITY" },
-    );
-    expect(actor.getSnapshot().value).toBe("assent");
+    expect(Object.keys(actor.getSnapshot().machine.states)).not.toContain("assent");
   });
 
-  it("blocks assent without a parental consent code", () => {
-    const actor = start();
-    send(
-      actor,
-      { type: "SET_LANGUAGE", language: "en" },
-      { type: "SET_AGE_BAND", ageBand: "14-15" },
-      { type: "SET_PRIOR_TRAINING", priorTraining: false },
-      { type: "SUBMIT_ELIGIBILITY" },
-      { type: "GIVE_ASSENT" },
-    );
-    expect(actor.getSnapshot().value).toBe("assent");
-  });
-
-  it("blocks assent on a whitespace-only code", () => {
-    const actor = start();
-    send(
-      actor,
-      { type: "SET_LANGUAGE", language: "en" },
-      { type: "SET_AGE_BAND", ageBand: "14-15" },
-      { type: "SET_PRIOR_TRAINING", priorTraining: false },
-      { type: "SUBMIT_ELIGIBILITY" },
-      { type: "SET_PARENTAL_CODE", code: "   " },
-      { type: "GIVE_ASSENT" },
-    );
-    expect(actor.getSnapshot().value).toBe("assent");
-  });
 });
 
 describe("the twelve-item loop", () => {
@@ -266,7 +259,7 @@ describe("register selection", () => {
       send(
         actor,
         { type: "SET_LANGUAGE", language: "en" },
-        { type: "SET_AGE_BAND", ageBand: "25+" },
+        { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
         { type: "SET_PRIOR_TRAINING", priorTraining: false },
         { type: "SUBMIT_ELIGIBILITY" },
         { type: "GIVE_CONSENT" },
@@ -291,7 +284,7 @@ describe("withdrawal", () => {
           send(
             a,
             { type: "SET_LANGUAGE", language: "en" },
-            { type: "SET_AGE_BAND", ageBand: "25+" },
+            { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
             { type: "SET_PRIOR_TRAINING", priorTraining: false },
             { type: "SUBMIT_ELIGIBILITY" },
           );

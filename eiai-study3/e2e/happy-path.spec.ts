@@ -66,7 +66,7 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
 
   await expect(page.locator(testId("screen-eligibility"))).toBeVisible();
   await page.locator(testId("lang-en")).click();
-  await page.locator(testId("age-25+")).click();
+  await page.locator(testId("age-35+")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
 
@@ -175,7 +175,7 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
 
 test("a minor is routed through assent and cannot reach adult consent", async ({ page }) => {
   await page.locator(testId("lang-en")).click();
-  await page.locator(testId("age-14-15")).click();
+  await page.locator(testId("age-under-18")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
 
@@ -193,7 +193,7 @@ test("a minor is routed through assent and cannot reach adult consent", async ({
 
 test("screening excludes formal training", async ({ page }) => {
   await page.locator(testId("lang-en")).click();
-  await page.locator(testId("age-25+")).click();
+  await page.locator(testId("age-35+")).click();
   await page.locator(testId("training-yes")).click();
   await page.locator(testId("submit-eligibility")).click();
 
@@ -202,7 +202,7 @@ test("screening excludes formal training", async ({ page }) => {
 
 test("a reload mid-session resumes on the same item and loses nothing", async ({ page }) => {
   await page.locator(testId("lang-en")).click();
-  await page.locator(testId("age-25+")).click();
+  await page.locator(testId("age-35+")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
   await page.locator(testId("give-consent")).click();
@@ -228,7 +228,7 @@ test("a reload mid-session resumes on the same item and loses nothing", async ({
 
 test("withdrawal is available from the item screen and ends the session", async ({ page }) => {
   await page.locator(testId("lang-en")).click();
-  await page.locator(testId("age-25+")).click();
+  await page.locator(testId("age-35+")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
   await page.locator(testId("give-consent")).click();

@@ -208,6 +208,6 @@ describe("privacy invariant", () => {
     const ageBand = enumRegistry.find((entry) => entry.name === "AgeBand");
     expect(ageBand).toBeDefined();
     const json = z.toJSONSchema(ageBand!.schema, { io: "input" }) as { enum?: unknown[] };
-    expect(json.enum).toEqual(["14-15", "16-17", "18-24", "25+"]);
+    expect(json.enum).toEqual(["18-24", "25-34", "35+"]);
   });
 });

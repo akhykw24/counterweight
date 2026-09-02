@@ -1,5 +1,5 @@
 import { useState, type UIEvent } from "react";
-import type { AgeBand, FollowupId, Language, StimulusResponse } from "@eiai/schema";
+import type { AgeScreenAnswer, FollowupId, Language, StimulusResponse } from "@eiai/schema";
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import { currentItemId, stratumFor } from "@eiai/fsm";
 import { allocate } from "./allocation";
@@ -23,7 +23,20 @@ const LANGUAGES: { code: Language; label: string }[] = [
   { code: "kk", label: "Қазақша" },
 ];
 
-const AGE_BANDS: AgeBand[] = ["14-15", "16-17", "18-24", "25+"];
+/**
+ * What the screen offers, which is one option wider than what it stores.
+ *
+ * `under-18` exists so a visitor can say so and be turned away; it never becomes
+ * an `AgeBand` and never reaches the log. Spec v2 §1.
+ */
+const AGE_OPTIONS: AgeScreenAnswer[] = ["under-18", "18-24", "25-34", "35+"];
+
+const AGE_LABELS: Record<AgeScreenAnswer, string> = {
+  "under-18": "Under 18",
+  "18-24": "18-24",
+  "25-34": "25-34",
+  "35+": "35 or over",
+};
 
 export function EligibilityScreen({
   context,
@@ -54,16 +67,16 @@ export function EligibilityScreen({
 
       <fieldset>
         <legend>Which age group are you in?</legend>
-        {AGE_BANDS.map((band) => (
+        {AGE_OPTIONS.map((option) => (
           <button
-            key={band}
+            key={option}
             type="button"
-            data-testid={`age-${band}`}
-            aria-pressed={context.ageBand === band}
-            className={context.ageBand === band ? "choice selected" : "choice"}
-            onClick={() => send({ type: "SET_AGE_BAND", ageBand: band })}
+            data-testid={`age-${option}`}
+            aria-pressed={context.ageAnswer === option}
+            className={context.ageAnswer === option ? "choice selected" : "choice"}
+            onClick={() => send({ type: "SET_AGE_ANSWER", ageAnswer: option })}
           >
-            {band}
+            {AGE_LABELS[option]}
           </button>
         ))}
       </fieldset>
@@ -131,43 +144,21 @@ export function ConsentScreen({ send }: { send: Send }) {
   );
 }
 
-export function AssentScreen({
-  context,
-  send,
-}: {
-  context: SessionContext;
-  send: Send;
-}) {
+export function ScreenedOutScreen({ context }: { context: SessionContext }) {
+  // Participant-facing copy written for v2; flagged for the researcher's review.
+  // Deliberately says nothing about why beyond the eligibility criterion, and
+  // asks for nothing further: a visitor who is turned away has given the study
+  // one fact and should not be asked for a second.
   return (
-    <section data-testid="screen-assent">
-      <h1>Do you want to take part?</h1>
+    <section data-testid="screen-screened-out" data-reason={context.screenedOutReason ?? ""}>
+      <h1>Thank you for your interest</h1>
       <p>
-        Your parent or guardian has already been given a form about this study.
-        Enter the session code from that form so we know it was returned. The
-        code is not your name and does not identify you.
+        This study is open to participants aged 18 and over who have not had
+        formal training in marine biology or oceanography.
       </p>
       <p>
-        You are being asked separately, because it is your choice too. You can
-        stop at any time and nobody will mind.
+        Nothing you entered has been kept. You can close this page.
       </p>
-      <label htmlFor="parental-code">Session code</label>
-      <input
-        id="parental-code"
-        data-testid="parental-code"
-        value={context.parentalConsentCode ?? ""}
-        onChange={(event) =>
-          send({ type: "SET_PARENTAL_CODE", code: event.target.value })
-        }
-      />
-      <button
-        type="button"
-        className="primary"
-        data-testid="give-assent"
-        disabled={!context.parentalConsentCode?.trim()}
-        onClick={() => send({ type: "GIVE_ASSENT" })}
-      >
-        Yes, I want to take part
-      </button>
     </section>
   );
 }

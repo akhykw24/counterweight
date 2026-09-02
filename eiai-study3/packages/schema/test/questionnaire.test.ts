@@ -77,7 +77,7 @@ describe("scale bounds", () => {
 
 describe("covariates", () => {
   const valid = {
-    age_band: "16-17",
+    age_band: "25-34",
     gender: "prefer_not_to_say",
     primary_language: "kk",
     ai_usage_frequency: 3,

@@ -14,8 +14,8 @@ import { requireLanguage, stimulusFor } from "./stimuli";
 import { translator } from "./i18n";
 import {
   AllocatingScreen,
-  AssentScreen,
   ConsentScreen,
+  ScreenedOutScreen,
   EligibilityScreen,
   ItemScreen,
   TerminalScreen,
@@ -32,7 +32,7 @@ export function stateName(value: StateValue): string {
   return `${key}.${stateName(child as StateValue)}`;
 }
 
-const TERMINAL = new Set(["done", "withdrawn", "ineligible"]);
+const TERMINAL = new Set(["done", "withdrawn", "ineligible", "screenedOut"]);
 
 /**
  * The only assumed language in the app.
@@ -86,6 +86,7 @@ export function App({
   const startedOnce = useRef(false);
   const lastPresented = useRef<string | null>(null);
   const lastRevealed = useRef<string | null>(null);
+  const screenedOnce = useRef(false);
 
   // --- SESSION_STARTED, exactly once per mount -----------------------------
   useEffect(() => {
@@ -168,6 +169,13 @@ export function App({
       });
     }
 
+    if (name === "screenedOut" && context.screenedOutReason && !screenedOnce.current) {
+      // Once per session: the state is terminal, but React may re-run the
+      // effect, and a duplicate would double-count in the screening tally.
+      screenedOnce.current = true;
+      recorder.record("SCREENED_OUT", { reason: context.screenedOutReason });
+    }
+
     if (name === "done") onComplete?.();
   }, [name, context, recorder, onComplete]);
 
@@ -178,23 +186,9 @@ export function App({
 
     switch (event.type) {
       case "GIVE_CONSENT":
-        // The flow the PARTICIPANT is on, read from their age group. A literal
-        // here would describe which screen fired the event, which is only
-        // accidentally the same thing -- and defaulting would file a minor as
-        // an adult in the consent record, which is the one field in this log
-        // that has to be right for reasons beyond the analysis.
-        if (context.ageGroup === null) {
-          throw new Error(
-            "GIVE_CONSENT with no age group: eligibility cannot have completed. " +
-              "Refusing to guess which consent flow this participant is on.",
-          );
-        }
-        recorder.record("CONSENT_GIVEN", { flow: context.ageGroup });
-        break;
-      case "GIVE_ASSENT":
-        recorder.record("ASSENT_GIVEN", {
-          parental_consent_code: context.parentalConsentCode ?? "",
-        });
+        // No flow discriminator: v2 admits adults only, so there is one flow.
+        // Naming it would be a literal that could drift from the participant.
+        recorder.record("CONSENT_GIVEN", {});
         break;
       case "ALLOCATE":
         recorder.record("ALLOCATED", {
@@ -297,7 +291,6 @@ export function App({
           <EligibilityScreen context={context} send={send} />
         )}
         {name === "consent" && <ConsentScreen send={send} />}
-        {name === "assent" && <AssentScreen context={context} send={send} />}
         {name === "allocating" && (
           <AllocatingScreen context={context} send={send} sessionId={sessionId} />
         )}
@@ -348,6 +341,7 @@ export function App({
             body={t("withdrawn.body")}
           />
         )}
+        {name === "screenedOut" && <ScreenedOutScreen context={context} />}
         {name === "ineligible" && (
           <TerminalScreen
             name="ineligible"

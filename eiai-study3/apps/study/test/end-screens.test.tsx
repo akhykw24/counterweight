@@ -26,7 +26,7 @@ async function reachAdvice(recorder?: Recorder) {
     />,
   );
   await user.click(screen.getByTestId("lang-en"));
-  await user.click(screen.getByTestId("age-25+"));
+  await user.click(screen.getByTestId("age-35+"));
   await user.click(screen.getByTestId("training-no"));
   await user.click(screen.getByTestId("submit-eligibility"));
   await user.click(screen.getByTestId("give-consent"));
@@ -193,7 +193,7 @@ describe("funnel", () => {
     const user = userEvent.setup();
     render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
     await user.click(screen.getByTestId("lang-en"));
-    await user.click(screen.getByTestId("age-25+"));
+    await user.click(screen.getByTestId("age-35+"));
     await user.click(screen.getByTestId("training-no"));
     await user.click(screen.getByTestId("submit-eligibility"));
     await user.click(screen.getByTestId("give-consent"));

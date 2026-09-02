@@ -53,9 +53,10 @@ const ALLOWED_PATTERNS: RegExp[] = [
   // the options it is asking them to pick between.
   /data-testid=\{?[`"]?(lang|age)-/,
   /const LANGUAGES: \{ code: Language/,
-  /const AGE_BANDS: AgeBand\[\]/,
+  /const AGE_OPTIONS: AgeScreenAnswer\[\]/,
+  /^\s*"(under-18|18-24|25-34|35\+)": "/,
   /\{ code: "(en|ru|kk)", label:/,
-  /"(14-15|16-17|18-24|25\+)",?$/,
+  /"(under-18|18-24|25-34|35\+)",?$/,
   // The single documented bootstrap language, declared once by name.
   /^const BOOTSTRAP_LANGUAGE: Language =/,
   // Type positions, not values.
@@ -67,7 +68,7 @@ const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   { name: "condition", pattern: /["'](warm|neutral)["']/ },
   { name: "stratum", pattern: /["'](kk|ru|en):(minor|adult)["']/ },
   { name: "language", pattern: /["'](kk|ru|en)["']/ },
-  { name: "age band", pattern: /["'](14-15|16-17|18-24|25\+)["']/ },
+  { name: "age band", pattern: /["'](under-18|18-24|25-34|35\+)["']/ },
   { name: "consent flow", pattern: /["'](minor|adult)["']/ },
 ];
 

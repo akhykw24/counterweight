@@ -52,12 +52,20 @@ export const JustificationQuality = z
   .describe("Within-subjects justification quality factor. Strong = method-referencing; weak = circular appeal to consensus.");
 
 export const AgeGroup = z
-  .enum(["minor", "adult"])
-  .describe("Consent-flow-determining age group. Drives the parental-consent fork.");
+  .enum(["adult"])
+  .describe("Age group of an admitted participant. Only adults are admitted (spec v2 §1), so this has one value; it is kept as an enum because the stratum key is still built from it.");
 
 export const AgeBand = z
-  .enum(["14-15", "16-17", "18-24", "25+"])
-  .describe("Coarsened age. Recorded as a band at source; an exact age is never collected.");
+  .enum(["18-24", "25-34", "35+"])
+  .describe("Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away.");
+
+export const AgeScreenAnswer = z
+  .enum(["under-18", "18-24", "25-34", "35+"])
+  .describe("What the eligibility screen offers. Wider than AgeBand by exactly one option, because the screen has to let someone say they are under 18 in order to turn them away. 'under-18' is never stored: it routes to the screening exit and the session records only the reason.");
+
+export const ScreenedOutReason = z
+  .enum(["age", "language", "prior_training"])
+  .describe("Why a visitor was turned away before consent. This is the ONLY thing a screened-out visitor contributes: no age, no answers, no session (spec v2 §3). It exists so the participant-flow diagram can report screening counts.");
 
 export const Stratum = z
   .enum([
@@ -69,10 +77,6 @@ export const Stratum = z
     "en:adult",
   ])
   .describe("Randomization stratum: language x age group. Six cells, block size 4 (STUDY3_SPEC_v3.md section 1).");
-
-export const ConsentFlow = z
-  .enum(["minor", "adult"])
-  .describe("Which consent path the participant took.");
 
 export const EstimatePhase = z
   .enum(["initial", "final"])
@@ -138,6 +142,8 @@ export type Condition = z.infer<typeof Condition>;
 export type RegisterState = z.infer<typeof RegisterState>;
 export type JustificationQuality = z.infer<typeof JustificationQuality>;
 export type AgeGroup = z.infer<typeof AgeGroup>;
+export type AgeScreenAnswer = z.infer<typeof AgeScreenAnswer>;
+export type ScreenedOutReason = z.infer<typeof ScreenedOutReason>;
 export type AgeBand = z.infer<typeof AgeBand>;
 export type Stratum = z.infer<typeof Stratum>;
 export type FollowupId = z.infer<typeof FollowupId>;

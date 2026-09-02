@@ -47,7 +47,7 @@ async function runToAdvice(log: ReturnType<typeof capturing>) {
     <App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />,
   );
   await user.click(screen.getByTestId("lang-en"));
-  await user.click(screen.getByTestId("age-25+"));
+  await user.click(screen.getByTestId("age-35+"));
   await user.click(screen.getByTestId("training-no"));
   await user.click(screen.getByTestId("submit-eligibility"));
   await user.click(screen.getByTestId("give-consent"));
@@ -85,11 +85,16 @@ describe("event emission", () => {
     expect(log.of("SESSION_STARTED")).toHaveLength(2);
   });
 
-  it("records the flow taken through consent", async () => {
+  it("records consent once, with no flow discriminator", async () => {
+    // v2 admits adults only, so there is one flow. Recording its name would be
+    // a literal that describes the screen rather than the participant, and the
+    // minor branch it distinguished no longer exists.
     const log = capturing();
     await runToAdvice(log);
-    expect(log.of("CONSENT_GIVEN")[0]!.payload).toMatchObject({ flow: "adult" });
-    expect(log.of("ASSENT_GIVEN")).toHaveLength(0);
+    expect(log.of("CONSENT_GIVEN")).toHaveLength(1);
+    expect(log.of("CONSENT_GIVEN")[0]!.payload).toEqual({});
+    expect(log.types()).not.toContain("ASSENT_GIVEN");
+    expect(log.types()).not.toContain("SCREENED_OUT");
   });
 
   it("records allocation drawn from the committed sequence, at the real stratum", async () => {
@@ -219,7 +224,7 @@ describe("resume", () => {
     const actor = createActor(createSessionMachine(ITEM_IDS));
     actor.start();
     actor.send({ type: "SET_LANGUAGE", language: "en" });
-    actor.send({ type: "SET_AGE_BAND", ageBand: "25+" });
+    actor.send({ type: "SET_AGE_ANSWER", ageAnswer: "35+" });
     actor.send({ type: "SET_PRIOR_TRAINING", priorTraining: false });
     actor.send({ type: "SUBMIT_ELIGIBILITY" });
     actor.send({ type: "GIVE_CONSENT" });
