@@ -7,6 +7,12 @@ science core and item bank carried over from [`docs/STUDY3_SPEC_v2.md`](STUDY3_S
 
 No code was changed during this audit.
 
+> **Superseded in part.** Specification v2 (`docs/spec/v2/STUDY3_SPEC.md`,
+> 2026-09-02) applies the adults-only, English-only decision. Rows flagged
+> **[v2-pending]** below, and several rows under "Known issues", describe the v1
+> design and are answered by v2 at the specification level — the code still
+> implements v1. `docs/SPEC_CHANGELOG.md` lists every change.
+
 > **This audit is against the CURRENT specification (v3), not the planned v2 redesign.**
 > The 14-day roadmap moves the study to adults-only, English-only, two CEFR strata and a
 > 6/6 item split. That decision has not been applied to the specification or the code yet;
