@@ -1,0 +1,258 @@
+Study 3 — full test run
+date:   2026-09-02
+commit: 28ae24884c4b63add9c1a7f2babf0a77cc9dfe4e
+branch: study3-materials
+node:   v26.3.1   python: Python 3.13.5
+
+Run with: bash docs/audit/README-howto.txt  (see docs/STATUS.md for what each gate proves)
+
+
+================================================================
+== 1. TypeScript typecheck (libraries + app)
+================================================================
+$ tsc --noEmit && tsc --noEmit -p apps/study/tsconfig.json
+
+
+================================================================
+== 2. Unit / property (fast-check) / model-based / golden-file — vitest
+================================================================
+$ vitest run
+
+ RUN  v4.1.10 C:/Users/Redmi/counterweight/eiai-study3
+
+
+ Test Files  15 passed (15)
+      Tests  252 passed (252)
+   Start at  18:59:44
+   Duration  42.67s (transform 1.38s, setup 0ms, import 10.97s, tests 62.45s, environment 21.45s)
+
+
+
+================================================================
+== 3. Pipeline tests — pytest
+================================================================
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-8.4.2, pluggy-1.6.0 -- C:\Users\Redmi\AppData\Local\Programs\Python\Python313\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Redmi\counterweight\eiai-study3
+plugins: anyio-4.10.0
+collecting ... collected 12 items
+
+pipeline/tests/test_design_contrast.py::test_fillers_do_not_enter_the_quality_contrast PASSED [  8%]
+pipeline/tests/test_design_contrast.py::test_fillers_still_count_toward_scroll_and_vigilance PASSED [ 16%]
+pipeline/tests/test_design_contrast.py::test_missing_role_column_is_refused_rather_than_ignored PASSED [ 25%]
+pipeline/tests/test_design_contrast.py::test_bank_and_assignment_agree_on_every_item PASSED [ 33%]
+pipeline/tests/test_generation_durability.py::test_cells_survive_a_quota_exhaustion_mid_run PASSED [ 41%]
+pipeline/tests/test_generation_durability.py::test_a_resume_pays_only_for_what_is_missing PASSED [ 50%]
+pipeline/tests/test_generation_durability.py::test_a_cache_from_a_different_model_is_not_reused PASSED [ 58%]
+pipeline/tests/test_generation_durability.py::test_a_corrupt_cache_costs_a_regeneration_not_a_wrong_stimulus PASSED [ 66%]
+pipeline/tests/test_generation_durability.py::test_the_cache_file_is_replaced_atomically PASSED [ 75%]
+pipeline/tests/test_generation_durability.py::test_a_missing_hand_authored_cell_names_the_file_to_create PASSED [ 83%]
+pipeline/tests/test_generation_durability.py::test_a_hand_authored_cell_is_served_verbatim PASSED [ 91%]
+pipeline/tests/test_generation_durability.py::test_a_hand_authored_cell_missing_a_required_key_is_refused PASSED [100%]
+
+============================= 12 passed in 6.37s ==============================
+
+
+================================================================
+== 4. Data dictionary drift
+================================================================
+$ tsx packages/schema/scripts/generate-data-dictionary.ts --check
+docs/DATA_DICTIONARY.md is up to date.
+
+
+================================================================
+== 5. Content equivalence across conditions
+================================================================
+2047 checks run
+
+1 warning(s):
+  ~ 12 of 12 stimulus files are OFFLINE PLACEHOLDERS. Equivalence passing here says the pipeline works, not that the stimuli are usable.
+
+Content equivalence confirmed: identical numeric claims, identical
+justifications, identical hedging across all four condition variants.
+
+
+================================================================
+== 6. Stimulus manifest integrity
+================================================================
+Stimulus integrity confirmed: 12 files match the committed manifest.
+  manifest_sha256 471cef6f8cc11faa4348f6b41025ef8d8cc164ae4018976bc003532a7121f508
+  NOTE: manifest records launch_ready=false (placeholder stimuli).
+
+
+================================================================
+== 7. Allocation sequence freshness
+================================================================
+Allocation sequence is current (384 assignments, seed 20260817).
+
+
+================================================================
+== 8. Synthetic participants (simulate)
+================================================================
+360 synthetic sessions, 62352 events -> data\sim-events.jsonl
+  ground truth -> data\sim-truth.csv
+  60 per policy per condition, seed 20260817
+
+Planted effects analysis.py must recover:
+  SimCentral     discrimination +0.25   style +0.00   scroll 0.95
+  SimPeripheral  discrimination +0.00   style +0.20   scroll 0.35
+  SimRandom      discrimination +0.00   style +0.00   scroll 0.50
+
+
+================================================================
+== 9. Projections (replay)
+================================================================
+Replayed 62352 events from 360 sessions.
+  participants.csv        360 rows
+  trials.csv             4320 rows
+  questionnaire.csv      6480 rows
+  transitions.csv       62352 rows
+  -> data\tables
+
+
+================================================================
+== 10. Parameter recovery
+================================================================
+Specification: clamp0.0:1.0|den0.05|suspincl|resincl|rtraw
+N = 360 (180 warm, 180 neutral); 4168 of 4320 trials used
+
+                     strong    weak    discrimination
+  warm                0.504   0.431         0.074
+  neutral             0.459   0.378         0.081
+
+H1 style x quality interaction   F(1,358) = 0.112, p = 0.7379, partial eta^2 = 0.000
+H3 discrimination warm-neutral   t(356.3) = -0.335, p = 0.7379, diff = -0.007 [-0.048, +0.034], g = -0.035
+                                 BF10 = 0.123
+H2 vigilance composite           t(357.9) = -0.188, p = 0.8511, diff = -0.017
+H4 scroll-depth mediation        indirect = +0.0002 [-0.0240, +0.0244] (a = +0.001, b = +0.446)
+H5 trust warm-neutral            t(357.6) = 5.976, p = 0.0000, diff = +0.349
+
+Holm-Bonferroni across secondaries:
+  H2_vigilance     p = 0.8511 -> 0.8511  does not survive
+  H5_trust         p = 0.0000 -> 0.0000  survives
+
+Parameter recovery
+========================================================================
+
+SimCentral  (n = 120)
+  discrimination  planted +0.250   recovered +0.251 [+0.234, +0.267]
+  style effect    planted +0.000   recovered -0.003 [-0.050, +0.044]
+  scroll depth    planted 0.950    recovered 0.947
+
+SimPeripheral  (n = 120)
+  discrimination  planted +0.000   recovered -0.006 [-0.025, +0.012]
+  style effect    planted +0.200   recovered +0.195 [+0.178, +0.212]
+  scroll depth    planted 0.350    recovered 0.347
+
+SimRandom  (n = 120)
+  discrimination  planted +0.000   recovered -0.013 [-0.073, +0.048]
+  style effect    planted +0.000   recovered -0.046 [-0.102, +0.010]
+  scroll depth    planted 0.500    recovered 0.486
+
+------------------------------------------------------------------------
+  [ok] SimCentral: discrimination CI contains the planted +0.25
+  [ok] SimCentral: style-effect CI contains the planted +0.00
+  [ok] SimCentral: mean scroll depth within 0.10 of the planted 0.95
+  [ok] SimPeripheral: discrimination CI contains the planted +0.00
+  [ok] SimPeripheral: style-effect CI contains the planted +0.20
+  [ok] SimPeripheral: mean scroll depth within 0.10 of the planted 0.35
+  [ok] SimRandom: discrimination CI contains the planted +0.00
+  [ok] SimRandom: style-effect CI contains the planted +0.00
+  [ok] SimRandom: mean scroll depth within 0.10 of the planted 0.50
+  [ok] SimCentral discriminates more than SimPeripheral, with non-overlapping intervals
+  [ok] SimRandom discrimination interval contains zero
+
+All planted effects recovered within interval.
+
+-> data/results.json
+
+
+================================================================
+== 11. Reproducibility gate (projections byte-for-byte)
+================================================================
+Projections reproduce byte-for-byte from 62352 events.
+
+
+================================================================
+== 12. Specification curve (48 specifications)
+================================================================
+Running 48 specifications...
+
+  specifications            48
+  median estimate           -0.0149
+  range                     -0.0278 to -0.0069
+  CI excludes 0, negative   0  (the predicted direction: warmth flattens discrimination)
+  CI excludes 0, positive   0
+  CI contains 0             48
+
+  -> data\multiverse\specification_curve.csv
+  -> data\multiverse\specification_curve.png
+
+
+================================================================
+== 13. Power analysis
+================================================================
+Design precision
+  contaminated (8 strong incl. fillers vs 4 weak)  Var(D) = 0.3750 sigma^2
+  corrected    (4 analysed strong vs 4 weak)       Var(D) = 0.5000 sigma^2
+  standard error ratio  corrected / contaminated = 1.155
+  participants needed for the same power           x1.333
+
+For d = 0.5 at 80% power, alpha = 0.05:
+  per arm, corrected design        63   (total 126)
+  per arm, if fillers were kept    48   (total 96) -- but on a confounded contrast
+
+Observed in the current (synthetic) data:
+  analysed only    SD(D) = 0.1966  over 360 participants
+  all trials       SD(D) = 0.1787  over 360 participants
+
+Synthetic participants carry no item-level variance component, so the
+observed ratio understates the theoretical one. Treat the theory as the
+planning number and re-estimate SD(D) from the pilot.
+
+Known limitation: there are no pilot data. Every figure above rests on an
+assumed standardised effect, not on an observed SD(D) from this population.
+
+
+================================================================
+== 14. Stimulus generation estimate (no API calls)
+================================================================
+provider: offline / none (offline placeholder)
+cells:    168 planned, 0 cached, 168 outstanding
+requests: 168
+tokens:   0 estimated (reservation included)
+
+next cell: justification/kk/item_01
+
+
+================================================================
+== 15. Playwright end-to-end (real browser)
+================================================================
+$ playwright test
+[WebServer] $ vite
+
+Running 8 tests using 1 worker
+
+bots exported 405 events; conditions seen: warm
+  ok 1 [chromium] › e2e\bots.spec.ts:173:1 › bot policies complete real sessions and export a comparable log (23.9s)
+  ok 2 [chromium] › e2e\happy-path.spec.ts:64:1 › an adult completes a full twelve-item session (6.1s)
+  ok 3 [chromium] › e2e\happy-path.spec.ts:176:1 › a minor is routed through assent and cannot reach adult consent (1.2s)
+  ok 4 [chromium] › e2e\happy-path.spec.ts:194:1 › screening excludes formal training (1.1s)
+  ok 5 [chromium] › e2e\happy-path.spec.ts:203:1 › a reload mid-session resumes on the same item and loses nothing (1.8s)
+  ok 6 [chromium] › e2e\happy-path.spec.ts:229:1 › withdrawal is available from the item screen and ends the session (1.5s)
+  ok 7 [chromium] › e2e\minor-flow.spec.ts:74:1 › a Kazakh minor completes a full session through assent (7.6s)
+  ok 8 [chromium] › e2e\minor-flow.spec.ts:177:1 › an adult in the same language emits consent, not assent (1.3s)
+
+  8 passed (50.4s)
+
+
+================================================================
+== 16. Simulator / real-app bridge
+================================================================
+browser log       405 events, 3 sessions
+simulated log   62352 events, 360 sessions
+
+Shapes agree across 14 event types. The simulated log is a faithful stand-in for the real one.
+
+=== END OF RUN ===
