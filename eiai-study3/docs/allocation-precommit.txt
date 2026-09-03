@@ -1,0 +1,18 @@
+Allocation pre-commitment
+=========================
+
+Published BEFORE data collection opens. The sequence itself is in
+materials/allocation.json; this file records the digest so that a reader
+can verify after the fact that the randomisation was not adjusted.
+
+seed              20260817
+strata_sha256     400afbfe33d3f8b5036b5e70508d2b50953b94e16248b4c887c3a071081a9861
+sequence_sha256   957d327b71e551a83e036327a17bca9d13f614fede78cfd4c334865bbfddf7de
+
+Per stratum:
+  B1-B2              96 assignments  (48 warm / 48 neutral)
+  C1-C2/native       96 assignments  (48 warm / 48 neutral)
+
+Verify with:
+
+    python pipeline/allocation.py --check

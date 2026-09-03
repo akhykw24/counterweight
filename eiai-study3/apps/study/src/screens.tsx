@@ -3,7 +3,7 @@ import type { AgeScreenAnswer, CefrLevel, FollowupId, StimulusResponse } from "@
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import { currentItemId } from "@eiai/fsm";
 import { stratumForCefr } from "./strata";
-import { allocate } from "./allocation";
+import { SlotsExhaustedError, allocate } from "./allocation";
 import { itemById, requireLanguage, stimulusFor } from "./stimuli";
 
 /**
@@ -200,10 +200,12 @@ export function AllocatingScreen({
   context,
   send,
   sessionId,
+  takenSlots = new Set<number>(),
 }: {
   context: SessionContext;
   send: Send;
   sessionId: string;
+  takenSlots?: ReadonlySet<number>;
 }) {
   // Drawn from the committed seeded sequence in materials/allocation.json,
   // against the participant's real stratum. Both used to be literals (`warm`,
@@ -212,13 +214,34 @@ export function AllocatingScreen({
   // configured proficiency scheme, so changing that scheme does not touch this
   // file.
   const stratum = context.cefr ? stratumForCefr(context.cefr) : null;
-  const assignment = stratum ? allocate(sessionId, stratum) : null;
+
+  // Exhaustion is an expected outcome, not a crash: recruitment into one
+  // stratum finishing before the other is the normal way a stratified design
+  // ends. The participant is told plainly and the session stops here.
+  let assignment: ReturnType<typeof allocate> | null = null;
+  let exhausted = false;
+  if (stratum) {
+    try {
+      assignment = allocate(sessionId, stratum, takenSlots);
+    } catch (error) {
+      if (error instanceof SlotsExhaustedError) {
+        exhausted = true;
+      } else {
+        throw error;
+      }
+    }
+  }
 
   return (
     <section data-testid="screen-allocating">
       <h1>Setting up your session</h1>
       <p>One moment.</p>
-      {assignment === null ? (
+      {exhausted ? (
+        <p className="warning" data-testid="allocation-exhausted">
+          This study has finished recruiting participants with your background.
+          Thank you for your interest — nothing you entered has been kept.
+        </p>
+      ) : assignment === null ? (
         // Reachable only if the machine let someone past eligibility without
         // both answers, which would be a statechart bug. Better to show it than
         // to invent an assignment.

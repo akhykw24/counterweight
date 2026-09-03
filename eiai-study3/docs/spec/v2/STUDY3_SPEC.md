@@ -299,6 +299,32 @@ hard cap in either stratum, since recruitment will not split evenly. At least 96
 assignments per stratum (24 blocks of 4) rather than the 64 that six strata
 needed.
 
+### 8.7 Slot accounting
+
+**A slot is reserved at allocation and consumed at the first judgement.** A
+reservation that produces no `ESTIMATE_FINALIZED` is released back to the pool:
+immediately on withdrawal, or after **45 minutes** otherwise.
+
+*The 45 minutes was NOT in this specification and is chosen here — flagged for
+the researcher.* The session runs about twenty minutes by design, so 45 gives a
+genuinely slow participant more than double the intended time before anything is
+recycled underneath them, while still returning slots inside a recruitment day.
+
+Two consequences the design depends on:
+
+- **Attrition does not bend the block balance.** Someone who opens the link and
+  leaves consumed a slot under the old scheme, and nothing returned it, so the
+  arms drifted for everyone recruited after them.
+- **Exhaustion is reported, never wrapped.** When every slot in a stratum is
+  taken, recruitment into that stratum closes and the participant is told so.
+  The other stratum stays open: stratified recruitment finishing unevenly is
+  the normal case, not a failure.
+
+Release is **derived from the log**, not performed. Nobody sends a release event
+and no scheduled job mutates state; every slot's status is a pure function of
+the events plus the current time, which is what lets it be recomputed
+identically months later and why a crashed browser needs no cleanup path.
+
 ### 8.6 Participant exclusion criteria
 
 Applied in the pipeline as an explicit, logged step; every analysis is reported

@@ -109,3 +109,46 @@ def test_the_committed_sequence_covers_the_hard_cap_in_any_one_stratum():
             f"{stratum} holds {len(assignments)} assignments; the hard cap is 160 "
             f"and recruitment does not split evenly"
         )
+
+
+def test_the_same_seed_reproduces_the_same_sequence():
+    from allocation import build_sequence
+
+    assert build_sequence(seed=12345) == build_sequence(seed=12345)
+
+
+def test_different_seeds_produce_different_sequences():
+    # If they did not, the seed would not be doing anything and the
+    # pre-commitment would prove nothing.
+    from allocation import build_sequence
+
+    assert build_sequence(seed=1) != build_sequence(seed=2)
+
+
+def test_the_precommit_file_matches_the_committed_sequence():
+    """The pre-commitment is the point of the whole scheme.
+
+    Publishing the digest before collection is what lets a reader verify that
+    the randomisation was not adjusted afterwards. A digest that does not match
+    the sequence proves nothing at all, so it is checked rather than trusted.
+    """
+    import hashlib
+
+    precommit = (REPO_ROOT / "docs" / "allocation-precommit.txt").read_text(encoding="utf-8")
+    allocation = read_json(REPO_ROOT / "materials" / "allocation.json")
+
+    recorded = [
+        line.split()[-1]
+        for line in precommit.splitlines()
+        if line.strip().startswith("sequence_sha256")
+    ]
+    assert recorded, "no sequence_sha256 line in docs/allocation-precommit.txt"
+    assert recorded[0] == allocation["sequence_sha256"]
+
+    # And the digest must actually be of the sequence, not merely copied across.
+    from _common import canonical_json
+
+    recomputed = hashlib.sha256(
+        canonical_json(allocation["sequence"]).encode("utf-8")
+    ).hexdigest()
+    assert recomputed == allocation["sequence_sha256"]

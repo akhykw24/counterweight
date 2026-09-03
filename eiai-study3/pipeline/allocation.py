@@ -56,6 +56,7 @@ from strata import STRATA_PATH, Strata, load_strata
 SEED = 20260817
 
 ALLOCATION_PATH = MATERIALS / "allocation.json"
+PRECOMMIT_PATH = MATERIALS.parent / "docs" / "allocation-precommit.txt"
 
 
 def build_sequence(seed: int = SEED, strata: Strata | None = None) -> dict[str, list[str]]:
@@ -123,6 +124,47 @@ def verify_balance(sequence: dict[str, list[str]], strata: Strata | None = None)
     return problems
 
 
+def write_precommit(document: dict[str, object], config: Strata) -> None:
+    """The digest published before collection opens.
+
+    This is the whole point of generating the sequence in advance: a reader can
+    check afterwards that the assignment list was not adjusted to suit the
+    result. The file is plain text so it can be pasted into a pre-registration
+    form without any tooling.
+    """
+    sequence: dict[str, list[str]] = document["sequence"]  # type: ignore[assignment]
+    lines = [
+        "Allocation pre-commitment",
+        "=========================",
+        "",
+        "Published BEFORE data collection opens. The sequence itself is in",
+        "materials/allocation.json; this file records the digest so that a reader",
+        "can verify after the fact that the randomisation was not adjusted.",
+        "",
+        f"seed              {document['seed']}",
+        f"strata_sha256     {document['strata_sha256']}",
+        f"sequence_sha256   {document['sequence_sha256']}",
+        "",
+        "Per stratum:",
+    ]
+    for stratum in config.ids:
+        assignments = sequence[stratum]
+        warm = assignments.count("warm")
+        lines.append(
+            f"  {stratum:16s} {len(assignments):4d} assignments"
+            f"  ({warm} warm / {len(assignments) - warm} neutral)"
+        )
+    lines += [
+        "",
+        "Verify with:",
+        "",
+        "    python pipeline/allocation.py --check",
+        "",
+    ]
+    PRECOMMIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    PRECOMMIT_PATH.write_text(chr(10).join(lines), encoding="utf-8", newline=chr(10))
+
+
 def main(argv: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Generate the allocation sequence.")
     parser.add_argument("--check", action="store_true",
@@ -162,6 +204,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 0
 
     write_json(out_path, document)
+    if out_path == ALLOCATION_PATH:
+        write_precommit(document, config)
     total = sum(len(v) for v in document["sequence"].values())  # type: ignore[union-attr]
     print(f"{total} assignments across {len(config.ids)} strata, "
           f"block size {config.block_size}, seed {args.seed}")

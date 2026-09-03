@@ -63,7 +63,35 @@ export type Allocation = {
   readonly allocationSeq: number;
 };
 
-export function allocate(sessionId: string, stratum: Stratum): Allocation {
+/**
+ * Slot indices already spoken for, supplied by the caller.
+ *
+ * Empty in the offline build: without the ingest service there is nothing that
+ * knows what other sessions have taken, so the session-id hash stands in and
+ * two simultaneous participants can collide. `pipeline/slots.py` computes the
+ * real set from the event log, and the ingest service will serve it. Passing it
+ * in rather than reaching for it keeps this module free of transport concerns
+ * and makes exhaustion testable.
+ */
+export type TakenSlots = ReadonlySet<number>;
+
+export class SlotsExhaustedError extends Error {
+  constructor(readonly stratum: Stratum) {
+    super(
+      `every slot in stratum '${stratum}' is taken. Recruitment into this ` +
+        `stratum is closed; the sequence must not wrap, because two participants ` +
+        `at the same index would break the block balance with nothing in the log ` +
+        `to show it.`,
+    );
+    this.name = "SlotsExhaustedError";
+  }
+}
+
+export function allocate(
+  sessionId: string,
+  stratum: Stratum,
+  taken: TakenSlots = new Set(),
+): Allocation {
   const sequence = document.sequence[stratum];
   if (!sequence) {
     // Throwing rather than falling back to a default arm: a silent default
@@ -73,7 +101,20 @@ export function allocate(sessionId: string, stratum: Stratum): Allocation {
       `no allocation sequence for stratum '${stratum}'. Regenerate with pipeline/allocation.py.`,
     );
   }
-  const index = hashToIndex(sessionId, sequence.length);
+  // Start from the hashed position and walk forward to the first free slot.
+  // Walking rather than wrapping blindly is what turns exhaustion into a
+  // reportable state instead of a silent double-booking.
+  const start = hashToIndex(sessionId, sequence.length);
+  let index = -1;
+  for (let offset = 0; offset < sequence.length; offset += 1) {
+    const candidate = (start + offset) % sequence.length;
+    if (!taken.has(candidate)) {
+      index = candidate;
+      break;
+    }
+  }
+  if (index === -1) throw new SlotsExhaustedError(stratum);
+
   const condition = sequence[index];
   if (condition !== "warm" && condition !== "neutral") {
     throw new AllocationError(`allocation sequence holds an unknown condition '${condition}'`);
