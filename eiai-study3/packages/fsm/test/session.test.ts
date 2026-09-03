@@ -1,4 +1,5 @@
 import { createActor } from "xstate";
+import { stratumForCefr, stratumIds } from "../../../apps/study/src/strata";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ITEM_IDS,
@@ -8,7 +9,6 @@ import {
   createSessionMachine,
   currentItemId,
   sessionMachine,
-  stratumFor,
   type SessionEvent,
 } from "@eiai/fsm";
 
@@ -79,10 +79,17 @@ describe("age banding and stratification", () => {
     expect(ageBandFor("under-18")).toBeNull();
   });
 
-  it("builds a stratum key from language and age group", () => {
-    // v2 admits adults only, so the age half is constant. Item 4 of the v2 code
-    // migration replaces this scheme with configured proficiency strata.
-    expect(stratumFor("en", "adult")).toBe("en:adult");
+  it("maps every admitted CEFR level to exactly one configured stratum", () => {
+    // The scheme is configuration now, so this asserts the mapping is total and
+    // unambiguous over the admitted levels rather than naming the strata.
+    for (const level of ["B1", "B2", "C1", "C2"] as const) {
+      expect(stratumIds).toContain(stratumForCefr(level));
+    }
+    // Levels below the threshold have no stratum: they are screened out before
+    // randomisation and must never consume a slot.
+    for (const level of ["A1", "A2"] as const) {
+      expect(stratumForCefr(level)).toBeNull();
+    }
   });
 });
 

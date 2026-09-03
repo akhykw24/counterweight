@@ -5,6 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { createSessionMachine } from "@eiai/fsm";
 import { App } from "../src/App";
+import { allocate } from "../src/allocation";
+import { stratumForCefr } from "../src/strata";
 
 /**
  * Interaction tests for the item screen.
@@ -17,9 +19,14 @@ import { App } from "../src/App";
 
 const ITEM_IDS = ["item_01", "item_02"];
 
-async function reachFirstItem() {
+async function reachFirstItem(sessionId?: string) {
   const user = userEvent.setup();
-  render(<App machine={createSessionMachine(ITEM_IDS)} />);
+  render(
+    <App
+      machine={createSessionMachine(ITEM_IDS)}
+      {...(sessionId ? { sessionId } : {})}
+    />,
+  );
   await user.click(screen.getByTestId("age-35+"));
   await user.click(screen.getByTestId("cefr-B2"));
   await user.click(screen.getByTestId("study-language-english"));
@@ -88,8 +95,26 @@ describe("estimate and confidence controls", () => {
 });
 
 describe("advice rendering", () => {
-  async function reachAdvice(confidence: number) {
-    const user = await reachFirstItem();
+  /**
+   * A session id the committed sequence assigns to the warm arm.
+   *
+   * Searched rather than fixed: the sequence is regenerated whenever the strata
+   * config changes, and a hard-coded id would quietly start landing in the
+   * neutral arm, at which point these tests would assert nothing about register
+   * selection while still passing.
+   */
+  function warmSessionId(): string {
+    const stratum = stratumForCefr("B2");
+    if (!stratum) throw new Error("B2 has no configured stratum");
+    for (let i = 1; i < 10_000; i += 1) {
+      const candidate = `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`;
+      if (allocate(candidate, stratum).condition === "warm") return candidate;
+    }
+    throw new Error("no session id in the search space allocates to the warm arm");
+  }
+
+  async function reachAdvice(confidence: number, sessionId?: string) {
+    const user = await reachFirstItem(sessionId);
     fireEvent.change(screen.getByTestId("initial-estimate"), {
       target: { value: "12000" },
     });
@@ -105,7 +130,11 @@ describe("advice rendering", () => {
     [55, "moderate"],
     [90, "high"],
   ])("serves the register the initial confidence selects (%s -> %s)", async (c, slug) => {
-    await reachAdvice(c as number);
+    // Register branching only exists in the warm arm, so this needs a session
+    // the committed sequence assigns there. The id is SEARCHED rather than
+    // hard-coded: a hard-coded one would silently stop exercising the warm arm
+    // the next time the sequence is regenerated.
+    await reachAdvice(c as number, warmSessionId());
     const responseId = screen.getByTestId("advice").dataset["responseId"];
     expect(responseId).toBe(`en_warm_${slug}_item_01`);
   });

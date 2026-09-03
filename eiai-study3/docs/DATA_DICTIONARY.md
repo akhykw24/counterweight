@@ -82,7 +82,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 |---|---|---|---|---|
 | `type` | `"ALLOCATED"` | yes |  |  |
 | `payload.condition` | `warm` \| `neutral` | yes |  | Between-subjects emotional style condition. |
-| `payload.stratum` | `kk:minor` \| `kk:adult` \| `ru:minor` \| `ru:adult` \| `en:minor` \| `en:adult` | yes |  | Randomization stratum: language x age group. Six cells, block size 4 (STUDY3_SPEC_v3.md section 1). |
+| `payload.stratum` | string | yes | minLen 1 | Randomisation stratum id, drawn from materials/strata.json. Two under spec v2: B1-B2 and C1-C2/native. |
 | `payload.allocation_seq` | integer | yes | >= 0 | Index into the committed allocation sequence. |
 
 #### `ITEM_PRESENTED`
@@ -567,7 +567,7 @@ Funnelled suspicion probe, administered in order without backtracking.
 | `AgeGroup` | `adult` | Age group of an admitted participant. Only adults are admitted (spec v2 §1), so this has one value; it is kept as an enum because the stratum key is still built from it. |
 | `AgeScreenAnswer` | `under-18`, `18-24`, `25-34`, `35+` | What the eligibility screen offers. Wider than AgeBand by exactly one option, because the screen has to let someone say they are under 18 in order to turn them away. 'under-18' is never stored: it routes to the screening exit and the session records only the reason. |
 | `AgeBand` | `18-24`, `25-34`, `35+` | Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away. |
-| `Stratum` | `kk:minor`, `kk:adult`, `ru:minor`, `ru:adult`, `en:minor`, `en:adult` | Randomization stratum: language x age group. Six cells, block size 4 (STUDY3_SPEC_v3.md section 1). |
+| `Stratum` | string | Randomisation stratum id, drawn from materials/strata.json. Two under spec v2: B1-B2 and C1-C2/native. |
 | `ScreenedOutReason` | `age`, `language`, `prior_training` | Why a visitor was turned away before consent. This is the ONLY thing a screened-out visitor contributes: no age, no answers, no session (spec v2 §3). It exists so the participant-flow diagram can report screening counts. |
 | `CefrLevel` | `A1`, `A2`, `B1`, `B2`, `C1`, `C2` | Self-reported Common European Framework level for English. Self-report, not a test: it is a screening instrument and a covariate, and the paper says so. |
 | `StudyWorkLanguage` | `english`, `other` | Whether the participant's study or work is conducted in English. A covariate that characterises the sample, NOT a gate: someone who reads English well but works in another language is still admitted. |

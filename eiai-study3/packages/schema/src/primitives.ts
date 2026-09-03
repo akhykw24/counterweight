@@ -92,16 +92,20 @@ export const ScreenedOutReason = z
   .enum(["age", "language", "prior_training"])
   .describe("Why a visitor was turned away before consent. This is the ONLY thing a screened-out visitor contributes: no age, no answers, no session (spec v2 §3). It exists so the participant-flow diagram can report screening counts.");
 
+/**
+ * Randomisation stratum.
+ *
+ * A plain identifier rather than an enum, because spec v2 requires the number
+ * and names of strata to be configuration. The valid set lives in
+ * `materials/strata.json` and is validated where it is loaded
+ * (`apps/study/src/strata.ts`, `pipeline/strata.py`); baking it into a Zod enum
+ * here would put the scheme back in the code, which is the arrangement v2
+ * exists to undo.
+ */
 export const Stratum = z
-  .enum([
-    "kk:minor",
-    "kk:adult",
-    "ru:minor",
-    "ru:adult",
-    "en:minor",
-    "en:adult",
-  ])
-  .describe("Randomization stratum: language x age group. Six cells, block size 4 (STUDY3_SPEC_v3.md section 1).");
+  .string()
+  .min(1)
+  .describe("Randomisation stratum id, drawn from materials/strata.json. Two under spec v2: B1-B2 and C1-C2/native.");
 
 export const EstimatePhase = z
   .enum(["initial", "final"])

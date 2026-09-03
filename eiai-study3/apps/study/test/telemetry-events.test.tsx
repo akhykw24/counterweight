@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { EventBatch } from "@eiai/schema";
 import { createSessionMachine } from "@eiai/fsm";
+import { stratumForCefr } from "../src/strata";
 import { App } from "../src/App";
 import allocationDocument from "../../../materials/allocation.json";
 import type { Recorder } from "../src/telemetry";
@@ -108,10 +109,11 @@ describe("event emission", () => {
     };
 
     // The stratum has to follow the eligibility answers this run actually gave
-    // (English, 25+), not a literal. It used to be hard-coded to "en:adult"
-    // regardless, which agreed with this path by luck and disagreed with every
-    // other one.
-    expect(payload.stratum).toBe("en:adult");
+    // (CEFR B2), not a literal. It used to be hard-coded to "en:adult"
+    // regardless, which agreed with one path by luck and disagreed with every
+    // other one. The expected value is derived from the configured scheme so
+    // that changing the scheme does not require editing this test.
+    expect(payload.stratum).toBe(stratumForCefr("B2"));
 
     // And the condition has to be the entry the committed sequence holds at the
     // recorded index -- not merely a valid-looking value. Asserting the pair
@@ -145,11 +147,23 @@ describe("event emission", () => {
   it("records which frozen stimulus was served and which register was entered", async () => {
     const log = capturing();
     await runToAdvice(log);
-    expect(log.of("RESPONSE_REVEALED")[0]!.payload).toMatchObject({
-      item_id: "item_01",
-      response_id: "en_warm_low_item_01",
-      register_state: "LOW",
-    });
+    // The condition comes from the committed sequence, so it is genuinely
+    // either arm from one run to the next; the register must track confidence
+    // in the warm arm and be absent in the neutral one, which does not branch.
+    const revealed = log.of("RESPONSE_REVEALED")[0]!.payload as {
+      item_id: string;
+      response_id: string;
+      register_state: string | null;
+    };
+    const condition = (log.of("ALLOCATED")[0]!.payload as { condition: string }).condition;
+    expect(revealed.item_id).toBe("item_01");
+    if (condition === "warm") {
+      expect(revealed.response_id).toBe("en_warm_low_item_01");
+      expect(revealed.register_state).toBe("LOW");
+    } else {
+      expect(revealed.response_id).toBe("en_neutral_na_item_01");
+      expect(revealed.register_state).toBeNull();
+    }
   });
 
   it("counts revisions before the final submit", async () => {

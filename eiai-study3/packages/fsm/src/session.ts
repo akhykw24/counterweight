@@ -152,9 +152,10 @@ export function ageGroupFor(_band: AgeBand): AgeGroup {
   return "adult";
 }
 
-export function stratumFor(language: Language, ageGroup: AgeGroup): Stratum {
-  return `${language}:${ageGroup}` as Stratum;
-}
+// stratumFor(language, ageGroup) is gone: spec v2 stratifies by English
+// proficiency, and the mapping now lives in the strata configuration rather
+// than in a template string here. See apps/study/src/strata.ts and
+// pipeline/strata.py.
 
 /**
  * Machine factory.

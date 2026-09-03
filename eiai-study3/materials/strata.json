@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "study": "eiai-study3",
+  "note": "Randomisation strata. Spec v2 stratifies by English proficiency, because that is the participant characteristic with a mechanistic route to the dependent variable. Number and names live here rather than in code so that changing them is a config edit plus a regeneration; pipeline/tests/test_strata_config.py proves a three-stratum config works with no code change.",
+  "block_size": 4,
+  "blocks_per_stratum": 24,
+  "conditions": ["warm", "neutral"],
+  "strata": [
+    {
+      "id": "B1-B2",
+      "label": "Independent user (B1-B2)",
+      "cefr_levels": ["B1", "B2"]
+    },
+    {
+      "id": "C1-C2/native",
+      "label": "Proficient user (C1-C2 or native)",
+      "cefr_levels": ["C1", "C2"]
+    }
+  ]
+}

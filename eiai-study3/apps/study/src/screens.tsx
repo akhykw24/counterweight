@@ -1,7 +1,8 @@
 import { useState, type UIEvent } from "react";
 import type { AgeScreenAnswer, CefrLevel, FollowupId, StimulusResponse } from "@eiai/schema";
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
-import { currentItemId, stratumFor } from "@eiai/fsm";
+import { currentItemId } from "@eiai/fsm";
+import { stratumForCefr } from "./strata";
 import { allocate } from "./allocation";
 import { itemById, requireLanguage, stimulusFor } from "./stimuli";
 
@@ -205,13 +206,12 @@ export function AllocatingScreen({
   sessionId: string;
 }) {
   // Drawn from the committed seeded sequence in materials/allocation.json,
-  // against the participant's real stratum. Previously both were literals
-  // (`warm`, `en:adult`), which made the neutral arm unreachable and recorded a
-  // stratum that contradicted the eligibility answers.
-  const stratum =
-    context.language && context.ageGroup
-      ? stratumFor(context.language, context.ageGroup)
-      : null;
+  // against the participant's real stratum. Both used to be literals (`warm`,
+  // `en:adult`), which made the neutral arm unreachable and recorded a stratum
+  // that contradicted the eligibility answers. The stratum now comes from the
+  // configured proficiency scheme, so changing that scheme does not touch this
+  // file.
+  const stratum = context.cefr ? stratumForCefr(context.cefr) : null;
   const assignment = stratum ? allocate(sessionId, stratum) : null;
 
   return (
