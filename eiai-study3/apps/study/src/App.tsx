@@ -1,12 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useMachine } from "@xstate/react";
 import type { StateValue } from "xstate";
-import type { Language } from "@eiai/schema";
 import { currentItemId, sessionMachine, type SessionMachine } from "@eiai/fsm";
 import {
   APP_VERSION,
   STIMULI_MANIFEST_HASH,
-  initialLocale,
   noopRecorder,
   type Recorder,
 } from "./telemetry";
@@ -35,15 +33,10 @@ export function stateName(value: StateValue): string {
 const TERMINAL = new Set(["done", "withdrawn", "ineligible", "screenedOut"]);
 
 /**
- * The only assumed language in the app.
- *
- * The eligibility screen has to render in something before the participant has
- * chosen, so this covers UI chrome up to that first click and nothing else.
- * Everything the participant reads as part of the task -- question stems,
- * advice, the debrief that discloses the planted errors -- goes through
- * `requireLanguage`, which throws rather than assuming.
+ * With one study language there is nothing to bootstrap: the machine sets the
+ * language from `STUDY_LANGUAGE` at the start of the session, so the eligibility
+ * screen already has it. The constant that used to cover the gap is gone.
  */
-const BOOTSTRAP_LANGUAGE: Language = "en";
 
 export interface AppProps {
   machine?: SessionMachine;
@@ -74,7 +67,7 @@ export function App({
   // BOOTSTRAP_LANGUAGE: the eligibility screen has to render in something
   // before the participant has chosen. This is the only assumed language in the
   // app, it applies to UI chrome only, and it is replaced the moment they pick.
-  const t = translator(context.language ?? BOOTSTRAP_LANGUAGE);
+  const t = translator(requireLanguage(context, "the interface"));
 
   const startedAt = useRef(Date.now());
   const itemPresentedAt = useRef(Date.now());
@@ -95,7 +88,6 @@ export function App({
     recorder.record("SESSION_STARTED", {
       app_version: APP_VERSION,
       stimuli_manifest_hash: STIMULI_MANIFEST_HASH,
-      locale: context.language ?? initialLocale(),
       viewport: {
         width: globalThis.innerWidth || 1024,
         height: globalThis.innerHeight || 768,

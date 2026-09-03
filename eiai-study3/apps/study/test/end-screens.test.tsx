@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { STUDY_LANGUAGE } from "@eiai/schema";
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -25,7 +26,6 @@ async function reachAdvice(recorder?: Recorder) {
       {...(recorder ? { recorder } : {})}
     />,
   );
-  await user.click(screen.getByTestId("lang-en"));
   await user.click(screen.getByTestId("age-35+"));
   await user.click(screen.getByTestId("training-no"));
   await user.click(screen.getByTestId("submit-eligibility"));
@@ -192,8 +192,7 @@ describe("funnel", () => {
     const log = capturing();
     const user = userEvent.setup();
     render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
-    await user.click(screen.getByTestId("lang-en"));
-    await user.click(screen.getByTestId("age-35+"));
+      await user.click(screen.getByTestId("age-35+"));
     await user.click(screen.getByTestId("training-no"));
     await user.click(screen.getByTestId("submit-eligibility"));
     await user.click(screen.getByTestId("give-consent"));
@@ -289,17 +288,16 @@ describe("i18n scaffold", () => {
     expect(missingKeys("en")).toEqual([]);
   });
 
-  it("reports Russian and Kazakh as untranslated rather than pretending", () => {
-    // Section 11 requires cultural adaptation with back-translation. A machine
-    // draft here would look finished and fail the manipulation check in two of
-    // three language groups.
-    expect(isTranslated("ru")).toBe(false);
-    expect(isTranslated("kk")).toBe(false);
-    expect(missingKeys("ru").length).toBeGreaterThan(0);
+  it("carries exactly one catalogue, because the study has one language", () => {
+    // The Russian and Kazakh catalogues were empty placeholders awaiting human
+    // translation. v2 is English only, so they are gone with the languages
+    // rather than left as slots that will never be filled.
+    expect(isTranslated(STUDY_LANGUAGE)).toBe(true);
+    expect(missingKeys(STUDY_LANGUAGE)).toEqual([]);
   });
 
-  it("falls back to English so a missing string is never a blank screen", () => {
-    expect(translator("kk")("common.continue")).toBe("Continue");
+  it("still falls back rather than rendering a blank screen", () => {
+    expect(translator(STUDY_LANGUAGE)("common.continue")).toBe("Continue");
   });
 
   it("interpolates variables", () => {

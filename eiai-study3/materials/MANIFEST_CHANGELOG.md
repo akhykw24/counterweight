@@ -95,3 +95,21 @@ placeholder path was untested by everything below the branch -- the same shape o
 defect as the hard-coded allocation literal.
 
 `launch_ready` is still `false`.
+
+### Rebuild 4 — English only (spec v2 item 2)
+
+| Digest | Now |
+|---|---|
+| `manifest_sha256` | `32f4cc2488ee9edb521b14f8...` |
+| files covered | **4**, was 12 |
+| responses covered | **48**, was 144 |
+
+The Russian and Kazakh stimulus sets moved to `archive/responses/` and are no
+longer manifested. They are retained rather than deleted: they are provenance
+for a design decision and the texts took real work. Nothing archived can reach a
+participant, because the manifest is what the golden test verifies and what the
+loader serves from.
+
+`items_file_sha256` moved too: `design.languages` in the bank is now `["en"]`.
+The Russian and Kazakh question stems are still in the bank and were **not**
+edited — they are inert once the active language set is English only.

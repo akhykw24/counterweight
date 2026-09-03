@@ -38,12 +38,6 @@ export interface Bootstrap {
 const INGEST_ENDPOINT =
   (import.meta.env["VITE_INGEST_ENDPOINT"] as string | undefined) ?? "/api/events";
 
-/** Best-effort mapping of the browser locale onto the three study languages. */
-export function initialLocale(): "kk" | "ru" | "en" {
-  const tag = globalThis.navigator?.language?.slice(0, 2).toLowerCase();
-  return tag === "kk" || tag === "ru" ? tag : "en";
-}
-
 export async function bootstrap(): Promise<Bootstrap> {
   const existing = loadResume();
   const resumed = existing !== null;

@@ -46,7 +46,6 @@ async function runToAdvice(log: ReturnType<typeof capturing>) {
   render(
     <App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />,
   );
-  await user.click(screen.getByTestId("lang-en"));
   await user.click(screen.getByTestId("age-35+"));
   await user.click(screen.getByTestId("training-no"));
   await user.click(screen.getByTestId("submit-eligibility"));
@@ -223,7 +222,6 @@ describe("resume", () => {
     const { createActor } = await import("xstate");
     const actor = createActor(createSessionMachine(ITEM_IDS));
     actor.start();
-    actor.send({ type: "SET_LANGUAGE", language: "en" });
     actor.send({ type: "SET_AGE_ANSWER", ageAnswer: "35+" });
     actor.send({ type: "SET_PRIOR_TRAINING", priorTraining: false });
     actor.send({ type: "SUBMIT_ELIGIBILITY" });

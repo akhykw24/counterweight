@@ -40,8 +40,6 @@ const ALLOWED: Record<string, string> = {
   "apps/study/src/allocation.ts":
     "the allocation module itself: it reads the committed sequence and validates its values",
   "apps/study/src/i18n.ts": "the translation table is keyed by language by definition",
-  "apps/study/src/telemetry.ts":
-    "maps the browser locale onto the study languages before any choice exists",
 };
 
 /**
@@ -52,13 +50,9 @@ const ALLOWED_PATTERNS: RegExp[] = [
   // Offering the participant their choices. The eligibility screen has to name
   // the options it is asking them to pick between.
   /data-testid=\{?[`"]?(lang|age)-/,
-  /const LANGUAGES: \{ code: Language/,
   /const AGE_OPTIONS: AgeScreenAnswer\[\]/,
   /^\s*"(under-18|18-24|25-34|35\+)": "/,
-  /\{ code: "(en|ru|kk)", label:/,
   /"(under-18|18-24|25-34|35\+)",?$/,
-  // The single documented bootstrap language, declared once by name.
-  /^const BOOTSTRAP_LANGUAGE: Language =/,
   // Type positions, not values.
   /^\s*(\/\/|\*|\/\*)/,
   /: "(warm|neutral)" \| "(warm|neutral)"/,
@@ -70,6 +64,8 @@ const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   { name: "language", pattern: /["'](kk|ru|en)["']/ },
   { name: "age band", pattern: /["'](under-18|18-24|25-34|35\+)["']/ },
   { name: "consent flow", pattern: /["'](minor|adult)["']/ },
+  // Archived languages must not reappear in anything a participant can reach.
+  { name: "archived language", pattern: /["'](kk|ru)["']/ },
 ];
 
 function walk(dir: string): string[] {

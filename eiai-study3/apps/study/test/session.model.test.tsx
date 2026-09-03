@@ -73,7 +73,6 @@ const ARMS: Arm[] = [
 
 function eventsFor(ageAnswer: string) {
   return [
-    { type: "SET_LANGUAGE", language: "en" },
     { type: "SET_AGE_ANSWER", ageAnswer },
     { type: "SET_PRIOR_TRAINING", priorTraining: false },
     { type: "SET_PRIOR_TRAINING", priorTraining: true },
@@ -143,8 +142,6 @@ async function execute(user: ReturnType<typeof userEvent.setup>, event: any) {
     fireEvent.change(screen.getByTestId(testId), { target: { value: String(value) } });
 
   switch (event.type) {
-    case "SET_LANGUAGE":
-      return click(`lang-${event.language}`);
     case "SET_AGE_ANSWER":
       return click(`age-${event.ageAnswer}`);
     case "SET_PRIOR_TRAINING":

@@ -108,7 +108,8 @@ POLICIES: dict[str, dict[str, float]] = {
 }
 
 CONDITIONS = ("warm", "neutral")
-AGE_BANDS = ("14-15", "16-17", "18-24", "25+")
+# v2 admits adults only.
+AGE_BANDS = ("18-24", "25-34", "35+")
 FOLLOWUP_IDS = ("measurement", "certainty", "challenge")
 
 
@@ -192,25 +193,20 @@ def simulate_session(
     writer = SessionWriter(session_id, start_ts)
 
     age_band = rng.choice(AGE_BANDS)
-    is_minor = age_band in ("14-15", "16-17")
-    stratum = f"{language}:{'minor' if is_minor else 'adult'}"
+    stratum = f"{language}:adult"
 
     writer.record(
         "SESSION_STARTED",
         {
             "app_version": APP_VERSION,
             "stimuli_manifest_hash": manifest_hash,
-            "locale": language,
             "viewport": {"width": 1280, "height": 800},
             "resumed": False,
         },
     )
     writer.advance(rng.randint(2000, 6000))
 
-    if is_minor:
-        writer.record("ASSENT_GIVEN", {"parental_consent_code": f"sim-{rng.randint(1000, 9999)}"})
-    else:
-        writer.record("CONSENT_GIVEN", {"flow": "adult"})
+    writer.record("CONSENT_GIVEN", {})
     writer.advance(rng.randint(500, 2000))
 
     writer.record(

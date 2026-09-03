@@ -139,14 +139,14 @@ describe("response id construction", () => {
   it("always produces an id the schema accepts", () => {
     fc.assert(
       fc.property(
-        fc.constantFrom("kk", "ru", "en"),
+        fc.constantFrom("en"),
         confidence(),
         fc.integer({ min: 1, max: 12 }),
         fc.constantFrom("warm", "neutral"),
         (lang, c, itemNo, condition) => {
           const itemId = `item_${String(itemNo).padStart(2, "0")}`;
           const state = registerFor(condition as "warm" | "neutral", c);
-          const id = responseIdFor(lang as "kk", condition as "warm", state, itemId);
+          const id = responseIdFor(lang as "en", condition as "warm", state, itemId);
           expect(ResponseId.safeParse(id).success).toBe(true);
         },
       ),
@@ -157,13 +157,13 @@ describe("response id construction", () => {
   it("round-trips: the id encodes exactly the inputs that built it", () => {
     fc.assert(
       fc.property(
-        fc.constantFrom("kk", "ru", "en"),
+        fc.constantFrom("en"),
         confidence(),
         fc.integer({ min: 1, max: 12 }),
         (lang, c, itemNo) => {
           const itemId = `item_${String(itemNo).padStart(2, "0")}`;
           const state = registerFor("warm", c);
-          const id = responseIdFor(lang as "kk", "warm", state, itemId);
+          const id = responseIdFor(lang as "en", "warm", state, itemId);
           expect(id).toBe(`${lang}_warm_${registerSlug(state)}_${itemId}`);
         },
       ),
@@ -175,16 +175,16 @@ describe("response id construction", () => {
     expect(() => responseIdFor("en", "warm", null, "item_01")).toThrow();
   });
 
-  it("names the 12 stimulus files the generator writes", () => {
+  it("names the 4 stimulus files the generator writes", () => {
     const files = new Set<string>();
-    for (const lang of ["kk", "ru", "en"] as const) {
+    for (const lang of ["en"] as const) {
       for (const state of ["LOW", "MODERATE", "HIGH"] as const) {
         files.add(stimulusFileFor(lang, "warm", state));
       }
       files.add(stimulusFileFor(lang, "neutral", null));
     }
-    expect(files.size).toBe(12);
+    expect(files.size).toBe(4);
     expect(files).toContain("en_warm_low.json");
-    expect(files).toContain("kk_neutral_na.json");
+    expect(files).toContain("en_neutral_na.json");
   });
 });

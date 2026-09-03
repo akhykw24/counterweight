@@ -79,7 +79,7 @@ describe("covariates", () => {
   const valid = {
     age_band: "25-34",
     gender: "prefer_not_to_say",
-    primary_language: "kk",
+    primary_language: "en",
     ai_usage_frequency: 3,
     prior_knowledge_marine_biology: 2,
   };

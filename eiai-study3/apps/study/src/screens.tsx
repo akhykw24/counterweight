@@ -1,5 +1,5 @@
 import { useState, type UIEvent } from "react";
-import type { AgeScreenAnswer, FollowupId, Language, StimulusResponse } from "@eiai/schema";
+import type { AgeScreenAnswer, FollowupId, StimulusResponse } from "@eiai/schema";
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import { currentItemId, stratumFor } from "@eiai/fsm";
 import { allocate } from "./allocation";
@@ -16,12 +16,6 @@ import { itemById, requireLanguage, stimulusFor } from "./stimuli";
  */
 
 export type Send = (event: SessionEvent) => void;
-
-const LANGUAGES: { code: Language; label: string }[] = [
-  { code: "en", label: "English" },
-  { code: "ru", label: "Русский" },
-  { code: "kk", label: "Қазақша" },
-];
 
 /**
  * What the screen offers, which is one option wider than what it stores.
@@ -48,22 +42,6 @@ export function EligibilityScreen({
   return (
     <section data-testid="screen-eligibility">
       <h1>Before we start</h1>
-
-      <fieldset>
-        <legend>Which language would you like to use?</legend>
-        {LANGUAGES.map(({ code, label }) => (
-          <button
-            key={code}
-            type="button"
-            data-testid={`lang-${code}`}
-            aria-pressed={context.language === code}
-            className={context.language === code ? "choice selected" : "choice"}
-            onClick={() => send({ type: "SET_LANGUAGE", language: code })}
-          >
-            {label}
-          </button>
-        ))}
-      </fieldset>
 
       <fieldset>
         <legend>Which age group are you in?</legend>

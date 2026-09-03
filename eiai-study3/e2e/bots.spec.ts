@@ -95,7 +95,6 @@ async function runSession(page: Page, policyName: PolicyName): Promise<WalRecord
   const policy = POLICIES[policyName];
   await resetParticipant(page);
 
-  await page.locator(testId("lang-en")).click();
   await page.locator(testId("age-35+")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();

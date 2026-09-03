@@ -29,7 +29,7 @@ import {
  */
 
 const MATERIALS = fileURLToPath(new URL("../../../materials/", import.meta.url));
-const LANGUAGES: Language[] = ["kk", "ru", "en"];
+const LANGUAGES: Language[] = ["en"];
 const VARIANTS: [Condition, RegisterState | null][] = [
   ["warm", "LOW"],
   ["warm", "MODERATE"],
@@ -43,7 +43,7 @@ describe("golden file: stimulus integrity", () => {
   it("loads without an integrity error, which is the hash check itself", () => {
     // loadStimuli throws on any digest mismatch, so reaching here means all 12
     // files match the committed manifest byte for byte.
-    expect(stimuli.byResponseId.size).toBe(144);
+    expect(stimuli.byResponseId.size).toBe(48);
   });
 
   it("matches every per-file digest recorded in the manifest", () => {
@@ -79,18 +79,18 @@ describe("golden file: stimulus integrity", () => {
 });
 
 describe("stimulus space", () => {
-  it("covers 12 items x 3 languages x 4 variants = 144 responses", () => {
-    expect(stimuli.manifest.files).toHaveLength(12);
+  it("covers 12 items x 1 language x 4 variants = 48 responses", () => {
+    expect(stimuli.manifest.files).toHaveLength(4);
     const total = stimuli.manifest.files.reduce((sum, f) => sum + f.response_count, 0);
-    expect(total).toBe(144);
+    expect(total).toBe(48);
   });
 
-  it("carries 432 follow-up branches", () => {
+  it("carries 144 follow-up branches", () => {
     let branches = 0;
     for (const response of stimuli.byResponseId.values()) {
       branches += Object.keys(response.followups).length;
     }
-    expect(branches).toBe(432);
+    expect(branches).toBe(144);
   });
 
   it("names every file the register function would ask for", () => {

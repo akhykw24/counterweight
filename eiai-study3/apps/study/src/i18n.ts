@@ -87,14 +87,11 @@ export type StringKey = keyof typeof en;
 export type Strings = Record<StringKey, string>;
 
 /**
- * Awaiting human translation (spec section 11: adapt, back-translate,
- * reconcile, verify with a native speaker, then pilot). Empty is the honest
- * state; a machine draft here would be worse than a visible gap.
+ * Spec v2 is English only, so there is one catalogue. The Russian and Kazakh
+ * catalogues were empty placeholders awaiting human translation; they are gone
+ * with the languages rather than left as permanently unfilled slots.
  */
-const ru: Partial<Strings> = {};
-const kk: Partial<Strings> = {};
-
-const catalogues: Record<Language, Partial<Strings>> = { en, ru, kk };
+const catalogues: Record<Language, Partial<Strings>> = { en };
 
 export function isTranslated(language: Language): boolean {
   return Object.keys(catalogues[language]).length === Object.keys(en).length;

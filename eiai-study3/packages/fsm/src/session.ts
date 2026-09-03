@@ -1,4 +1,5 @@
 import { assign, setup } from "xstate";
+import { STUDY_LANGUAGE } from "@eiai/schema";
 import type {
   AgeBand,
   AgeGroup,
@@ -72,7 +73,6 @@ export const DEFAULT_ITEM_IDS: readonly string[] = Array.from(
 );
 
 export type SessionEvent =
-  | { type: "SET_LANGUAGE"; language: Language }
   | { type: "SET_AGE_ANSWER"; ageAnswer: AgeScreenAnswer }
   | { type: "SET_PRIOR_TRAINING"; priorTraining: boolean }
   | { type: "SUBMIT_ELIGIBILITY" }
@@ -175,7 +175,6 @@ export function createSessionMachine(
   guards: {
     // Screening excludes formal training in marine biology or oceanography.
     isEligible: ({ context }) =>
-      context.language !== null &&
       context.ageAnswer !== null &&
       isAdmissibleAge(context.ageAnswer) &&
       context.priorTraining === false,
@@ -210,9 +209,6 @@ export function createSessionMachine(
       !context.followupsSelected.includes(event.followupId),
   },
   actions: {
-    setLanguage: assign(({ event }) => ({
-      language: event.type === "SET_LANGUAGE" ? event.language : null,
-    })),
     setAgeAnswer: assign(({ event }) => {
       if (event.type !== "SET_AGE_ANSWER") return {};
       const band = ageBandFor(event.ageAnswer);
@@ -314,7 +310,8 @@ export function createSessionMachine(
   id: "session",
   initial: "eligibility",
   context: ({ input }) => ({
-    language: null,
+    // One study language, so it is set from the start rather than chosen.
+    language: STUDY_LANGUAGE,
     ageAnswer: null,
     ageBand: null,
     ageGroup: null,
@@ -350,7 +347,6 @@ export function createSessionMachine(
     eligibility: {
       meta: { screen: "eligibility" },
       on: {
-        SET_LANGUAGE: { actions: "setLanguage" },
         SET_AGE_ANSWER: { actions: "setAgeAnswer" },
         SET_PRIOR_TRAINING: { actions: "setPriorTraining" },
         SUBMIT_ELIGIBILITY: [

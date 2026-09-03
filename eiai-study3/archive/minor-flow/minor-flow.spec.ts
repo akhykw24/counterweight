@@ -74,7 +74,6 @@ test.beforeEach(async ({ page }) => {
 test("a Kazakh minor completes a full session through assent", async ({ page }) => {
   test.setTimeout(180_000);
 
-  await page.locator(testId("lang-kk")).click();
   await page.locator(testId("age-under-18")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
@@ -177,7 +176,6 @@ test("a Kazakh minor completes a full session through assent", async ({ page }) 
 test("an adult in the same language emits consent, not assent", async ({ page }) => {
   // The mirror of the above. Together these two walk both consent arms to the
   // point where they diverge, so neither can quietly stop working.
-  await page.locator(testId("lang-kk")).click();
   await page.locator(testId("age-35+")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();

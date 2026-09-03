@@ -69,7 +69,11 @@ CODING_DIR = MATERIALS / "coding"
 MANIFEST_JSON = MATERIALS / "manifest.json"
 MANIFEST_SHA256 = MATERIALS / "manifest.sha256"
 
-LANGUAGES = ("kk", "ru", "en")
+# Active languages. Russian and Kazakh moved to archive/ under spec v2: the
+# study is English only, and a translation that shifted argument strength would
+# have been indistinguishable from the effect under study.
+LANGUAGES = ("en",)
+ARCHIVED_LANGUAGES = ("kk", "ru")
 LANGUAGE_NAMES = {"kk": "Kazakh", "ru": "Russian", "en": "English"}
 REGISTERS = ("LOW", "MODERATE", "HIGH")
 

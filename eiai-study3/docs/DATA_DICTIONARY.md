@@ -40,7 +40,6 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | `type` | `"SESSION_STARTED"` | yes |  |  |
 | `payload.app_version` | string | yes | minLen 1 | Build identifier of the study app. |
 | `payload.stimuli_manifest_hash` | string | yes | pattern `^[a-f0-9]{64}$` | SHA-256 of the stimulus manifest in force for this session. Lets you prove post hoc that stimuli were unaltered. |
-| `payload.locale` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
 | `payload.viewport` | object | yes |  | Viewport in CSS pixels. Scroll-depth measures are only interpretable relative to this. |
 | `payload.viewport.width` | integer | yes | > 0 |  |
 | `payload.viewport.height` | integer | yes | > 0 |  |
@@ -317,7 +316,7 @@ materials/items.json in full. Validated in CI, so a malformed bank fails the bui
 | `source_spec` | string | yes | minLen 1 |  |
 | `compiled_at` | string(date) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][048]00\|[13579][26]00)-02-29\|\d{4}-(?:(?:0[13578]\|1[02])-(?:0[1-9]\|[12]\d\|3[01])\|(?:0[469]\|11)-(?:0[1-9]\|[12]\d\|30)\|(?:02)-(?:0[1-9]\|1\d\|2[0-8])))$` |  |
 | `design` | object | yes |  |  |
-| `design.languages` | `kk` \| `ru` \| `en`[] | yes | minItems 1 |  |
+| `design.languages` | `en`[] | yes | minItems 1 |  |
 | `design.conditions` | `warm` \| `neutral`[] | yes | minItems 1 |  |
 | `design.registers` | `LOW` \| `MODERATE` \| `HIGH`[] | yes | minItems 1 |  |
 | `design.register_thresholds` | object | yes |  |  |
@@ -404,7 +403,7 @@ One materials/responses/{lang}_{condition}_{state}.json file. Carries no timesta
 | `meta` | object | yes |  |  |
 | `meta.schema_version` | string | yes | minLen 1 |  |
 | `meta.study` | `"eiai-study3"` | yes |  |  |
-| `meta.language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `meta.language` | `en` | yes |  | Active study language. English only under spec v2; the Russian and Kazakh sets are in archive/ and are not in the active manifest, so nothing can serve them. |
 | `meta.condition` | `warm` \| `neutral` | yes |  | Between-subjects emotional style condition. |
 | `meta.register_state` | `LOW` \| `MODERATE` \| `HIGH` \| null | yes |  |  |
 | `meta.generator` | string | yes | minLen 1 |  |
@@ -430,7 +429,7 @@ One frozen, hash-manifested stimulus.
 |---|---|---|---|---|
 | `response_id` | string | yes | pattern `^[a-z]{2}_(warm\|neutral)_(low\|moderate\|high\|na)_item_(0[1-9]\|1[0-2])$` | Frozen stimulus identifier: {lang}_{condition}_{register}_{item}. Resolves to exactly one hash-manifested response file. |
 | `item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
-| `language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `language` | `en` | yes |  | Active study language. English only under spec v2; the Russian and Kazakh sets are in archive/ and are not in the active manifest, so nothing can serve them. |
 | `condition` | `warm` \| `neutral` | yes |  | Between-subjects emotional style condition. |
 | `register_state` | `LOW` \| `MODERATE` \| `HIGH` \| null | yes |  | Null for the neutral condition, which does not branch. |
 | `body` | string | yes | minLen 1 | The AI reply as displayed, excluding the justification sentence. |
@@ -493,7 +492,7 @@ A complete questionnaire submission, assembled by replay from QUESTIONNAIRE_ANSW
 | `covariates` | object | yes |  | Covariates for the ANCOVA model. |
 | `covariates.age_band` | `18-24` \| `25-34` \| `35+` | yes |  | Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away. |
 | `covariates.gender` | `female` \| `male` \| `other` \| `prefer_not_to_say` | yes |  |  |
-| `covariates.primary_language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `covariates.primary_language` | `en` | yes |  | Active study language. English only under spec v2; the Russian and Kazakh sets are in archive/ and are not in the active manifest, so nothing can serve them. |
 | `covariates.ai_usage_frequency` | integer | yes | >= 1, <= 5 | Self-reported frequency of AI assistant use. |
 | `covariates.prior_knowledge_marine_biology` | integer | yes | >= 1, <= 7 | Self-rated prior knowledge. Screening excludes formal training. |
 | `funnel` | object | yes |  | Funnelled suspicion probe, administered in order without backtracking. |
@@ -543,7 +542,7 @@ Covariates for the ANCOVA model.
 |---|---|---|---|---|
 | `age_band` | `18-24` \| `25-34` \| `35+` | yes |  | Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away. |
 | `gender` | `female` \| `male` \| `other` \| `prefer_not_to_say` | yes |  |  |
-| `primary_language` | `kk` \| `ru` \| `en` | yes |  | Participant language. Kazakh, Russian, English. |
+| `primary_language` | `en` | yes |  | Active study language. English only under spec v2; the Russian and Kazakh sets are in archive/ and are not in the active manifest, so nothing can serve them. |
 | `ai_usage_frequency` | integer | yes | >= 1, <= 5 | Self-reported frequency of AI assistant use. |
 | `prior_knowledge_marine_biology` | integer | yes | >= 1, <= 7 | Self-rated prior knowledge. Screening excludes formal training. |
 
@@ -561,7 +560,7 @@ Funnelled suspicion probe, administered in order without backtracking.
 
 | Enumeration | Values | Meaning |
 |---|---|---|
-| `Language` | `kk`, `ru`, `en` | Participant language. Kazakh, Russian, English. |
+| `Language` | `en` | Active study language. English only under spec v2; the Russian and Kazakh sets are in archive/ and are not in the active manifest, so nothing can serve them. |
 | `Condition` | `warm`, `neutral` | Between-subjects emotional style condition. |
 | `RegisterState` | `LOW`, `MODERATE`, `HIGH` | Register selected by initial confidence (LOW < 40, MODERATE 40-70, HIGH > 70). Warm condition only; neutral does not branch. |
 | `JustificationQuality` | `strong`, `weak` | Within-subjects justification quality factor. Strong = method-referencing; weak = circular appeal to consensus. |

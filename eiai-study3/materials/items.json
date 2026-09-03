@@ -13,8 +13,6 @@
     ],
     "item_order_randomised_per_participant": true,
     "languages": [
-      "kk",
-      "ru",
       "en"
     ],
     "register_thresholds": {

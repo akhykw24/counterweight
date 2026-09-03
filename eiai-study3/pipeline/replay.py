@@ -126,7 +126,7 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
     completed = _last(events, "SESSION_COMPLETED")
     withdrawn = _last(events, "SESSION_WITHDRAWN")
     consent = _last(events, "CONSENT_GIVEN")
-    assent = _last(events, "ASSENT_GIVEN")
+    screened = _last(events, "SCREENED_OUT")
 
     condition = (allocated or {}).get("payload", {}).get("condition")
     stratum = (allocated or {}).get("payload", {}).get("stratum")
@@ -260,22 +260,17 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
         "condition": condition,
         "stratum": stratum,
         "allocation_seq": (allocated or {}).get("payload", {}).get("allocation_seq"),
-        # Two different things, and conflating them misreports the language for
-        # anyone whose browser disagrees with their choice -- which in a
-        # trilingual sample is most of them.
-        #
-        #   browser_locale  what the browser reported at first load, BEFORE the
-        #                   participant picked anything. Useful for knowing what
-        #                   they were defaulted to; not their language.
-        #   language        the language they chose, taken from the allocation
-        #                   stratum, which is where it becomes authoritative.
-        "browser_locale": (started or {}).get("payload", {}).get("locale"),
+        # SESSION_STARTED no longer carries a locale: with one study language
+        # the browser's guess carried no information. The language is taken from
+        # the allocation stratum, where it is authoritative.
         "language": str(stratum).split(":")[0] if stratum else None,
         "app_version": (started or {}).get("payload", {}).get("app_version"),
         "stimuli_manifest_hash": (started or {}).get("payload", {}).get("stimuli_manifest_hash"),
         "resumed": int(bool((started or {}).get("payload", {}).get("resumed"))),
-        "consent_flow": (consent or {}).get("payload", {}).get("flow")
-        or ("minor" if assent else None),
+        # One consent flow in v2, so the useful facts are whether consent was
+        # given at all and whether the visitor was screened out before it.
+        "consented": int(consent is not None),
+        "screened_out_reason": (screened or {}).get("payload", {}).get("reason"),
         "age_band": covariates.get("cov_age_band"),
         "primary_language": covariates.get("cov_primary_language"),
         "ai_usage": covariates.get("cov_ai_usage"),
@@ -361,7 +356,7 @@ TRIAL_COLUMNS = [
 
 PARTICIPANT_COLUMNS = [
     "session_id", "condition", "stratum", "allocation_seq", "locale", "app_version",
-    "stimuli_manifest_hash", "resumed", "consent_flow", "browser_locale", "language",
+    "stimuli_manifest_hash", "resumed", "consented", "screened_out_reason", "language",
     "age_band", "primary_language",
     "ai_usage", "prior_knowledge",
     "completed", "withdrawn", "withdrawn_at_state", "total_duration_ms",

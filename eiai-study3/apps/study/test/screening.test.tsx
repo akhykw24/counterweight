@@ -94,9 +94,7 @@ describe("age screening", () => {
     const log = capturing();
     render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
 
-    // The language choice still exists at this step; English-only removes it.
-    await user.click(screen.getByTestId("lang-en"));
-    await user.click(screen.getByTestId("age-25-34"));
+      await user.click(screen.getByTestId("age-25-34"));
     await user.click(screen.getByTestId("training-no"));
     await user.click(screen.getByTestId("submit-eligibility"));
 

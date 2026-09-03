@@ -35,7 +35,6 @@ function send(actor: ReturnType<typeof start>, ...events: SessionEvent[]) {
 function throughConsent(actor: ReturnType<typeof start>) {
   send(
     actor,
-    { type: "SET_LANGUAGE", language: "en" },
     { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
     { type: "SET_PRIOR_TRAINING", priorTraining: false },
     { type: "SUBMIT_ELIGIBILITY" },
@@ -90,7 +89,6 @@ describe("eligibility screening", () => {
     const actor = start();
     send(
       actor,
-      { type: "SET_LANGUAGE", language: "en" },
       { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
       { type: "SET_PRIOR_TRAINING", priorTraining: true },
       { type: "SUBMIT_ELIGIBILITY" },
@@ -105,7 +103,6 @@ describe("eligibility screening", () => {
     const actor = start();
     send(
       actor,
-      { type: "SET_LANGUAGE", language: "en" },
       { type: "SET_AGE_ANSWER", ageAnswer: "under-18" },
       { type: "SET_PRIOR_TRAINING", priorTraining: true },
       { type: "SUBMIT_ELIGIBILITY" },
@@ -118,7 +115,6 @@ describe("eligibility screening", () => {
     const actor = start();
     send(
       actor,
-      { type: "SET_LANGUAGE", language: "en" },
       { type: "SET_AGE_ANSWER", ageAnswer: "under-18" },
       { type: "SET_PRIOR_TRAINING", priorTraining: false },
       { type: "SUBMIT_ELIGIBILITY" },
@@ -128,9 +124,13 @@ describe("eligibility screening", () => {
   });
 
   it("refuses to advance on an incomplete screening form", () => {
+    // Neither screened out nor admitted: they simply have not answered. The
+    // distinction matters because a screening exit is counted in the
+    // participant flow and an unfinished form is not.
     const actor = start();
-    send(actor, { type: "SET_LANGUAGE", language: "en" }, { type: "SUBMIT_ELIGIBILITY" });
+    send(actor, { type: "SUBMIT_ELIGIBILITY" });
     expect(actor.getSnapshot().value).toBe("ineligible");
+    expect(actor.getSnapshot().context.screenedOutReason).toBeNull();
   });
 
   it("treats an unanswered training question as not eligible, not as 'no'", () => {
@@ -139,7 +139,6 @@ describe("eligibility screening", () => {
     const actor = start();
     send(
       actor,
-      { type: "SET_LANGUAGE", language: "en" },
       { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
       { type: "SUBMIT_ELIGIBILITY" },
     );
@@ -152,7 +151,6 @@ describe("consent fork", () => {
     const actor = start();
     send(
       actor,
-      { type: "SET_LANGUAGE", language: "en" },
       { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
       { type: "SET_PRIOR_TRAINING", priorTraining: false },
       { type: "SUBMIT_ELIGIBILITY" },
@@ -258,7 +256,6 @@ describe("register selection", () => {
       const actor = start();
       send(
         actor,
-        { type: "SET_LANGUAGE", language: "en" },
         { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
         { type: "SET_PRIOR_TRAINING", priorTraining: false },
         { type: "SUBMIT_ELIGIBILITY" },
@@ -283,7 +280,6 @@ describe("withdrawal", () => {
           const a = start();
           send(
             a,
-            { type: "SET_LANGUAGE", language: "en" },
             { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
             { type: "SET_PRIOR_TRAINING", priorTraining: false },
             { type: "SUBMIT_ELIGIBILITY" },

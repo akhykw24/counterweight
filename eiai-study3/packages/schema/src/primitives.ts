@@ -36,8 +36,8 @@ export const ResponseId = z
   .describe("Frozen stimulus identifier: {lang}_{condition}_{register}_{item}. Resolves to exactly one hash-manifested response file.");
 
 export const Language = z
-  .enum(["kk", "ru", "en"])
-  .describe("Participant language. Kazakh, Russian, English.");
+  .enum(["en"])
+  .describe("Active study language. English only under spec v2; the Russian and Kazakh sets are in archive/ and are not in the active manifest, so nothing can serve them.");
 
 export const Condition = z
   .enum(["warm", "neutral"])
@@ -58,6 +58,15 @@ export const AgeGroup = z
 export const AgeBand = z
   .enum(["18-24", "25-34", "35+"])
   .describe("Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away.");
+
+/**
+ * The study's one language.
+ *
+ * Named rather than written inline so that the single place it is decided is
+ * greppable, and so the literal-scan test can tell "the study language" from
+ * "somebody defaulted a branch to English".
+ */
+export const STUDY_LANGUAGE: z.infer<typeof Language> = "en";
 
 export const AgeScreenAnswer = z
   .enum(["under-18", "18-24", "25-34", "35+"])

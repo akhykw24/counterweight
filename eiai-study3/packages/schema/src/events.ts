@@ -63,7 +63,6 @@ export const SessionStarted = defineEvent(
     stimuli_manifest_hash: Sha256.describe(
       "SHA-256 of the stimulus manifest in force for this session. Lets you prove post hoc that stimuli were unaltered.",
     ),
-    locale: Language,
     viewport: z
       .strictObject({
         width: z.int().positive(),

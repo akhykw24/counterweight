@@ -208,7 +208,6 @@ describe("what the client sends is what the schema accepts", () => {
     await telemetry.record("SESSION_STARTED", {
       app_version: "0.1.0",
       stimuli_manifest_hash: "a".repeat(64),
-      locale: "en",
       viewport: { width: 1280, height: 800 },
       resumed: false,
     });
