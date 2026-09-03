@@ -94,6 +94,12 @@ DAILY_TOKEN_BUDGET = {"groq": 200_000, "gemini": None}
 
 MANUAL_DIR = MATERIALS / "manual"
 
+# Every provider the CLI can select, including the non-API ones. Owned here so
+# that adding a provider is an edit to this file and nothing else: the
+# generation layer must not know the name of any particular source.
+MANUAL_PROVIDER = "manual"
+PROVIDER_CHOICES: tuple[str, ...] = tuple(sorted(PROVIDERS)) + (MANUAL_PROVIDER,)
+
 
 class QuotaExhausted(RuntimeError):
     """The provider will not serve more work today.
@@ -373,11 +379,30 @@ class ManualProvider:
 # ---------------------------------------------------------------------------
 
 
+def resolve_defaults(args: argparse.Namespace) -> None:
+    """Fill in model and reasoning defaults for whichever provider was chosen.
+
+    Lives here rather than in the CLI so that the generation layer never has to
+    name a provider to know what its defaults are.
+    """
+    if args.provider == MANUAL_PROVIDER:
+        # Hand-authored cells have no model and no reasoning setting; the
+        # manifest still records the provider so provenance stays explicit.
+        args.model = args.model or "hand-authored"
+        args.thinking = args.thinking or "default"
+        return
+    config = PROVIDERS[args.provider]
+    if args.model is None:
+        args.model = config["default_model"]
+    if args.thinking is None:
+        args.thinking = config["default_thinking"]
+
+
 def build_provider(args: argparse.Namespace, offline_render: Any) -> Provider:
     """The provider named by the CLI. The only place the choice is made."""
     if args.offline:
         return OfflineProvider(offline_render)
-    if args.provider == "manual":
+    if args.provider == MANUAL_PROVIDER:
         return ManualProvider(model=args.model or "hand-authored")
     return LiveProvider(
         name=args.provider,

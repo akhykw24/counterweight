@@ -82,6 +82,7 @@ GENERATOR_VERSION = "2.1.0"
 # sites and the CLI defaults keep one import.
 from providers import (  # noqa: E402
     DAILY_TOKEN_BUDGET,
+    PROVIDER_CHOICES,
     DEFAULT_MAX_ATTEMPTS,
     DEFAULT_MAX_TOKENS,
     DEFAULT_PROVIDER,
@@ -90,6 +91,7 @@ from providers import (  # noqa: E402
     ProviderError,
     QuotaExhausted,
     build_provider,
+    resolve_defaults,
 )
 from cell_cache import CellCache, cell_id  # noqa: E402
 
@@ -871,8 +873,8 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--provider",
         default=DEFAULT_PROVIDER,
-        choices=sorted(PROVIDERS) + ["manual"],
-        help="an API, or 'manual' to read hand-authored cells from materials/manual/",
+        choices=list(PROVIDER_CHOICES),
+        help="where stimulus text comes from; see pipeline/providers.py",
     )
     parser.add_argument("--model", default=None, help="defaults to the provider's model")
     parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
@@ -887,16 +889,7 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--sleep", type=float, default=DEFAULT_SLEEP,
                         help="seconds between calls; free tiers are rate-limited")
     args = parser.parse_args(list(argv) if argv is not None else None)
-    if args.provider == "manual":
-        # Hand-authored cells have no model and no reasoning setting; the
-        # manifest still records "manual" so the provenance is explicit.
-        args.model = args.model or "hand-authored"
-        args.thinking = args.thinking or "default"
-    else:
-        if args.model is None:
-            args.model = PROVIDERS[args.provider]["default_model"]
-        if args.thinking is None:
-            args.thinking = PROVIDERS[args.provider]["default_thinking"]
+    resolve_defaults(args)
     return args
 
 
