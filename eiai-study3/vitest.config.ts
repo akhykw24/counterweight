@@ -33,5 +33,14 @@ export default defineConfig({
       "apps/*/test/**/*.test.{ts,tsx}",
     ],
     environment: "node",
+    // The app suites drive a whole twelve-item session through userEvent in
+    // jsdom, which takes seconds per test before any assertion runs. The 5s
+    // default was already marginal and tipped over once the eligibility screen
+    // grew two more question blocks: the same tests passed alone and timed out
+    // under parallel load, with the failure count varying run to run.
+    //
+    // Raising the ceiling changes no assertion. It is set high enough that a
+    // genuine hang is still caught and low enough that CI does not sit on one.
+    testTimeout: 30_000,
   },
 });
