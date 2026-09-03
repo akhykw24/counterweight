@@ -3,30 +3,30 @@
     {
       "path": "materials/responses/en_neutral_na.json",
       "response_count": 12,
-      "sha256": "71713aef5995e7952259b7c71af823482ae7b07a7a8ab7d0dbddc11a2269b365"
+      "sha256": "5596795f24140bd1854ddc894140e447d850e234d14a4fd112a3a8efc3db394f"
     },
     {
       "path": "materials/responses/en_warm_high.json",
       "response_count": 12,
-      "sha256": "f3850608bfd2646a7ea0e3684bfa249f98688874b63cc736b902af21217ada05"
+      "sha256": "d7d0c6ef73c13974512346c279352533825fb3ba31f3b652135a5369ec95250f"
     },
     {
       "path": "materials/responses/en_warm_low.json",
       "response_count": 12,
-      "sha256": "ebc5c7f727f7e8cc9fdf4689d89ef99d7b5da52952ae33af074e3ce5a5cfa1c9"
+      "sha256": "27ef62ea7310fd2b2f6b83a4dfef444f6e125e0458e526aa0db3e6ac81bca3e6"
     },
     {
       "path": "materials/responses/en_warm_moderate.json",
       "response_count": 12,
-      "sha256": "5f724f9031e95d84550116399b58160c32e7a00e444fcb1075202db910a1e093"
+      "sha256": "a3bd6c17eea946ea5357f70b79a14eea91eb007034ab04dd944d582d9f7cae36"
     }
   ],
-  "generated_at": "2026-09-03T16:37:33Z",
+  "generated_at": "2026-09-03T17:31:14Z",
   "generator_mode": "offline_placeholder",
   "generator_version": "2.0.0",
   "items_file_sha256": "a45f4ab310cf934683453c520bd9d8360bb0fbc8846d8dcc28a7239004a09e26",
   "launch_ready": false,
-  "manifest_sha256": "32f4cc2488ee9edb521b14f814ca99b8d874301deab82ce3188ee275b38662ec",
+  "manifest_sha256": "80310213a529a75696e3e1dc05895e4d066234a16138938904f47c95881663d0",
   "model": "none (offline placeholder)",
   "provider": "offline"
 }

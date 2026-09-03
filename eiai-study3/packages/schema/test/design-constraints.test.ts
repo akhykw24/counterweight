@@ -67,14 +67,25 @@ describe("justification-quality allocation", () => {
     expect(errors("strong")).toBe(errors("weak"));
   });
 
-  it("keeps every filler correct and strong", () => {
-    // A filler that carried a planted error would change the error base rate it
-    // exists to hold at 33%; one carrying a weak justification would be an
-    // analysed item under another name.
+  it("keeps every filler correct", () => {
+    // Being CORRECT is what a filler is for: it holds the planted-error rate at
+    // 33% of twelve rather than 50% of eight. A filler carrying a planted error
+    // would change the very rate it exists to set.
+    //
+    // Its justification quality is NOT fixed, and this assertion used to say it
+    // was. Two fillers now carry the weak variant so the displayed set is 6/6
+    // (spec v2 item 7). That is a label on an item the analysis never reads, so
+    // it changes what a participant sees and nothing about the measurement --
+    // which the analysed-cell assertions above pin separately.
     for (const filler of fillers) {
       expect(filler.is_error, `${filler.id}`).toBe(false);
-      expect(filler.assigned_justification_quality, `${filler.id}`).toBe("strong");
     }
+  });
+
+  it("shows six strong and six weak justifications across the whole set", () => {
+    const shown = items.filter((item) => item.assigned_justification_quality === "weak");
+    expect(shown).toHaveLength(6);
+    expect(items.length - shown.length).toBe(6);
   });
 
   it("draws each quality cell from more than one sub-domain", () => {

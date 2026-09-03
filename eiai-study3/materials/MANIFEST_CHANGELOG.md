@@ -113,3 +113,28 @@ loader serves from.
 `items_file_sha256` moved too: `design.languages` in the bank is now `["en"]`.
 The Russian and Kazakh question stems are still in the bank and were **not**
 edited — they are inert once the active language set is English only.
+
+### Rebuild 5 — the 6/6 relabelling (spec v2 item 7)
+
+| Digest | Now |
+|---|---|
+| `manifest_sha256` | `80310213a529a75696e3e1dc...` |
+| `items_file_sha256` | unchanged |
+| two stimulus files | changed |
+
+item_08 and item_12 now carry the **weak** justification. They remain fillers,
+so the analysed 2x2 is untouched: still 4 strong / 4 weak with 50%/50% advice
+accuracy in both halves. What changes is what a participant sees -- six strong
+and six weak arguments across the twelve items.
+
+`items_file_sha256` did NOT move, and that is the point of having pulled the
+assignment out of the bank: the change is one field in
+`materials/quality_assignment.json`, and no stimulus wording was touched.
+`materials/justification-digests.json` records every justification text as it
+stood before, and `pipeline/tests/test_bank_balance.py` compares against it, so
+a rewrite disguised as a relabelling fails.
+
+The two items were chosen because they add taxonomy and physical oceanography to
+the weak side, which had neither -- weak arguments clustering in one sub-domain
+would be a cue about the design rather than about argument quality. item_01
+stays strong because the Challenger Deep is the most checkable fact in the bank.

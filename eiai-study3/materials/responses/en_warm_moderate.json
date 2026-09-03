@@ -200,13 +200,13 @@
         "measurement": "[PLACEHOLDER] On how it is measured: approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
       },
       "item_id": "item_08",
-      "justification_quality": "strong",
-      "justification_text": "This figure comes from a taxonomic revision that re-examined the museum type specimens directly and consolidated duplicate names, so the count reflects distinct species rather than accumulated synonyms.",
+      "justification_quality": "weak",
+      "justification_text": "This figure is the count that is usually given here, it is the number that circulates in discussions of the topic, and it is the conventional accepted figure.",
       "language": "en",
       "placeholder": true,
       "register_state": "MODERATE",
       "response_id": "en_warm_moderate_item_08",
-      "sha256": "5ca2d5d62e874642e64c643a38e964b7eda8b10103d83337db622a7c219e11e7",
+      "sha256": "18fdd92a11d836854dead89d17a58fdeb1ca4562a9cb2302c7b403548bc74f44",
       "validation": {
         "errors": [],
         "ok": true,
@@ -292,13 +292,13 @@
         "measurement": "[PLACEHOLDER] On how it is measured: approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
       },
       "item_id": "item_12",
-      "justification_quality": "strong",
-      "justification_text": "This figure comes from conductivity-temperature-depth casts whose sensors were calibrated against onboard reference standards before and after each deployment, so drift over the cruise can be ruled out.",
+      "justification_quality": "weak",
+      "justification_text": "This figure is the value normally quoted in this context, it recurs in essentially everything written about the topic, and it is the number that is generally accepted.",
       "language": "en",
       "placeholder": true,
       "register_state": "MODERATE",
       "response_id": "en_warm_moderate_item_12",
-      "sha256": "cf518b9a7efa193b4c85651416c18401b4d116ca2a5730bec818efbffad1029f",
+      "sha256": "58cc1142228d75b7d81e0fc4531b6b277256fa67741e9aec0a3c95b3851e74cb",
       "validation": {
         "errors": [],
         "ok": true,
