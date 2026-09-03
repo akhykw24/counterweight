@@ -36,6 +36,8 @@ function throughConsent(actor: ReturnType<typeof start>) {
   send(
     actor,
     { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
+    { type: "SET_CEFR", cefr: "B2" },
+    { type: "SET_STUDY_WORK_LANGUAGE", studyWorkLanguage: "english" },
     { type: "SET_PRIOR_TRAINING", priorTraining: false },
     { type: "SUBMIT_ELIGIBILITY" },
     { type: "GIVE_CONSENT" },
@@ -152,6 +154,8 @@ describe("consent fork", () => {
     send(
       actor,
       { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
+      { type: "SET_CEFR", cefr: "B2" },
+      { type: "SET_STUDY_WORK_LANGUAGE", studyWorkLanguage: "english" },
       { type: "SET_PRIOR_TRAINING", priorTraining: false },
       { type: "SUBMIT_ELIGIBILITY" },
     );
@@ -281,6 +285,8 @@ describe("withdrawal", () => {
           send(
             a,
             { type: "SET_AGE_ANSWER", ageAnswer: "35+" },
+            { type: "SET_CEFR", cefr: "B2" },
+            { type: "SET_STUDY_WORK_LANGUAGE", studyWorkLanguage: "english" },
             { type: "SET_PRIOR_TRAINING", priorTraining: false },
             { type: "SUBMIT_ELIGIBILITY" },
           );

@@ -1,9 +1,11 @@
 import { assign, setup } from "xstate";
-import { STUDY_LANGUAGE } from "@eiai/schema";
+import { CEFR_ADMITTED, STUDY_LANGUAGE } from "@eiai/schema";
 import type {
   AgeBand,
   AgeGroup,
   AgeScreenAnswer,
+  CefrLevel,
+  StudyWorkLanguage,
   ScreenedOutReason,
   Condition,
   FollowupId,
@@ -34,6 +36,10 @@ export interface SessionContext {
   ageBand: AgeBand | null;
   ageGroup: AgeGroup | null;
   priorTraining: boolean | null;
+  /** Self-reported CEFR English level. Screening gate and covariate. */
+  cefr: CefrLevel | null;
+  /** Language of study or work. Covariate only; never a gate. */
+  studyWorkLanguage: StudyWorkLanguage | null;
   /** Why the visitor was turned away, or null if they were not. */
   screenedOutReason: ScreenedOutReason | null;
 
@@ -74,6 +80,8 @@ export const DEFAULT_ITEM_IDS: readonly string[] = Array.from(
 
 export type SessionEvent =
   | { type: "SET_AGE_ANSWER"; ageAnswer: AgeScreenAnswer }
+  | { type: "SET_CEFR"; cefr: CefrLevel }
+  | { type: "SET_STUDY_WORK_LANGUAGE"; studyWorkLanguage: StudyWorkLanguage }
   | { type: "SET_PRIOR_TRAINING"; priorTraining: boolean }
   | { type: "SUBMIT_ELIGIBILITY" }
   | { type: "GIVE_CONSENT" }
@@ -103,6 +111,11 @@ export type SessionEvent =
  * put the judgement in the UI instead of here.
  */
 const EXCLUDED_AGE_ANSWERS: readonly AgeScreenAnswer[] = ["under-18"];
+
+/** True when the self-reported level clears the inclusion threshold. */
+export function isAdmissibleCefr(level: CefrLevel): boolean {
+  return CEFR_ADMITTED.includes(level);
+}
 
 /** True when the answer names an age the study admits. */
 export function isAdmissibleAge(answer: AgeScreenAnswer): boolean {
@@ -177,11 +190,16 @@ export function createSessionMachine(
     isEligible: ({ context }) =>
       context.ageAnswer !== null &&
       isAdmissibleAge(context.ageAnswer) &&
+      context.cefr !== null &&
+      isAdmissibleCefr(context.cefr) &&
+      context.studyWorkLanguage !== null &&
       context.priorTraining === false,
     // Screening runs in a fixed order so the recorded reason is deterministic:
     // someone who is both under 18 and untrained is turned away for age.
     failsAge: ({ context }) =>
       context.ageAnswer !== null && !isAdmissibleAge(context.ageAnswer),
+    failsLanguage: ({ context }) =>
+      context.cefr !== null && !isAdmissibleCefr(context.cefr),
     failsPriorTraining: ({ context }) => context.priorTraining === true,
     // `typeof === "number"`, not `!== null`: a malformed event with no payload
     // would set the field to `undefined`, which passes a null check and then
@@ -223,7 +241,16 @@ export function createSessionMachine(
     setPriorTraining: assign(({ event }) => ({
       priorTraining: event.type === "SET_PRIOR_TRAINING" ? event.priorTraining : null,
     })),
+    setCefr: assign(({ event }) =>
+      event.type === "SET_CEFR" ? { cefr: event.cefr } : {},
+    ),
+    setStudyWorkLanguage: assign(({ event }) =>
+      event.type === "SET_STUDY_WORK_LANGUAGE"
+        ? { studyWorkLanguage: event.studyWorkLanguage }
+        : {},
+    ),
     screenOutForAge: assign(() => ({ screenedOutReason: "age" as const })),
+    screenOutForLanguage: assign(() => ({ screenedOutReason: "language" as const })),
     screenOutForPriorTraining: assign(() => ({
       screenedOutReason: "prior_training" as const,
     })),
@@ -316,6 +343,8 @@ export function createSessionMachine(
     ageBand: null,
     ageGroup: null,
     priorTraining: null,
+    cefr: null,
+    studyWorkLanguage: null,
     screenedOutReason: null,
     condition: null,
     stratum: null,
@@ -348,11 +377,14 @@ export function createSessionMachine(
       meta: { screen: "eligibility" },
       on: {
         SET_AGE_ANSWER: { actions: "setAgeAnswer" },
+        SET_CEFR: { actions: "setCefr" },
+        SET_STUDY_WORK_LANGUAGE: { actions: "setStudyWorkLanguage" },
         SET_PRIOR_TRAINING: { actions: "setPriorTraining" },
         SUBMIT_ELIGIBILITY: [
           // Screened-out arms come FIRST and each records its own reason, so a
           // visitor never reaches consent and never reaches allocation.
           { guard: "failsAge", target: "screenedOut", actions: "screenOutForAge" },
+          { guard: "failsLanguage", target: "screenedOut", actions: "screenOutForLanguage" },
           {
             guard: "failsPriorTraining",
             target: "screenedOut",

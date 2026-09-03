@@ -1,5 +1,5 @@
 import { useState, type UIEvent } from "react";
-import type { AgeScreenAnswer, FollowupId, StimulusResponse } from "@eiai/schema";
+import type { AgeScreenAnswer, CefrLevel, FollowupId, StimulusResponse } from "@eiai/schema";
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import { currentItemId, stratumFor } from "@eiai/fsm";
 import { allocate } from "./allocation";
@@ -24,6 +24,17 @@ export type Send = (event: SessionEvent) => void;
  * an `AgeBand` and never reaches the log. Spec v2 §1.
  */
 const AGE_OPTIONS: AgeScreenAnswer[] = ["under-18", "18-24", "25-34", "35+"];
+
+const CEFR_LEVELS: CefrLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
+
+const CEFR_LABELS: Record<CefrLevel, string> = {
+  A1: "A1 — a few words and phrases",
+  A2: "A2 — simple everyday language",
+  B1: "B1 — I can follow most straightforward writing",
+  B2: "B2 — I read complex text with some effort",
+  C1: "C1 — I read complex text comfortably",
+  C2: "C2 — near-native or native",
+};
 
 const AGE_LABELS: Record<AgeScreenAnswer, string> = {
   "under-18": "Under 18",
@@ -57,6 +68,48 @@ export function EligibilityScreen({
             {AGE_LABELS[option]}
           </button>
         ))}
+      </fieldset>
+
+      <fieldset>
+        <legend>How would you rate your English reading level?</legend>
+        {CEFR_LEVELS.map((level) => (
+          <button
+            key={level}
+            type="button"
+            data-testid={`cefr-${level}`}
+            aria-pressed={context.cefr === level}
+            className={context.cefr === level ? "choice selected" : "choice"}
+            onClick={() => send({ type: "SET_CEFR", cefr: level })}
+          >
+            {CEFR_LABELS[level]}
+          </button>
+        ))}
+      </fieldset>
+
+      <fieldset>
+        <legend>Is your study or work mainly in English?</legend>
+        <button
+          type="button"
+          data-testid="study-language-english"
+          aria-pressed={context.studyWorkLanguage === "english"}
+          className={context.studyWorkLanguage === "english" ? "choice selected" : "choice"}
+          onClick={() =>
+            send({ type: "SET_STUDY_WORK_LANGUAGE", studyWorkLanguage: "english" })
+          }
+        >
+          Yes
+        </button>
+        <button
+          type="button"
+          data-testid="study-language-other"
+          aria-pressed={context.studyWorkLanguage === "other"}
+          className={context.studyWorkLanguage === "other" ? "choice selected" : "choice"}
+          onClick={() =>
+            send({ type: "SET_STUDY_WORK_LANGUAGE", studyWorkLanguage: "other" })
+          }
+        >
+          No
+        </button>
       </fieldset>
 
       <fieldset>
@@ -131,8 +184,9 @@ export function ScreenedOutScreen({ context }: { context: SessionContext }) {
     <section data-testid="screen-screened-out" data-reason={context.screenedOutReason ?? ""}>
       <h1>Thank you for your interest</h1>
       <p>
-        This study is open to participants aged 18 and over who have not had
-        formal training in marine biology or oceanography.
+        This study is open to participants aged 18 and over who read English at
+        B1 level or above and have not had formal training in marine biology or
+        oceanography.
       </p>
       <p>
         Nothing you entered has been kept. You can close this page.

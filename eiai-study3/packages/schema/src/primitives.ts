@@ -72,6 +72,22 @@ export const AgeScreenAnswer = z
   .enum(["under-18", "18-24", "25-34", "35+"])
   .describe("What the eligibility screen offers. Wider than AgeBand by exactly one option, because the screen has to let someone say they are under 18 in order to turn them away. 'under-18' is never stored: it routes to the screening exit and the session records only the reason.");
 
+export const CefrLevel = z
+  .enum(["A1", "A2", "B1", "B2", "C1", "C2"])
+  .describe("Self-reported Common European Framework level for English. Self-report, not a test: it is a screening instrument and a covariate, and the paper says so.");
+
+/**
+ * The inclusion threshold, and the strata boundary.
+ *
+ * Named rather than written as a comparison so the one place it is decided is
+ * greppable, and so `docs/spec/v2` and the code cannot drift apart silently.
+ */
+export const CEFR_ADMITTED: readonly z.infer<typeof CefrLevel>[] = ["B1", "B2", "C1", "C2"];
+
+export const StudyWorkLanguage = z
+  .enum(["english", "other"])
+  .describe("Whether the participant's study or work is conducted in English. A covariate that characterises the sample, NOT a gate: someone who reads English well but works in another language is still admitted.");
+
 export const ScreenedOutReason = z
   .enum(["age", "language", "prior_training"])
   .describe("Why a visitor was turned away before consent. This is the ONLY thing a screened-out visitor contributes: no age, no answers, no session (spec v2 §3). It exists so the participant-flow diagram can report screening counts.");
@@ -153,6 +169,8 @@ export type JustificationQuality = z.infer<typeof JustificationQuality>;
 export type AgeGroup = z.infer<typeof AgeGroup>;
 export type AgeScreenAnswer = z.infer<typeof AgeScreenAnswer>;
 export type ScreenedOutReason = z.infer<typeof ScreenedOutReason>;
+export type CefrLevel = z.infer<typeof CefrLevel>;
+export type StudyWorkLanguage = z.infer<typeof StudyWorkLanguage>;
 export type AgeBand = z.infer<typeof AgeBand>;
 export type Stratum = z.infer<typeof Stratum>;
 export type FollowupId = z.infer<typeof FollowupId>;

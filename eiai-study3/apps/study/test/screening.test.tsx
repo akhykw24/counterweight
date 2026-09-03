@@ -94,7 +94,9 @@ describe("age screening", () => {
     const log = capturing();
     render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
 
-      await user.click(screen.getByTestId("age-25-34"));
+    await user.click(screen.getByTestId("age-25-34"));
+    await user.click(screen.getByTestId("cefr-B2"));
+    await user.click(screen.getByTestId("study-language-english"));
     await user.click(screen.getByTestId("training-no"));
     await user.click(screen.getByTestId("submit-eligibility"));
 
@@ -124,5 +126,73 @@ describe("age screening", () => {
     await user.click(screen.getByTestId("submit-eligibility"));
     expect(screen.queryByTestId("screen-assent")).toBeNull();
     expect(screen.queryByTestId("parental-code")).toBeNull();
+  });
+});
+
+describe("English proficiency screening", () => {
+  const admit = async (user: ReturnType<typeof userEvent.setup>, cefr: string) => {
+    await user.click(screen.getByTestId("age-25-34"));
+    await user.click(screen.getByTestId(`cefr-${cefr}`));
+    await user.click(screen.getByTestId("study-language-other"));
+    await user.click(screen.getByTestId("training-no"));
+    await user.click(screen.getByTestId("submit-eligibility"));
+  };
+
+  it.each(["A1", "A2"])("turns away self-reported %s and records the reason", async (level) => {
+    // Below B1 a participant may fail to read a strong argument as strong. That
+    // flattens the discrimination score for a reason unrelated to warmth, which
+    // is exactly the alternative explanation the study has to rule out.
+    const user = userEvent.setup();
+    const log = capturing();
+    render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
+    await admit(user, level);
+
+    expect(screen.getByTestId("screen-screened-out")).toBeVisible();
+    expect(screen.queryByTestId("screen-consent")).toBeNull();
+    const screened = log.of("SCREENED_OUT");
+    expect(screened).toHaveLength(1);
+    expect(screened[0]!.payload["reason"]).toBe("language");
+    expect(log.of("ALLOCATED")).toHaveLength(0);
+  });
+
+  it.each(["B1", "B2", "C1", "C2"])("admits self-reported %s", async (level) => {
+    const user = userEvent.setup();
+    const log = capturing();
+    render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
+    await admit(user, level);
+
+    expect(screen.getByTestId("screen-consent")).toBeVisible();
+    expect(log.of("SCREENED_OUT")).toHaveLength(0);
+  });
+
+  it("screens for age before language, so the reason is deterministic", async () => {
+    // Someone who is both under 18 and A2 fails two criteria. Recording
+    // whichever guard happened to run first would make the screening tally
+    // depend on evaluation order rather than on policy.
+    const user = userEvent.setup();
+    const log = capturing();
+    render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
+    await user.click(screen.getByTestId("age-under-18"));
+    await user.click(screen.getByTestId("cefr-A2"));
+    await user.click(screen.getByTestId("study-language-other"));
+    await user.click(screen.getByTestId("training-no"));
+    await user.click(screen.getByTestId("submit-eligibility"));
+
+    expect(log.of("SCREENED_OUT")[0]!.payload["reason"]).toBe("age");
+  });
+
+  it("records the study or work language as a covariate, not as a gate", async () => {
+    // v2 asks it to characterise the sample. It must not exclude anybody: a C1
+    // speaker who works in another language is still a C1 speaker.
+    const user = userEvent.setup();
+    const log = capturing();
+    render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
+    await user.click(screen.getByTestId("age-25-34"));
+    await user.click(screen.getByTestId("cefr-B1"));
+    await user.click(screen.getByTestId("study-language-other"));
+    await user.click(screen.getByTestId("training-no"));
+    await user.click(screen.getByTestId("submit-eligibility"));
+
+    expect(screen.getByTestId("screen-consent")).toBeVisible();
   });
 });

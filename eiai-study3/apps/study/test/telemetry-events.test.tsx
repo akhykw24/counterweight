@@ -47,6 +47,8 @@ async function runToAdvice(log: ReturnType<typeof capturing>) {
     <App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />,
   );
   await user.click(screen.getByTestId("age-35+"));
+  await user.click(screen.getByTestId("cefr-B2"));
+  await user.click(screen.getByTestId("study-language-english"));
   await user.click(screen.getByTestId("training-no"));
   await user.click(screen.getByTestId("submit-eligibility"));
   await user.click(screen.getByTestId("give-consent"));
@@ -223,6 +225,8 @@ describe("resume", () => {
     const actor = createActor(createSessionMachine(ITEM_IDS));
     actor.start();
     actor.send({ type: "SET_AGE_ANSWER", ageAnswer: "35+" });
+    actor.send({ type: "SET_CEFR", cefr: "B2" });
+    actor.send({ type: "SET_STUDY_WORK_LANGUAGE", studyWorkLanguage: "english" });
     actor.send({ type: "SET_PRIOR_TRAINING", priorTraining: false });
     actor.send({ type: "SUBMIT_ELIGIBILITY" });
     actor.send({ type: "GIVE_CONSENT" });

@@ -569,6 +569,8 @@ Funnelled suspicion probe, administered in order without backtracking.
 | `AgeBand` | `18-24`, `25-34`, `35+` | Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away. |
 | `Stratum` | `kk:minor`, `kk:adult`, `ru:minor`, `ru:adult`, `en:minor`, `en:adult` | Randomization stratum: language x age group. Six cells, block size 4 (STUDY3_SPEC_v3.md section 1). |
 | `ScreenedOutReason` | `age`, `language`, `prior_training` | Why a visitor was turned away before consent. This is the ONLY thing a screened-out visitor contributes: no age, no answers, no session (spec v2 §3). It exists so the participant-flow diagram can report screening counts. |
+| `CefrLevel` | `A1`, `A2`, `B1`, `B2`, `C1`, `C2` | Self-reported Common European Framework level for English. Self-report, not a test: it is a screening instrument and a covariate, and the paper says so. |
+| `StudyWorkLanguage` | `english`, `other` | Whether the participant's study or work is conducted in English. A covariate that characterises the sample, NOT a gate: someone who reads English well but works in another language is still admitted. |
 | `EstimatePhase` | `initial`, `final` | Whether an estimate or confidence reading was taken before or after the AI response. |
 | `FollowupId` | `measurement`, `certainty`, `challenge` | Fixed follow-up options. 'challenge' ("I think that might be wrong") is itself a behavioural measure. |
 | `FunnelStage` | `purpose`, `anomaly`, `belief` | Funnelled suspicion probe stage, administered in this order without backtracking. |

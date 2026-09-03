@@ -74,6 +74,8 @@ const ARMS: Arm[] = [
 function eventsFor(ageAnswer: string) {
   return [
     { type: "SET_AGE_ANSWER", ageAnswer },
+    { type: "SET_CEFR", cefr: "B2" },
+    { type: "SET_STUDY_WORK_LANGUAGE", studyWorkLanguage: "english" },
     { type: "SET_PRIOR_TRAINING", priorTraining: false },
     { type: "SET_PRIOR_TRAINING", priorTraining: true },
     { type: "SUBMIT_ELIGIBILITY" },
@@ -106,10 +108,15 @@ function serializeState(snapshot: any): string {
   const c = snapshot.context;
   return JSON.stringify({
     value: snapshot.value,
-    language: c.language,
-    ageGroup: c.ageGroup,
+    // Everything a guard reads stays in the key. `cefr` and `studyWorkLanguage`
+    // are read by the screening guards, so omitting them collapsed distinct
+    // states and made answering them look like a self-loop -- at which point no
+    // path reached consent at all. `parentalConsentCode` is gone with the minor
+    // branch it gated.
+    ageAnswer: c.ageAnswer,
+    cefr: c.cefr,
+    studyWorkLanguage: c.studyWorkLanguage,
     priorTraining: c.priorTraining,
-    hasCode: Boolean(c.parentalConsentCode),
     condition: c.condition,
     itemIndex: c.itemIndex,
     initial: [c.initialEstimate !== null, c.initialConfidence !== null],
@@ -144,6 +151,10 @@ async function execute(user: ReturnType<typeof userEvent.setup>, event: any) {
   switch (event.type) {
     case "SET_AGE_ANSWER":
       return click(`age-${event.ageAnswer}`);
+    case "SET_CEFR":
+      return click(`cefr-${event.cefr}`);
+    case "SET_STUDY_WORK_LANGUAGE":
+      return click(`study-language-${event.studyWorkLanguage === "english" ? "english" : "other"}`);
     case "SET_PRIOR_TRAINING":
       return click(event.priorTraining ? "training-yes" : "training-no");
     case "SUBMIT_ELIGIBILITY":

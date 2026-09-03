@@ -21,6 +21,8 @@ async function reachFirstItem() {
   const user = userEvent.setup();
   render(<App machine={createSessionMachine(ITEM_IDS)} />);
   await user.click(screen.getByTestId("age-35+"));
+  await user.click(screen.getByTestId("cefr-B2"));
+  await user.click(screen.getByTestId("study-language-english"));
   await user.click(screen.getByTestId("training-no"));
   await user.click(screen.getByTestId("submit-eligibility"));
   await user.click(screen.getByTestId("give-consent"));
