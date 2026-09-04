@@ -38,9 +38,17 @@ from typing import Any, Iterable
 
 from _common import REPO_ROOT
 
-# Emitted only on a tab switch and on a resume, neither of which a scripted bot
-# run performs. Absent from one side is expected, not a divergence.
-SITUATIONAL_TYPES = {"WINDOW_BLURRED", "WINDOW_FOCUSED", "ASSENT_GIVEN", "SESSION_WITHDRAWN"}
+# Emitted only on a tab switch, a resume, a withdrawal or a screening exit --
+# none of which a scripted bot run performs. Absent from one side is expected,
+# not a divergence. ASSENT_GIVEN used to sit in this set and no longer exists:
+# v2 admits adults only, so an allowance for it would quietly excuse a real
+# divergence if the name were ever reused.
+SITUATIONAL_TYPES = {
+    "WINDOW_BLURRED",
+    "WINDOW_FOCUSED",
+    "SESSION_WITHDRAWN",
+    "SCREENED_OUT",
+}
 
 # Per-item events every completed trial must carry in both logs.
 REQUIRED_PER_ITEM = {

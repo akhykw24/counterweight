@@ -13,8 +13,8 @@ bundle, a scroll container with no extent, a write-ahead log that will not open,
 a screen that renders but does not fit.
 
 `happy-path.spec.ts` covers a complete twelve-item adult session end to end, the
-minor assent fork, screening exclusion, mid-session reload and resume, and
-withdrawal — asserting the write-ahead log's contents from IndexedDB at the end
+three screening exits (age, English level, prior training), mid-session reload
+and resume, and withdrawal — asserting the write-ahead log's contents from IndexedDB at the end
 of each.
 
 Day 6 adds the simulation bots (spec section 7) to this same project.

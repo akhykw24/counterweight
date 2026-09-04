@@ -66,6 +66,8 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
 
   await expect(page.locator(testId("screen-eligibility"))).toBeVisible();
   await page.locator(testId("age-35+")).click();
+  await page.locator(testId("cefr-B2")).click();
+  await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
 
@@ -79,7 +81,11 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
   const allocateButton = page.locator(testId("allocate"));
   const condition = await allocateButton.getAttribute("data-condition");
   expect(condition === "warm" || condition === "neutral").toBe(true);
-  expect(await allocateButton.getAttribute("data-stratum")).toBe("en:adult");
+  // Strata are configuration (materials/strata.json), so the assertion is that
+  // the participant landed in one of the configured ones -- naming a literal
+  // here is what made the previous version outlive the design it described.
+  const stratum = await allocateButton.getAttribute("data-stratum");
+  expect(["B1-B2", "C1-C2/native"]).toContain(stratum);
   await allocateButton.click();
 
   for (let i = 0; i < 12; i += 1) {
@@ -164,43 +170,67 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
   for (const required of [
     "SESSION_STARTED", "CONSENT_GIVEN", "ALLOCATED", "ITEM_PRESENTED",
     "ESTIMATE_CHANGED", "CONFIDENCE_SET", "RESPONSE_REVEALED",
-    "FOLLOWUP_SELECTED", "VERIFY_CLICKED", "ESTIMATE_FINALIZED",
+    "FOLLOWUP_SELECTED", "VERIFY_CLICKED", "ESTIMATE_FINALIZED", "ARGUMENT_RATED",
     "QUESTIONNAIRE_ANSWERED", "FUNNEL_RESPONSE", "SESSION_COMPLETED",
   ]) {
     expect(types, `missing ${required}`).toContain(required);
   }
   expect(types.filter((type) => type === "ITEM_PRESENTED")).toHaveLength(12);
   expect(types.filter((type) => type === "ESTIMATE_FINALIZED")).toHaveLength(12);
+  expect(types.filter((type) => type === "ARGUMENT_RATED")).toHaveLength(12);
   expect(types.filter((type) => type === "FUNNEL_RESPONSE")).toHaveLength(3);
 });
 
-test("a minor is routed through assent and cannot reach adult consent", async ({ page }) => {
+test("under-18 is screened out before consent, with a reason and no data", async ({ page }) => {
   await page.locator(testId("age-under-18")).click();
+  await page.locator(testId("cefr-C1")).click();
+  await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
 
-  await expect(page.locator(testId("screen-assent"))).toBeVisible();
+  const screen = page.locator(testId("screen-screened-out"));
+  await expect(screen).toBeVisible();
+  await expect(screen).toHaveAttribute("data-reason", "age");
+  // The consent screen must be unreachable: v2 admits adults only, and the
+  // point of screening before consent is that nobody under 18 is ever asked.
   await expect(page.locator(testId("screen-consent"))).toHaveCount(0);
 
-  // Assent is blocked until the parental form's session code is entered.
-  await expect(page.locator(testId("give-assent"))).toBeDisabled();
-  await page.locator(testId("parental-code")).fill("PC-2026-014");
-  await expect(page.locator(testId("give-assent"))).toBeEnabled();
-  await page.locator(testId("give-assent")).click();
+  // Only the screening outcome is recorded. Nothing identifies the visitor.
+  const types = await walTypes(page);
+  expect(types).toContain("SCREENED_OUT");
+  expect(types).not.toContain("CONSENT_GIVEN");
+  expect(types).not.toContain("ALLOCATED");
+});
 
-  await expect(page.locator(testId("screen-allocating"))).toBeVisible();
+test("English below B1 is screened out", async ({ page }) => {
+  await page.locator(testId("age-25-34")).click();
+  await page.locator(testId("cefr-A2")).click();
+  await page.locator(testId("study-language-english")).click();
+  await page.locator(testId("training-no")).click();
+  await page.locator(testId("submit-eligibility")).click();
+
+  const screen = page.locator(testId("screen-screened-out"));
+  await expect(screen).toBeVisible();
+  await expect(screen).toHaveAttribute("data-reason", "language");
 });
 
 test("screening excludes formal training", async ({ page }) => {
   await page.locator(testId("age-35+")).click();
+  await page.locator(testId("cefr-B2")).click();
+  await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-yes")).click();
   await page.locator(testId("submit-eligibility")).click();
 
-  await expect(page.locator(testId("screen-ineligible"))).toBeVisible();
+  await expect(page.locator(testId("screen-screened-out"))).toHaveAttribute(
+    "data-reason",
+    "prior_training",
+  );
 });
 
 test("a reload mid-session resumes on the same item and loses nothing", async ({ page }) => {
   await page.locator(testId("age-35+")).click();
+  await page.locator(testId("cefr-B2")).click();
+  await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
   await page.locator(testId("give-consent")).click();
@@ -226,6 +256,8 @@ test("a reload mid-session resumes on the same item and loses nothing", async ({
 
 test("withdrawal is available from the item screen and ends the session", async ({ page }) => {
   await page.locator(testId("age-35+")).click();
+  await page.locator(testId("cefr-B2")).click();
+  await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
   await page.locator(testId("give-consent")).click();

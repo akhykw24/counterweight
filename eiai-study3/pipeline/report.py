@@ -117,6 +117,38 @@ def build_html(results: dict[str, Any], multiverse_rows: list[dict[str, str]],
     ]))
     parts.append("</table>")
 
+    checks = results.get("manipulation_checks")
+    if checks:
+        # Placed before the hypotheses on purpose. If the warmth manipulation
+        # did not land, nothing below it is interpretable, and a reader should
+        # learn that before reading a p-value.
+        warmth = checks["warmth"]
+        competence = checks["competence"]
+        parts.append("<h2>Manipulation and control checks</h2><table>")
+        parts.append(
+            "<tr><th>Scale</th><th>Expected</th><th class='num'>Difference</th>"
+            "<th class='num'>Evidence</th><th>Verdict</th></tr>"
+        )
+        parts.append(
+            f"<tr><td>Perceived warmth</td><td>warm &gt; neutral</td>"
+            f"<td class='num'>{_fmt(warmth['diff'])}</td>"
+            f"<td class='num'>p = {_fmt(warmth['p'], 4)}</td>"
+            f"<td>{'pass' if warmth['passed'] else 'FAIL'}</td></tr>"
+        )
+        parts.append(
+            f"<tr><td>Perceived competence</td><td>no difference</td>"
+            f"<td class='num'>{_fmt(competence['diff'])}</td>"
+            f"<td class='num'>BF<sub>01</sub> = {_fmt(competence['bf01'], 2)}</td>"
+            f"<td>{'pass' if competence['passed'] else 'FAIL'}</td></tr>"
+        )
+        parts.append("</table>")
+        parts.append(
+            "<p>The control check is judged by evidence <em>for</em> the null rather "
+            "than by a non-significant p-value: failing to reject is not evidence of "
+            "absence, and a p-based control is easiest to pass with a sample too small "
+            "to say anything.</p>"
+        )
+
     exclusions = results.get("exclusions")
     if exclusions:
         # Per criterion, never as a single total. An aggregate "18 excluded"

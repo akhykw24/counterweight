@@ -96,6 +96,8 @@ async function runSession(page: Page, policyName: PolicyName): Promise<WalRecord
   await resetParticipant(page);
 
   await page.locator(testId("age-35+")).click();
+  await page.locator(testId("cefr-B2")).click();
+  await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
   await page.locator(testId("give-consent")).click();

@@ -189,8 +189,12 @@ def per_participant(trials: pd.DataFrame, questionnaire: pd.DataFrame) -> pd.Dat
 
     trust = _scale_score(questionnaire, "trust", reverse={"trust_03"})
     warmth = _scale_score(questionnaire, "warmth", reverse={"warmth_04"})
+    # The control scale. Collected since day one and, until now, never scored --
+    # which meant the study declared a control check it could not perform.
+    competence = _scale_score(questionnaire, "competence", reverse={"competence_04"})
     wide = wide.merge(trust.rename("trust"), on="session_id", how="left")
     wide = wide.merge(warmth.rename("warmth_perceived"), on="session_id", how="left")
+    wide = wide.merge(competence.rename("competence_perceived"), on="session_id", how="left")
 
     # Vigilance composite: challenge-tapping, verification clicks and how far
     # down the reply they read, each standardised so no component dominates by
@@ -311,6 +315,65 @@ def bayes_factor_two_sample(t: float, n1: int, n2: int, r: float = CAUCHY_PRIOR_
 
     value, _ = integrate.quad(integrand, 0, np.inf, limit=200)
     return float(value)
+
+
+#: A control check needs enough data to be informative. Below this, "the arms
+#: did not differ" is a statement about the sample size, not about the arms.
+CONTROL_CHECK_MIN_PER_ARM = 20
+
+#: Evidence for the null on the control scale. Jeffreys' "substantial".
+CONTROL_CHECK_MIN_BF01 = 3.0
+
+
+def manipulation_checks(people: pd.DataFrame) -> dict[str, dict[str, Any]]:
+    """The warmth manipulation check and the competence control check.
+
+    Both are required by section 1, and they fail in opposite directions. The
+    manipulation check must find a difference: without it, a null interaction
+    is indistinguishable from a manipulation that never landed. The control
+    check must not: if perceived competence moves with style, warmth and
+    competence are confounded and the interaction could be about expertise.
+
+    The control is judged by a Bayes factor rather than a non-significant
+    p-value. Failing to reject the null is not evidence for it, and a p-based
+    control check is easiest to pass with a small, uninformative sample -- it
+    would reward exactly the thing it is supposed to guard against.
+    """
+    for column in ("warmth_perceived", "competence_perceived"):
+        if column not in people.columns:
+            raise KeyError(
+                f"{column} is missing. The manipulation and control checks are "
+                "part of the confirmatory report; a missing scale must stop the "
+                "analysis rather than quietly drop the check."
+            )
+
+    warm = people[people["condition"] == "warm"]
+    neutral = people[people["condition"] == "neutral"]
+
+    warmth = welch(
+        warm["warmth_perceived"].dropna().to_numpy(),
+        neutral["warmth_perceived"].dropna().to_numpy(),
+    )
+    warmth["bf10"] = bayes_factor_two_sample(warmth["t"], warmth["n1"], warmth["n2"])
+    # One-sided in substance: the warm arm must be perceived as warmer, not
+    # merely different. A warm manipulation that read as colder has failed.
+    warmth["passed"] = bool(warmth["p"] < 0.05 and warmth["diff"] > 0)
+    warmth["direction"] = "warm > neutral"
+
+    competence = welch(
+        warm["competence_perceived"].dropna().to_numpy(),
+        neutral["competence_perceived"].dropna().to_numpy(),
+    )
+    bf10 = bayes_factor_two_sample(competence["t"], competence["n1"], competence["n2"])
+    competence["bf10"] = bf10
+    competence["bf01"] = float("inf") if bf10 == 0 else 1.0 / bf10
+    competence["passed"] = bool(
+        min(competence["n1"], competence["n2"]) >= CONTROL_CHECK_MIN_PER_ARM
+        and competence["bf01"] >= CONTROL_CHECK_MIN_BF01
+    )
+    competence["direction"] = "no difference expected"
+
+    return {"warmth": warmth, "competence": competence}
 
 
 def mixed_anova_interaction(participants: pd.DataFrame) -> dict[str, float]:
@@ -442,6 +505,7 @@ def analyse(frames: dict[str, pd.DataFrame], spec: Specification) -> dict[str, A
     h5 = welch(warm["trust"].to_numpy(), neutral["trust"].to_numpy())
 
     secondaries = holm_bonferroni({"H2_vigilance": h2["p"], "H5_trust": h5["p"]})
+    checks = manipulation_checks(people)
 
     return {
         "specification": {**asdict(spec), "label": spec.label()},
@@ -463,6 +527,7 @@ def analyse(frames: dict[str, pd.DataFrame], spec: Specification) -> dict[str, A
             "scroll_neutral": _safe_mean(neutral["scroll_depth"]),
         },
         "H1_interaction": h1,
+        "manipulation_checks": checks,
         "H2_vigilance": h2,
         "H3_discrimination": h3,
         "H4_mediation": h4,
@@ -611,6 +676,23 @@ def print_report(results: dict[str, Any]) -> None:
         f"{n['trials_used']} of {n['trials_available']} trials used"
     )
     print()
+    checks = results.get("manipulation_checks")
+    if checks:
+        warmth = checks["warmth"]
+        competence = checks["competence"]
+        print("Manipulation and control checks")
+        print(
+            f"  warmth      warm-neutral diff = {warmth['diff']:+.3f}, p = {warmth['p']:.4f}"
+            f"   {'PASS' if warmth['passed'] else 'FAIL'}"
+        )
+        print(
+            f"  competence  warm-neutral diff = {competence['diff']:+.3f}, "
+            f"BF01 = {competence['bf01']:.2f}"
+            f"   {'PASS' if competence['passed'] else 'FAIL'}"
+        )
+        print("  (competence must NOT differ; judged by evidence for the null)")
+        print()
+
     print("                     strong    weak    discrimination")
     print(f"  warm             {d['woa_strong_warm']:8.3f}{d['woa_weak_warm']:8.3f}"
           f"{d['discrimination_warm']:14.3f}")

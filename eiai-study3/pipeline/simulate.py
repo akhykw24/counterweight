@@ -354,6 +354,24 @@ def simulate_session(
             },
         )
 
+        # Perceived argument strength, asked once per item after the estimate.
+        # Given a quality-dependent mean rather than a constant: the measure
+        # exists to show participants could tell strong from weak, so synthetic
+        # data in which nobody can tell them apart would make every downstream
+        # check of it vacuous. The size of the gap here is arbitrary and is
+        # deliberately NOT in the recovery truth table -- this is a
+        # manipulation check the study measures, not an effect it plants.
+        writer.advance(rng.randint(600, 2500))
+        writer.record(
+            "ARGUMENT_RATED",
+            {
+                "item_id": item["id"],
+                "perceived_strength": int(
+                    round(_clamp_likert((5.0 if strong else 3.0) + rng.gauss(0, 1.0)))
+                ),
+            },
+        )
+
     # Questionnaire. Warmth and trust track the manipulation so H2 and H5 have
     # something to find; competence deliberately does not, because a style
     # manipulation that moved perceived competence would be a confound.
