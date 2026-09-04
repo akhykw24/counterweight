@@ -46,6 +46,11 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from _common import LANGUAGES as _LANGUAGES
+
+#: One study language in v2. Named rather than inlined so the constant has
+#: exactly one home.
+STUDY_LANGUAGE = _LANGUAGES[0]
 from _common import REPO_ROOT, load_items
 
 # Trials whose advice sits closer than this to the initial estimate have an
@@ -259,11 +264,20 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
         "session_id": session_id,
         "condition": condition,
         "stratum": stratum,
+        # The exact level, not just the stratum it determined: B1 and B2 share
+        # a stratum, and section 8.1 pre-registers an analysis that excludes B1.
+        "cefr": (allocated or {}).get("payload", {}).get("cefr"),
         "allocation_seq": (allocated or {}).get("payload", {}).get("allocation_seq"),
         # SESSION_STARTED no longer carries a locale: with one study language
-        # the browser's guess carried no information. The language is taken from
-        # the allocation stratum, where it is authoritative.
-        "language": str(stratum).split(":")[0] if stratum else None,
+        # the browser's guess carried no information.
+        #
+        # This used to read the language out of the stratum by splitting on
+        # ":", which worked only while strata were named "<language>:<age>".
+        # v2 strata are English-proficiency bands, so that split would have
+        # filed every participant's language as "B1-B2". With one study
+        # language the column is a constant, and saying so is honest; when a
+        # second language returns it belongs in its own event.
+        "language": STUDY_LANGUAGE,
         "app_version": (started or {}).get("payload", {}).get("app_version"),
         "stimuli_manifest_hash": (started or {}).get("payload", {}).get("stimuli_manifest_hash"),
         "resumed": int(bool((started or {}).get("payload", {}).get("resumed"))),
@@ -359,7 +373,7 @@ TRIAL_COLUMNS = [
 ]
 
 PARTICIPANT_COLUMNS = [
-    "session_id", "condition", "stratum", "allocation_seq", "locale", "app_version",
+    "session_id", "condition", "stratum", "cefr", "allocation_seq", "locale", "app_version",
     "stimuli_manifest_hash", "resumed", "repeat_session", "consented", "screened_out_reason", "language",
     "age_band", "primary_language",
     "ai_usage", "prior_knowledge",

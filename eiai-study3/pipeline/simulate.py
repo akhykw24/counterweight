@@ -54,7 +54,12 @@ import uuid
 from pathlib import Path
 from typing import Any, Iterable
 
+from strata import load_strata, stratum_for_cefr
 from _common import LANGUAGES, REPO_ROOT, load_items
+
+#: Levels the screening gate admits, taken from the stratum configuration so
+#: adding a stratum does not need an edit here.
+ADMITTED_CEFR: tuple[str, ...] = tuple(sorted(load_strata().by_cefr))
 
 APP_VERSION = "sim-1.0.0"
 
@@ -193,7 +198,14 @@ def simulate_session(
     writer = SessionWriter(session_id, start_ts)
 
     age_band = rng.choice(AGE_BANDS)
-    stratum = f"{language}:adult"
+    # v1 stratified by language and age band. v2 stratifies by English
+    # proficiency, and the names live in materials/strata.json -- so they are
+    # read rather than formatted, and a config change reaches the simulator for
+    # free. The old "en:adult" literal survived the migration because the
+    # bridge compares payload keys, not payload values.
+    cefr = rng.choice(ADMITTED_CEFR)
+    stratum = stratum_for_cefr(cefr)
+    assert stratum is not None, f"{cefr} is not an admitted level"
 
     writer.record(
         "SESSION_STARTED",
@@ -214,7 +226,12 @@ def simulate_session(
 
     writer.record(
         "ALLOCATED",
-        {"condition": condition, "stratum": stratum, "allocation_seq": rng.randint(0, 999)},
+        {
+            "condition": condition,
+            "stratum": stratum,
+            "cefr": cefr,
+            "allocation_seq": rng.randint(0, 999),
+        },
     )
 
     order = list(items)

@@ -54,6 +54,24 @@ export class AllocationMissingError extends Error {
  * language they chose. Falling back to English would show a Kazakh participant
  * an English question and leave nothing in the log to say it happened.
  */
+/**
+ * The participant's self-reported CEFR level, which the screening gate has
+ * already required by the time allocation happens.
+ *
+ * Throws rather than defaulting, for the same reason as the language: a filled
+ * -in value would be indistinguishable from a real one in the log, and it would
+ * land in the covariate of the primary model.
+ */
+export function requireCefr(context: SessionContext) {
+  if (!context.cefr) {
+    throw new AllocationMissingError(
+      "allocation was recorded before the participant reported an English level. " +
+        "The level is a covariate in the primary model; a default would be a made-up datum.",
+    );
+  }
+  return context.cefr;
+}
+
 export function requireLanguage(context: SessionContext, what: string): Language {
   if (context.language === null) {
     throw new AllocationMissingError(

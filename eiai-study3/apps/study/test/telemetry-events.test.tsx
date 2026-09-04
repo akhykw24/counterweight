@@ -77,6 +77,27 @@ describe("event emission", () => {
     expect(started[0]!.payload["resumed"]).toBe(false);
   });
 
+  it("records the CEFR level on ALLOCATED, not just the stratum it implies", async () => {
+    // Spec 8.1 pre-registers a sensitivity analysis excluding B1 participants
+    // and CEFR as a covariate in the primary model. The stratum cannot support
+    // either: B1-B2 is one stratum, so a stratum-only log makes the
+    // pre-registered analysis impossible to run after collection.
+    const log = capturing();
+    const user = userEvent.setup();
+    render(<App machine={createSessionMachine(ITEM_IDS)} recorder={log.recorder} />);
+    await user.click(screen.getByTestId("age-35+"));
+    await user.click(screen.getByTestId("cefr-B1"));
+    await user.click(screen.getByTestId("study-language-english"));
+    await user.click(screen.getByTestId("training-no"));
+    await user.click(screen.getByTestId("submit-eligibility"));
+    await user.click(screen.getByTestId("give-consent"));
+    await user.click(screen.getByTestId("allocate"));
+
+    const allocated = log.of("ALLOCATED")[0]!;
+    expect(allocated.payload["cefr"]).toBe("B1");
+    expect(allocated.payload["stratum"]).toBe("B1-B2");
+  });
+
   it("reports repeat participation on SESSION_STARTED, defaulting to false", () => {
     // Exclusion criterion 5 reads this field and nothing else. The default
     // matters as much as the flag: a browser with no history is a first-time

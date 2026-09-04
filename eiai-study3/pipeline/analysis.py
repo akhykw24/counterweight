@@ -376,6 +376,137 @@ def manipulation_checks(people: pd.DataFrame) -> dict[str, dict[str, Any]]:
     return {"warmth": warmth, "competence": competence}
 
 
+def adjusted_discrimination(people: pd.DataFrame) -> dict[str, Any]:
+    """The style effect on discrimination, adjusted for English proficiency.
+
+    Section 8.1 puts CEFR band in the primary model, and the reason is specific
+    rather than decorative: a participant who cannot read a strong argument as
+    strong shows a flat discrimination score for a reason that has nothing to do
+    with warmth. If proficiency happened to be unbalanced across arms, the
+    unadjusted contrast would confuse the two. That is the single most plausible
+    alternative explanation for this study's headline result, so it is modelled
+    rather than mentioned in the limitations.
+
+    Ordinary least squares: discrimination ~ warm + CEFR level, level treated as
+    a set of indicators rather than a number, because the CEFR scale is ordinal
+    and the distance from B1 to B2 is not the distance from C1 to C2.
+    """
+    if "cefr" not in people.columns:
+        raise KeyError(
+            "cefr is missing from the participant table. It is a covariate in "
+            "the primary model, so the analysis stops rather than reporting an "
+            "unadjusted estimate under an adjusted name."
+        )
+
+    frame = people.dropna(subset=["discrimination", "condition", "cefr"])
+    warm_flag = (frame["condition"] == "warm").astype(float).to_numpy()
+    y = frame["discrimination"].to_numpy(dtype=float)
+
+    levels = sorted(frame["cefr"].unique())
+    if len(levels) < 2 or len(frame) <= len(levels) + 1:
+        # Nothing to adjust for. Reported as unadjusted rather than silently
+        # returning a number that only looks adjusted.
+        warm = y[warm_flag == 1.0]
+        neutral = y[warm_flag == 0.0]
+        raw = welch(warm, neutral)
+        return {
+            "adjusted": False,
+            "reason": "fewer than two CEFR levels present",
+            "estimate": raw["diff"],
+            "ci_low": raw["ci_low"],
+            "ci_high": raw["ci_high"],
+            "p": raw["p"],
+            "levels": levels,
+            "n": int(len(frame)),
+        }
+
+    # Indicators for every level but the first, plus an intercept.
+    columns = [np.ones(len(frame)), warm_flag]
+    for level in levels[1:]:
+        columns.append((frame["cefr"] == level).astype(float).to_numpy())
+    design = np.column_stack(columns)
+
+    coefficients, *_ = np.linalg.lstsq(design, y, rcond=None)
+    residuals = y - design @ coefficients
+    dof = len(frame) - design.shape[1]
+    sigma2 = float(residuals @ residuals) / dof
+    covariance = sigma2 * np.linalg.pinv(design.T @ design)
+    estimate = float(coefficients[1])
+    se = float(np.sqrt(covariance[1, 1]))
+    tstat = estimate / se if se > 0 else 0.0
+    crit = float(stats.t.ppf(0.975, dof))
+
+    return {
+        "adjusted": True,
+        "estimate": estimate,
+        "se": se,
+        "t": tstat,
+        "df": dof,
+        "p": float(2 * stats.t.sf(abs(tstat), dof)),
+        "ci_low": estimate - crit * se,
+        "ci_high": estimate + crit * se,
+        "levels": levels,
+        "n": int(len(frame)),
+    }
+
+
+def sensitivity_excluding_b1(people: pd.DataFrame) -> dict[str, Any]:
+    """The discrimination contrast among B2 and above.
+
+    Pre-specified in section 8.1 and reported whether or not it agrees with the
+    primary result -- which is the entire point of pre-specifying it. B1 is the
+    floor the screening gate admits, so it is where a proficiency explanation
+    would bite hardest.
+    """
+    kept = people[people["cefr"].astype(str) != "B1"] if "cefr" in people.columns else people
+    warm = kept[kept["condition"] == "warm"]["discrimination"].dropna().to_numpy()
+    neutral = kept[kept["condition"] == "neutral"]["discrimination"].dropna().to_numpy()
+    if len(warm) < 2 or len(neutral) < 2:
+        return {"available": False, "n_excluded": int(len(people) - len(kept))}
+    result = welch(warm, neutral)
+    result["available"] = True
+    result["n_excluded"] = int(len(people) - len(kept))
+    return result
+
+
+def jackknife_over_items(trials: pd.DataFrame) -> list[dict[str, Any]]:
+    """The quality contrast re-estimated once per dropped item.
+
+    Twelve estimates rather than one. A conclusion that holds only while a
+    particular item is in the set is a conclusion about that item, and the
+    cheapest way to find that out is to look.
+
+    Fillers are excluded from the leave-one-out set for the same reason they are
+    excluded from the contrast itself: they are not part of the analysed 2x2, so
+    dropping one cannot change it.
+    """
+    analysed = trials[trials["role"] == "analysed"] if "role" in trials.columns else trials
+    item_ids = sorted(analysed["item_id"].unique())
+
+    results: list[dict[str, Any]] = []
+    for dropped in item_ids:
+        subset = analysed[analysed["item_id"] != dropped]
+        per_person = (
+            subset.pivot_table(
+                index="session_id",
+                columns="justification_quality",
+                values="woa",
+                aggfunc="mean",
+            )
+            .reindex(columns=["strong", "weak"])
+        )
+        discrimination = (per_person["strong"] - per_person["weak"]).dropna()
+        results.append(
+            {
+                "dropped_item": dropped,
+                "n_items": int(subset["item_id"].nunique()),
+                "n_participants": int(len(discrimination)),
+                "estimate": float(discrimination.mean()) if len(discrimination) else float("nan"),
+            }
+        )
+    return results
+
+
 def mixed_anova_interaction(participants: pd.DataFrame) -> dict[str, float]:
     """2 (style, between) x 2 (quality, within) interaction on WOA.
 
@@ -507,6 +638,17 @@ def analyse(frames: dict[str, pd.DataFrame], spec: Specification) -> dict[str, A
     secondaries = holm_bonferroni({"H2_vigilance": h2["p"], "H5_trust": h5["p"]})
     checks = manipulation_checks(people)
 
+    # CEFR lives on the participant table, not on trials, so it is merged in
+    # here rather than carried through per_participant -- which is about the
+    # trial-level reduction and has no business knowing about eligibility.
+    if "cefr" in frames["participants"].columns:
+        people = people.merge(
+            frames["participants"][["session_id", "cefr"]], on="session_id", how="left"
+        )
+    adjusted = adjusted_discrimination(people)
+    sensitivity = sensitivity_excluding_b1(people)
+    jackknife = jackknife_over_items(trials)
+
     return {
         "specification": {**asdict(spec), "label": spec.label()},
         "n": {
@@ -528,6 +670,9 @@ def analyse(frames: dict[str, pd.DataFrame], spec: Specification) -> dict[str, A
         },
         "H1_interaction": h1,
         "manipulation_checks": checks,
+        "H3_adjusted_for_cefr": adjusted,
+        "sensitivity_excluding_b1": sensitivity,
+        "jackknife_over_items": jackknife,
         "H2_vigilance": h2,
         "H3_discrimination": h3,
         "H4_mediation": h4,
@@ -733,6 +878,43 @@ def print_report(results: dict[str, Any]) -> None:
         print("In a 2x2 with two within levels these are the same test, so one is wrong.")
 
 
+def print_confirmatory_extras(results: dict[str, Any]) -> None:
+    """Section 8.1's three guards against the obvious alternative readings."""
+    adjusted = results.get("H3_adjusted_for_cefr")
+    if adjusted:
+        print()
+        if adjusted["adjusted"]:
+            print(
+                f"H3 adjusted for CEFR             diff = {adjusted['estimate']:+.3f} "
+                f"[{adjusted['ci_low']:+.3f}, {adjusted['ci_high']:+.3f}], "
+                f"p = {adjusted['p']:.4f}  (levels: {', '.join(adjusted['levels'])})"
+            )
+        else:
+            print(f"H3 adjusted for CEFR             not adjusted: {adjusted['reason']}")
+
+    sensitivity = results.get("sensitivity_excluding_b1")
+    if sensitivity:
+        print()
+        if sensitivity.get("available"):
+            print(
+                f"Sensitivity, B1 excluded         diff = {sensitivity['diff']:+.3f} "
+                f"[{sensitivity['ci_low']:+.3f}, {sensitivity['ci_high']:+.3f}], "
+                f"p = {sensitivity['p']:.4f}  ({sensitivity['n_excluded']} excluded)"
+            )
+        else:
+            print("Sensitivity, B1 excluded         too few participants remain")
+
+    jackknife = results.get("jackknife_over_items")
+    if jackknife:
+        estimates = [row["estimate"] for row in jackknife if row["estimate"] == row["estimate"]]
+        print()
+        print("Jackknife over items (quality contrast, one item dropped each time)")
+        for row in jackknife:
+            print(f"  without {row['dropped_item']}   {row['estimate']:+.4f}")
+        if estimates:
+            print(f"  range           {min(estimates):+.4f} to {max(estimates):+.4f}")
+
+
 def print_recovery(recovery: dict[str, Any]) -> None:
     print("Parameter recovery")
     print("=" * 72)
@@ -798,6 +980,7 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     results = analyse(frames, spec)
     print_report(results)
+    print_confirmatory_extras(results)
 
     if args.exclusions:
         # Both ways, always, and in this order: the unfiltered result is

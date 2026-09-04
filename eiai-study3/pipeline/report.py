@@ -149,6 +149,61 @@ def build_html(results: dict[str, Any], multiverse_rows: list[dict[str, str]],
             "to say anything.</p>"
         )
 
+    adjusted = results.get("H3_adjusted_for_cefr")
+    sensitivity = results.get("sensitivity_excluding_b1")
+    jackknife = results.get("jackknife_over_items")
+    if adjusted or sensitivity or jackknife:
+        parts.append("<h2>Robustness of the primary contrast</h2>")
+        parts.append("<table>")
+        parts.append("<tr><th>Analysis</th><th class='num'>Estimate</th><th>Notes</th></tr>")
+        if adjusted and adjusted.get("adjusted"):
+            parts.append(
+                f"<tr><td>Adjusted for CEFR band</td>"
+                f"<td class='num'>{_fmt(adjusted['estimate'])} "
+                f"[{_fmt(adjusted['ci_low'])}, {_fmt(adjusted['ci_high'])}]</td>"
+                f"<td>p = {_fmt(adjusted['p'], 4)}; levels "
+                f"{', '.join(adjusted['levels'])}</td></tr>"
+            )
+        elif adjusted:
+            parts.append(
+                f"<tr><td>Adjusted for CEFR band</td><td class='num'>—</td>"
+                f"<td>not adjusted: {adjusted.get('reason', 'unavailable')}</td></tr>"
+            )
+        if sensitivity and sensitivity.get("available"):
+            parts.append(
+                f"<tr><td>Excluding B1 participants</td>"
+                f"<td class='num'>{_fmt(sensitivity['diff'])} "
+                f"[{_fmt(sensitivity['ci_low'])}, {_fmt(sensitivity['ci_high'])}]</td>"
+                f"<td>p = {_fmt(sensitivity['p'], 4)}; "
+                f"{sensitivity['n_excluded']} excluded</td></tr>"
+            )
+        parts.append("</table>")
+        parts.append(
+            "<p>The sensitivity analysis is pre-specified and is shown whether or not "
+            "it agrees with the primary result.</p>"
+        )
+        if jackknife:
+            values = [row["estimate"] for row in jackknife if row["estimate"] == row["estimate"]]
+            parts.append("<h3>Jackknife over items</h3>")
+            parts.append(
+                "<p>The quality contrast re-estimated with each analysed item dropped in "
+                "turn. A conclusion that survives only with one particular item in the "
+                "set is a conclusion about that item.</p>"
+            )
+            parts.append("<table>")
+            parts.append("<tr><th>Item dropped</th><th class='num'>Contrast</th></tr>")
+            for row in jackknife:
+                parts.append(
+                    f"<tr><td>{row['dropped_item']}</td>"
+                    f"<td class='num'>{_fmt(row['estimate'], 4)}</td></tr>"
+                )
+            parts.append("</table>")
+            if values:
+                parts.append(
+                    f"<p>Range {_fmt(min(values), 4)} to {_fmt(max(values), 4)} across "
+                    f"{len(values)} re-estimates.</p>"
+                )
+
     exclusions = results.get("exclusions")
     if exclusions:
         # Per criterion, never as a single total. An aggregate "18 excluded"

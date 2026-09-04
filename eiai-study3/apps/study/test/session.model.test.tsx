@@ -81,7 +81,7 @@ function eventsFor(ageAnswer: string) {
     { type: "SET_PRIOR_TRAINING", priorTraining: true },
     { type: "SUBMIT_ELIGIBILITY" },
     { type: "GIVE_CONSENT" },
-    { type: "ALLOCATE", condition: "warm", stratum: "en:adult", allocationSeq: 0 },
+    { type: "ALLOCATE", condition: "warm", stratum: "B1-B2", allocationSeq: 0 },
     { type: "SET_ESTIMATE", value: 100 },
     { type: "SET_CONFIDENCE", value: 55 },
     { type: "SUBMIT_INITIAL" },

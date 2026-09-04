@@ -1,0 +1,202 @@
+
+=== 1. TypeScript typecheck ===
+$ tsc --noEmit && tsc --noEmit -p apps/study/tsconfig.json
+[exit 0]
+
+=== 2. vitest (unit / property / model-based / golden) ===
+$ vitest run
+
+ RUN  v4.1.10 C:/Users/Redmi/counterweight/eiai-study3
+
+
+ Test Files  20 passed (20)
+      Tests  272 passed (272)
+   Start at  17:26:42
+   Duration  28.72s (transform 1.52s, setup 0ms, import 12.14s, tests 65.29s, environment 16.53s)
+
+[exit 0]
+
+=== 3. pytest (pipeline) ===
+......................................................................   [100%]
+70 passed in 4.56s
+[exit 0]
+
+=== 4. data-dictionary drift ===
+$ tsx packages/schema/scripts/generate-data-dictionary.ts --check
+docs/DATA_DICTIONARY.md is up to date.
+[exit 0]
+
+=== 5. stimulus manifest integrity ===
+Stimulus integrity confirmed: 4 files match the committed manifest.
+  manifest_sha256 80310213a529a75696e3e1dc05895e4d066234a16138938904f47c95881663d0
+  NOTE: manifest records launch_ready=false (placeholder stimuli).
+[exit 0]
+
+=== 6. allocation sequence freshness ===
+Allocation sequence is current (192 assignments across 2 strata, seed 20260817).
+[exit 0]
+
+=== 7. content equivalence across conditions ===
+683 checks run
+
+1 warning(s):
+  ~ 4 of 4 stimulus files are OFFLINE PLACEHOLDERS. Equivalence passing here says the pipeline works, not that the stimuli are usable.
+
+Content equivalence confirmed: identical numeric claims, identical
+justifications, identical hedging across all four condition variants.
+[exit 0]
+
+=== 8. reproducibility gate (projections) ===
+Projections reproduce byte-for-byte from 66542 events.
+[exit 0]
+
+=== 9. parameter recovery ===
+Specification: clamp0.0:1.0|den0.05|suspincl|resincl|rtraw
+N = 360 (180 warm, 180 neutral); 4134 of 4320 trials used
+
+Manipulation and control checks
+  warmth      warm-neutral diff = +0.710, p = 0.0000   PASS
+  competence  warm-neutral diff = -0.028, BF01 = 7.51   PASS
+  (competence must NOT differ; judged by evidence for the null)
+
+                     strong    weak    discrimination
+  warm                0.517   0.431         0.086
+  neutral             0.462   0.364         0.098
+
+H1 style x quality interaction   F(1,358) = 0.362, p = 0.5475, partial eta^2 = 0.001
+H3 discrimination warm-neutral   t(353.7) = -0.602, p = 0.5475, diff = -0.012 [-0.052, +0.027], g = -0.063
+                                 BF10 = 0.139
+H2 vigilance composite           t(357.9) = -0.398, p = 0.6907, diff = -0.036
+H4 scroll-depth mediation        indirect = -0.0013 [-0.0237, +0.0206] (a = -0.003, b = +0.402)
+H5 trust warm-neutral            t(357.8) = 6.047, p = 0.0000, diff = +0.346
+
+Holm-Bonferroni across secondaries:
+  H2_vigilance     p = 0.6907 -> 0.6907  does not survive
+  H5_trust         p = 0.0000 -> 0.0000  survives
+
+Participant exclusions (spec v2 section 8.6)
+  participants projected : 360
+  excluded               : 18
+  retained               : 342
+
+   1. non_completion             0
+   2. fast_trials               18
+   3. invariant_responding       0
+  *4. attention_check            0
+   5. repeat_session             0
+
+  * declared in the specification, deliberately not applied
+
+--- with exclusions applied ---
+Specification: clamp0.0:1.0|den0.05|suspincl|resincl|rtraw
+N = 342 (172 warm, 170 neutral); 3930 of 4104 trials used
+
+Manipulation and control checks
+  warmth      warm-neutral diff = +0.705, p = 0.0000   PASS
+  competence  warm-neutral diff = -0.044, BF01 = 6.17   PASS
+  (competence must NOT differ; judged by evidence for the null)
+
+                     strong    weak    discrimination
+  warm                0.515   0.423         0.091
+  neutral             0.466   0.361         0.105
+
+H1 style x quality interaction   F(1,340) = 0.402, p = 0.5265, partial eta^2 = 0.001
+H3 discrimination warm-neutral   t(334.4) = -0.634, p = 0.5268, diff = -0.013 [-0.054, +0.028], g = -0.068
+                                 BF10 = 0.145
+H2 vigilance composite           t(339.9) = -0.540, p = 0.5894, diff = -0.051
+H4 scroll-depth mediation        indirect = -0.0026 [-0.0247, +0.0197] (a = -0.006, b = +0.398)
+H5 trust warm-neutral            t(340.0) = 5.497, p = 0.0000, diff = +0.325
+
+Holm-Bonferroni across secondaries:
+  H2_vigilance     p = 0.5894 -> 0.5894  does not survive
+  H5_trust         p = 0.0000 -> 0.0000  survives
+
+Parameter recovery
+========================================================================
+
+SimCentral  (n = 120)
+  discrimination  planted +0.250   recovered +0.250 [+0.235, +0.266]
+  style effect    planted +0.000   recovered -0.008 [-0.055, +0.038]
+  scroll depth    planted 0.950    recovered 0.947
+
+SimPeripheral  (n = 120)
+  discrimination  planted +0.000   recovered +0.001 [-0.017, +0.019]
+  style effect    planted +0.200   recovered +0.201 [+0.184, +0.219]
+  scroll depth    planted 0.350    recovered 0.347
+
+SimRandom  (n = 120)
+  discrimination  planted +0.000   recovered +0.024 [-0.037, +0.085]
+  style effect    planted +0.000   recovered -0.009 [-0.069, +0.051]
+  scroll depth    planted 0.500    recovered 0.490
+
+------------------------------------------------------------------------
+  [ok] SimCentral: discrimination CI contains the planted +0.25
+  [ok] SimCentral: style-effect CI contains the planted +0.00
+  [ok] SimCentral: mean scroll depth within 0.10 of the planted 0.95
+  [ok] SimPeripheral: discrimination CI contains the planted +0.00
+  [ok] SimPeripheral: style-effect CI contains the planted +0.20
+  [ok] SimPeripheral: mean scroll depth within 0.10 of the planted 0.35
+  [ok] SimRandom: discrimination CI contains the planted +0.00
+  [ok] SimRandom: style-effect CI contains the planted +0.00
+  [ok] SimRandom: mean scroll depth within 0.10 of the planted 0.50
+  [ok] SimCentral discriminates more than SimPeripheral, with non-overlapping intervals
+  [ok] SimRandom discrimination interval contains zero
+
+All planted effects recovered within interval.
+[exit 0]
+
+=== 10. exclusion criteria ===
+Participant exclusions (spec v2 section 8.6)
+  participants projected : 360
+  excluded               : 18
+  retained               : 342
+
+   1. non_completion             0
+   2. fast_trials               18
+   3. invariant_responding       0
+  *4. attention_check            0
+   5. repeat_session             0
+
+  * declared in the specification, deliberately not applied
+
+wrote C:\Users\Redmi\counterweight\eiai-study3\data\exclusions.csv
+wrote C:\Users\Redmi\counterweight\eiai-study3\data\exclusions.json
+[exit 0]
+
+=== 11. specification curve ===
+Running 48 specifications...
+
+  specifications            48
+  median estimate           -0.0118
+  range                     -0.0182 to -0.0053
+  CI excludes 0, negative   0  (the predicted direction: warmth flattens discrimination)
+  CI excludes 0, positive   0
+  CI contains 0             48
+
+  -> data\multiverse\specification_curve.csv
+  -> data\multiverse\specification_curve.png
+[exit 0]
+
+=== 12. Playwright end-to-end ===
+[WebServer] $ vite
+
+Running 7 tests using 1 worker
+
+bots exported 441 events; conditions seen: warm, neutral
+  ok 1 [chromium] › e2e\bots.spec.ts:176:1 › bot policies complete real sessions and export a comparable log (25.5s)
+  ok 2 [chromium] › e2e\happy-path.spec.ts:64:1 › an adult completes a full twelve-item session (6.5s)
+  ok 3 [chromium] › e2e\happy-path.spec.ts:184:1 › under-18 is screened out before consent, with a reason and no data (1.2s)
+  ok 4 [chromium] › e2e\happy-path.spec.ts:205:1 › English below B1 is screened out (1.1s)
+  ok 5 [chromium] › e2e\happy-path.spec.ts:217:1 › screening excludes formal training (1.1s)
+  ok 6 [chromium] › e2e\happy-path.spec.ts:230:1 › a reload mid-session resumes on the same item and loses nothing (1.7s)
+  ok 7 [chromium] › e2e\happy-path.spec.ts:257:1 › withdrawal is available from the item screen and ends the session (1.2s)
+
+  7 passed (42.3s)
+[exit 0]
+
+=== 13. simulator / real-app bridge ===
+browser log       441 events, 3 sessions
+simulated log   66542 events, 360 sessions
+
+Shapes agree across 15 event types. The simulated log is a faithful stand-in for the real one.
+[exit 0]

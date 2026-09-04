@@ -214,7 +214,8 @@ describe("what the client sends is what the schema accepts", () => {
     });
     await telemetry.record("ALLOCATED", {
       condition: "warm",
-      stratum: "en:adult",
+      cefr: "B2",
+      stratum: "B1-B2",
       allocation_seq: 0,
     });
     await telemetry.flush();

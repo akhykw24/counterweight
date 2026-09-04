@@ -8,7 +8,7 @@ import {
   noopRecorder,
   type Recorder,
 } from "./telemetry";
-import { requireLanguage, stimulusFor } from "./stimuli";
+import { requireCefr, requireLanguage, stimulusFor } from "./stimuli";
 import { translator } from "./i18n";
 import {
   AllocatingScreen,
@@ -188,6 +188,7 @@ export function App({
         recorder.record("ALLOCATED", {
           condition: event.condition,
           stratum: event.stratum,
+          cefr: requireCefr(context),
           allocation_seq: event.allocationSeq,
         });
         break;

@@ -1,9 +1,9 @@
 import { z } from "zod";
 import {
+  CefrLevel,
   ClientTimestamp,
   Condition,
   Confidence,
-  ScreenedOutReason,
   DurationMs,
   Estimate,
   EstimatePhase,
@@ -11,11 +11,12 @@ import {
   FollowupId,
   FunnelStage,
   ItemId,
-  Likert7,
   Language,
+  Likert7,
   QuestionnaireScale,
   RegisterState,
   ResponseId,
+  ScreenedOutReason,
   ScrollFraction,
   Seq,
   SessionId,
@@ -97,6 +98,7 @@ export const Allocated = defineEvent(
   {
     condition: Condition,
     stratum: Stratum,
+    cefr: CefrLevel.describe("Self-reported CEFR English level. Recorded alongside the stratum it determined, because the stratum cannot answer the questions section 8.1 pre-registers: B1 and B2 share a stratum, so a sensitivity analysis excluding B1 is impossible from the stratum alone."),
     allocation_seq: z.int().nonnegative().describe("Index into the committed allocation sequence."),
   },
 );

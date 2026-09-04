@@ -84,6 +84,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | `type` | `"ALLOCATED"` | yes |  |  |
 | `payload.condition` | `warm` \| `neutral` | yes |  | Between-subjects emotional style condition. |
 | `payload.stratum` | string | yes | minLen 1 | Randomisation stratum id, drawn from materials/strata.json. Two under spec v2: B1-B2 and C1-C2/native. |
+| `payload.cefr` | `A1` \| `A2` \| `B1` \| `B2` \| `C1` \| `C2` | yes |  | Self-reported CEFR English level. Recorded alongside the stratum it determined, because the stratum cannot answer the questions section 8.1 pre-registers: B1 and B2 share a stratum, so a sensitivity analysis excluding B1 is impossible from the stratum alone. |
 | `payload.allocation_seq` | integer | yes | >= 0 | Index into the committed allocation sequence. |
 
 #### `ITEM_PRESENTED`
