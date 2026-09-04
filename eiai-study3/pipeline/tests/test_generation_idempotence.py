@@ -16,25 +16,63 @@ had to know about it, that would be the failure.
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-from _common import MANIFEST_JSON, RESPONSES_DIR, REPO_ROOT, sha256_file
+from _common import MANIFEST_JSON, MATERIALS, RESPONSES_DIR, REPO_ROOT, sha256_file
 from providers import OfflineProvider, ProviderError
+
+#: Where the subprocesses in this module write. Set by the fixture below to a
+#: throwaway copy of materials/.
+#
+# Before this existed the tests ran the generator against the committed set.
+# That was invisible while the stimuli were placeholders, because placeholders
+# regenerate byte-identically -- but `generate.py --offline` regenerates
+# unconditionally, so the first `pytest` run after real generation would have
+# replaced every real stimulus with a placeholder and rebuilt the manifest to
+# match. The integrity gate would have reported success, having been rewritten
+# along with the thing it protects.
+_SANDBOX: dict[str, Path] = {}
+
+
+@pytest.fixture(autouse=True)
+def isolated_materials(tmp_path: Path):
+    """A per-test copy of materials/, so no test can touch the frozen set."""
+    sandbox = tmp_path / "materials"
+    shutil.copytree(MATERIALS, sandbox)
+    _SANDBOX["path"] = sandbox
+    yield sandbox
+    _SANDBOX.clear()
+
+
+def _env() -> dict[str, str]:
+    env = dict(os.environ)
+    env["EIAI_MATERIALS_DIR"] = str(_SANDBOX["path"])
+    return env
+
+
+def _sandbox_responses() -> Path:
+    return _SANDBOX["path"] / "responses"
+
+
+def _sandbox_manifest() -> Path:
+    return _SANDBOX["path"] / "manifest.json"
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, str(REPO_ROOT / "pipeline" / "generate.py"), *args],
-        capture_output=True, text=True, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, cwd=str(REPO_ROOT), env=_env(),
     )
 
 
 def _digests() -> dict[str, str]:
-    return {p.name: sha256_file(p) for p in sorted(RESPONSES_DIR.glob("*.json"))}
+    return {p.name: sha256_file(p) for p in sorted(_sandbox_responses().glob("*.json"))}
 
 
 def test_two_offline_runs_produce_byte_identical_stimuli():
@@ -55,13 +93,13 @@ def test_two_offline_runs_produce_byte_identical_stimuli():
 def test_the_manifest_digest_survives_a_regeneration():
     _run("--offline")
     subprocess.run([sys.executable, str(REPO_ROOT / "pipeline" / "hash_manifest.py")],
-                   capture_output=True, cwd=str(REPO_ROOT))
-    first = json.loads(MANIFEST_JSON.read_text(encoding="utf-8"))["manifest_sha256"]
+                   capture_output=True, cwd=str(REPO_ROOT), env=_env())
+    first = json.loads(_sandbox_manifest().read_text(encoding="utf-8"))["manifest_sha256"]
 
     _run("--offline")
     subprocess.run([sys.executable, str(REPO_ROOT / "pipeline" / "hash_manifest.py")],
-                   capture_output=True, cwd=str(REPO_ROOT))
-    second = json.loads(MANIFEST_JSON.read_text(encoding="utf-8"))["manifest_sha256"]
+                   capture_output=True, cwd=str(REPO_ROOT), env=_env())
+    second = json.loads(_sandbox_manifest().read_text(encoding="utf-8"))["manifest_sha256"]
 
     assert first == second
 
@@ -72,7 +110,7 @@ def test_the_integrity_gate_passes_after_a_regeneration():
     _run("--offline")
     result = subprocess.run(
         [sys.executable, str(REPO_ROOT / "pipeline" / "hash_manifest.py"), "--check"],
-        capture_output=True, text=True, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, cwd=str(REPO_ROOT), env=_env(),
     )
     assert result.returncode == 0, result.stdout + result.stderr
 
@@ -173,3 +211,42 @@ def test_a_provider_that_cannot_serve_a_cell_says_so_rather_than_returning_nothi
     with pytest.raises(ProviderError):
         provider.complete("sys", "user", {"properties": {}, "required": []},
                           "justification", "justification/en/item_01")
+
+
+def test_running_the_generator_never_touches_the_committed_materials():
+    """The guard on everything above.
+
+    Any test in this module that forgets the sandbox would rewrite the frozen
+    stimuli, and the damage would be invisible for exactly as long as the
+    stimuli remain placeholders. So the committed set is hashed before and
+    after a real generator run, from outside the sandbox.
+    """
+    committed = REPO_ROOT / "materials"
+    before = {
+        path.relative_to(committed).as_posix(): sha256_file(path)
+        for path in sorted(committed.rglob("*.json"))
+    }
+    assert before, "no committed materials found to protect"
+
+    result = _run("--offline")
+    assert result.returncode == 0, result.stderr
+    # The manifest rebuild too, and not as an afterthought: regenerating
+    # placeholders happens to be byte-identical, so generation alone would leave
+    # the committed files untouched and this guard would pass without proving
+    # anything. Rewriting the manifest is the step that actually moves bytes.
+    manifest = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "pipeline" / "hash_manifest.py")],
+        capture_output=True, text=True, cwd=str(REPO_ROOT), env=_env(),
+    )
+    assert manifest.returncode == 0, manifest.stderr
+
+    after = {
+        path.relative_to(committed).as_posix(): sha256_file(path)
+        for path in sorted(committed.rglob("*.json"))
+    }
+    changed = sorted(k for k in before if before[k] != after.get(k))
+    assert changed == [], (
+        f"a test run rewrote committed materials: {changed}. "
+        "Generation must happen in a sandbox; the frozen set is the thing the "
+        "manifest exists to protect."
+    )

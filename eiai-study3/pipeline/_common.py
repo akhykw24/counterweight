@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sys
 import unicodedata
@@ -60,7 +61,16 @@ def load_dotenv() -> list[str]:
                 os.environ[key] = value
                 loaded.append(f"{key} <- {path.name}")
     return loaded
-MATERIALS = REPO_ROOT / "materials"
+# Materials root. Overridable so a test can exercise the generator against a
+# throwaway copy instead of the committed, frozen set.
+#
+# This is not a convenience. `generate.py --offline` regenerates
+# unconditionally, so before this existed a plain `pytest` run overwrote every
+# real stimulus with a placeholder and rebuilt the manifest around it -- the
+# integrity gate would then have passed, because the thing it compares against
+# had been rewritten too. The safeguard was destroyed by the suite that tests
+# it. Nothing but the test suite should ever set this.
+MATERIALS = Path(os.environ.get("EIAI_MATERIALS_DIR") or (REPO_ROOT / "materials"))
 ITEMS_PATH = MATERIALS / "items.json"
 QUALITY_ASSIGNMENT_PATH = MATERIALS / "quality_assignment.json"
 PROMPTS_DIR = MATERIALS / "prompts"
