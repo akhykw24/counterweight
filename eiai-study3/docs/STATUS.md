@@ -41,7 +41,7 @@ Thirteen gates, all passing. Nothing is skipped, disabled or marked `.only`.
 | 1.4 | Register FSM: LOW < 40, MODERATE 40–70, HIGH > 70 | **done** | `packages/fsm/src/register.ts` | `packages/fsm/test/register.test.ts` (fast-check) | Throws outside [0,100] rather than clamping. |
 | 1.5 | Warm branches by confidence, neutral does not | **done** | `packages/fsm/src/register.ts` (`registerFor`) | `packages/stimuli/test/golden.test.ts` | The non-branching is asserted, not incidental. |
 | 1.6 | 12 items × (3 warm registers + 1 neutral) = 48 responses | **done** | `materials/responses/*.json` (4 files × 12 items) | `packages/stimuli/test/golden.test.ts` | Structurally complete. Content is placeholder — see 1.7. |
-| 1.7 | Stimuli pre-generated, hand-verified, frozen | **structure done, content pending** | `pipeline/generate.py`, `pipeline/hash_manifest.py` | `python pipeline/hash_manifest.py --check` | Frozen and hash-manifested, and the manifest records `launch_ready: false`. The texts are offline placeholders: a full run costs about 394,000 tokens against a 200,000/day free-tier budget. See "Needs you" #2. |
+| 1.7 | Stimuli pre-generated, hand-verified, frozen | **structure done, content pending** | `pipeline/generate.py`, `pipeline/hash_manifest.py` | `python pipeline/hash_manifest.py --check` | Frozen and hash-manifested, and the manifest records `launch_ready: false`. The texts are offline placeholders. A full run is 48 cells / about 136,000 tokens against a 200,000/day free-tier budget, so it fits in one day and roughly 18 minutes of wall clock at the pacing the free tier needs. See "Needs you" #2. |
 | 1.8 | Perceived-warmth manipulation check (must differ) | **done** | `pipeline/analysis.py` (`manipulation_checks`) | `pipeline/tests/test_manipulation_checks.py` | Directional: warm must read as warmer, not merely different. Printed above the hypothesis tests. |
 | 1.9 | Perceived-competence control check (must NOT differ) | **done** | `pipeline/analysis.py` (`manipulation_checks`) | `pipeline/tests/test_manipulation_checks.py` | Judged by BF₀₁ ≥ 3 with at least 20 per arm, not by p > .05 — a p-based control is easiest to pass with a sample too small to say anything. |
 | 1.10 | Per-item perceived argument strength, after the revised estimate | **done** | `packages/fsm/src/session.ts` (`task.rate`), `apps/study/src/screens.tsx` | `apps/study/test/argument-rating.test.tsx` | One event per item, no skip transition; a structural test asserts the state handles nothing but `RATE_ARGUMENT`. |
@@ -108,9 +108,12 @@ Thirteen gates, all passing. Nothing is skipped, disabled or marked `.only`.
 1. **κ coding.** Two raters, five components, κ ≥ 0.60 each. The export and the
    scoring exist; the raters do not.
 
-2. **Real stimulus generation.** About 394,000 tokens against a free-tier budget
-   of 200,000 a day, so roughly two days of runs. `--dry-run` prints the cost
-   before spending anything. Until then `launch_ready` stays false.
+2. **Real stimulus generation.** 48 cells, about 136,000 tokens against a
+   free-tier budget of 200,000 a day — one day's budget, roughly 18 minutes of
+   wall clock. (The earlier estimate of 394,000 was for three languages; v2 is
+   English only.) `--dry-run` prints the cost before spending anything.
+   Generation is followed by hand-verification, which is the slower half.
+   Until both are done `launch_ready` stays false.
 
 3. **The debrief does not mention the style manipulation.** It discloses every
    planted error with the correct value and a source, but not that participants
