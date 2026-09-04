@@ -242,7 +242,7 @@ describe("debrief", () => {
     return user;
   }
 
-  it("discloses every planted error with its correct value and a source", async () => {
+  it("discloses every planted error with its correct value", async () => {
     await reachDebrief();
     const errorItems = items.filter((item) => item.is_error);
     expect(errorItems).toHaveLength(4);
@@ -286,6 +286,46 @@ describe("debrief", () => {
     const user = await reachDebrief();
     await user.click(screen.getByTestId("submit-debrief"));
     expect(screen.getByTestId("screen").dataset["state"]).toBe("done");
+  });
+
+  it("cites a source for every correction, which is what makes it checkable", async () => {
+    await reachDebrief();
+    // The screen renders `item.sources[0]`. Nothing above proved a source is
+    // actually there: an item bank entry with an empty `sources` array would
+    // render the label and no citation, and every existing assertion would
+    // still pass. A debrief that says "Source:" and stops is worse than one
+    // that says nothing, because it looks like it has been checked.
+    for (const item of items.filter((i) => i.is_error)) {
+      const citation = screen.getByTestId(`debrief-${item.id}-source`).textContent ?? "";
+      expect(citation.trim(), `${item.id} has no citation`).not.toHaveLength(0);
+      expect(citation).toContain(item.sources[0]!.citation);
+    }
+  });
+
+  it("is the only way to reach done, so nobody finishes undebriefed", () => {
+    // "Debrief screen after completion" is a claim about reachability, not
+    // about a screen existing. If any other state could target done, a
+    // participant could finish without being told about the planted errors --
+    // and the withdrawal offer that follows disclosure would go with it.
+    const machine = createSessionMachine(ITEM_IDS);
+    const targetsDone = Object.entries(machine.states).filter(([name, state]) => {
+      if (name === "debrief") return false;
+      return JSON.stringify(state.config.on ?? {}).includes('"done"');
+    });
+    expect(targetsDone.map(([name]) => name)).toEqual([]);
+    expect(JSON.stringify(machine.states["debrief"]!.config.on)).toContain("done");
+  });
+
+  it("keeps disclosure tied to the planted error, not to the quality label", async () => {
+    await reachDebrief();
+    // v2 relabelled item_08 and item_12 weak. They are still correct answers,
+    // so they must stay out of the debrief. Keying disclosure off the quality
+    // label instead of `is_error` would "correct" two answers that were never
+    // wrong -- telling a participant they were deceived when they were not.
+    for (const id of ["item_08", "item_12"]) {
+      expect(items.find((i) => i.id === id)!.is_error).toBe(false);
+      expect(screen.queryByTestId(`debrief-${id}`)).toBeNull();
+    }
   });
 });
 

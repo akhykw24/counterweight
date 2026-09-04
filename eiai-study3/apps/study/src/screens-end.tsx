@@ -277,8 +277,12 @@ export function DebriefScreen({
               {item.true_value} {item.unit[language]}
             </span>
             <br />
-            <span className="source">
-              {t("debrief.source")}: {item.sources[0]?.citation}
+            <span className="source" data-testid={`debrief-${item.id}-source`}>
+              {/* The schema requires at least one source per item, so the
+                  assertion states what is already enforced at load. Optional
+                  chaining here would render the label with nothing after it --
+                  a correction that looks sourced and is not. */}
+              {t("debrief.source")}: {item.sources[0]!.citation}
             </span>
           </li>
         ))}
