@@ -45,6 +45,8 @@ async function reachQuestionnaire() {
   fireEvent.pointerUp(screen.getByTestId("final-estimate"));
   fireEvent.pointerUp(screen.getByTestId("final-confidence"));
   await user.click(screen.getByTestId("submit-final"));
+  // Perceived argument strength, asked once per item after the estimate.
+  await user.click(screen.getByTestId("argument-strength-4"));
   return user;
 }
 
@@ -208,6 +210,7 @@ describe("funnel", () => {
     fireEvent.pointerUp(screen.getByTestId("final-estimate"));
     fireEvent.pointerUp(screen.getByTestId("final-confidence"));
     await user.click(screen.getByTestId("submit-final"));
+    await user.click(screen.getByTestId("argument-strength-4"));
     await fillQuestionnaire(user);
     await user.click(screen.getByTestId("submit-questionnaire"));
 

@@ -52,8 +52,11 @@ describe("event envelope", () => {
 });
 
 describe("taxonomy coverage", () => {
-  it("defines all 18 event types from the spec taxonomy", () => {
-    expect(eventSchemas).toHaveLength(18);
+  it("defines every event type in the spec v2 taxonomy", () => {
+    // 18 in v1. v2 removed ASSENT_GIVEN with the minor flow and added
+    // SCREENED_OUT (screening counts, without storing anything about the
+    // person) and ARGUMENT_RATED (the within-subjects manipulation check).
+    expect(eventSchemas).toHaveLength(19);
   });
 
   it("exposes every defined event through the discriminated union", () => {

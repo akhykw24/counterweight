@@ -45,6 +45,7 @@ const SCREEN_STATES = [
   { task: "estimate" },
   { task: "advice" },
   { task: "revise" },
+  { task: "rate" },
   "questionnaire",
   { funnel: "purpose" },
   { funnel: "anomaly" },
@@ -86,6 +87,7 @@ function eventsFor(ageAnswer: string) {
     { type: "SUBMIT_INITIAL" },
     { type: "REQUEST_FINAL" },
     { type: "SUBMIT_FINAL" },
+    { type: "RATE_ARGUMENT", perceivedStrength: 4 },
     { type: "SELECT_FOLLOWUP", followupId: "challenge" },
     { type: "CLICK_VERIFY" },
     { type: "ANSWER_QUESTION", id: "warmth_01", value: 5 },
@@ -122,6 +124,7 @@ function serializeState(snapshot: any): string {
     initial: [c.initialEstimate !== null, c.initialConfidence !== null],
     final: [c.finalEstimate !== null, c.finalConfidence !== null],
     followups: c.followupsSelected.length,
+    ratings: Object.keys(c.argumentRatings).length,
     answers: Object.keys(c.answers).length,
     funnel: Object.keys(c.funnelAnswers).sort(),
     withdrawn: c.withdrawnFrom !== null,
@@ -181,6 +184,8 @@ async function execute(user: ReturnType<typeof userEvent.setup>, event: any) {
       return click("request-final");
     case "SUBMIT_FINAL":
       return click("submit-final");
+    case "RATE_ARGUMENT":
+      return click(`argument-strength-${event.perceivedStrength}`);
     case "SELECT_FOLLOWUP":
       return click(`followup-${event.followupId}`);
     case "CLICK_VERIFY":

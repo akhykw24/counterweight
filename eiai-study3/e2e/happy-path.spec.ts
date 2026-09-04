@@ -115,6 +115,8 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
     await tapSlider(page, "final-estimate");
     await tapSlider(page, "final-confidence");
     await page.locator(testId("submit-final")).click();
+    // Perceived argument strength, asked once per item after the estimate.
+    await page.locator(testId("argument-strength-4")).click();
   }
 
   // --- questionnaire ---

@@ -15,6 +15,7 @@ import {
   ConsentScreen,
   ScreenedOutScreen,
   EligibilityScreen,
+  ArgumentRatingScreen,
   ItemScreen,
   TerminalScreen,
   WithdrawButton,
@@ -64,9 +65,6 @@ export function App({
   );
   const name = stateName(state.value);
   const context = state.context;
-  // BOOTSTRAP_LANGUAGE: the eligibility screen has to render in something
-  // before the participant has chosen. This is the only assumed language in the
-  // app, it applies to UI chrome only, and it is replaced the moment they pick.
   const t = translator(requireLanguage(context, "the interface"));
 
   const startedAt = useRef(Date.now());
@@ -189,6 +187,14 @@ export function App({
           allocation_seq: event.allocationSeq,
         });
         break;
+      case "RATE_ARGUMENT":
+        if (itemId) {
+          recorder.record("ARGUMENT_RATED", {
+            item_id: itemId,
+            perceived_strength: event.perceivedStrength,
+          });
+        }
+        break;
       case "SET_ESTIMATE":
         if (phase === "final") finalRevisions.current += 1;
         if (itemId) {
@@ -296,6 +302,13 @@ export function App({
             send={send}
             phase="advice"
             onAdviceScroll={onAdviceScroll}
+          />
+        )}
+        {name === "task.rate" && currentItemId(context) && (
+          <ArgumentRatingScreen
+            context={context}
+            send={send}
+            itemId={currentItemId(context)!}
           />
         )}
         {name === "task.revise" && (

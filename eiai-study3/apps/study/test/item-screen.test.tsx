@@ -163,6 +163,7 @@ describe("advice rendering", () => {
     fireEvent.pointerUp(screen.getByTestId("final-estimate"));
     fireEvent.pointerUp(screen.getByTestId("final-confidence"));
     await user.click(screen.getByTestId("submit-final"));
+    await user.click(screen.getByTestId("argument-strength-4"));
 
     expect(screen.getByTestId("screen").dataset["state"]).toBe("task.estimate");
     expect(screen.getByTestId("initial-estimate-value").textContent).toBe("—");

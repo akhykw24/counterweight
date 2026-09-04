@@ -233,6 +233,20 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | `payload.revision_count` | integer | yes | >= 0 | Number of ESTIMATE_CHANGED events in the final phase before submit. Indexes uncertainty in the revision itself. |
 | `payload.ms_since_reveal` | integer | yes | >= 0 | Elapsed milliseconds. |
 
+#### `ARGUMENT_RATED`
+
+Perceived strength of the argument in the advice, asked once per item immediately after the revised estimate. The manipulation check for the within-subjects factor: without it a null interaction cannot be told apart from strong and weak arguments that did not read differently. Recorded AFTER the estimate so that rating cannot influence what it is meant to explain -- the event order in the log is what shows this.
+
+*Emitted when:* after the revised estimate
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `type` | `"ARGUMENT_RATED"` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
+| `payload.perceived_strength` | integer | yes | >= 1, <= 7 | 1 = very weak, 7 = very strong. |
+
 #### `QUESTIONNAIRE_ANSWERED`
 
 One questionnaire item. Emitted per item rather than per scale so partial completion is still analysable.

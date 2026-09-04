@@ -61,6 +61,7 @@ function answerItem(actor: ReturnType<typeof start>, confidence = 55) {
     { type: "SET_ESTIMATE", value: 20 },
     { type: "SET_CONFIDENCE", value: 60 },
     { type: "SUBMIT_FINAL" },
+    { type: "RATE_ARGUMENT", perceivedStrength: 4 },
   );
   return actor;
 }

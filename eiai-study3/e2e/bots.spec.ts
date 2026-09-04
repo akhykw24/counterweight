@@ -136,6 +136,8 @@ async function runSession(page: Page, policyName: PolicyName): Promise<WalRecord
     await finalInput.fill(String(Math.round(initial * (1 + policy.woa * 0.3))));
     await page.locator(testId("final-confidence")).click();
     await page.locator(testId("submit-final")).click();
+    // Perceived argument strength, asked once per item after the estimate.
+    await page.locator(testId("argument-strength-4")).click();
   }
 
   await expect(page.locator(testId("screen-questionnaire"))).toBeVisible();

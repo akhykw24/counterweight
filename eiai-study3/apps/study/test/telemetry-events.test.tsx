@@ -174,6 +174,7 @@ describe("event emission", () => {
     fireEvent.change(screen.getByTestId("final-estimate"), { target: { value: "11500" } });
     fireEvent.pointerUp(screen.getByTestId("final-confidence"));
     await user.click(screen.getByTestId("submit-final"));
+    await user.click(screen.getByTestId("argument-strength-4"));
 
     const finalized = log.of("ESTIMATE_FINALIZED");
     expect(finalized).toHaveLength(1);
@@ -309,6 +310,7 @@ describe("everything emitted validates against the shared schema", () => {
     fireEvent.pointerUp(screen.getByTestId("final-estimate"));
     fireEvent.pointerUp(screen.getByTestId("final-confidence"));
     await user.click(screen.getByTestId("submit-final"));
+    await user.click(screen.getByTestId("argument-strength-4"));
 
     const batch = {
       events: log.events.map((event, index) => ({

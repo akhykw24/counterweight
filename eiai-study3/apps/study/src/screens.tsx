@@ -272,6 +272,48 @@ export function AllocatingScreen({
   );
 }
 
+const STRENGTH_POINTS = [1, 2, 3, 4, 5, 6, 7];
+
+export function ArgumentRatingScreen({
+  context,
+  send,
+  itemId,
+}: {
+  context: SessionContext;
+  send: Send;
+  itemId: string;
+}) {
+  // Shown only after the estimate is committed. Participant-facing copy written
+  // for v2 and FLAGGED for the researcher's review.
+  const stimulus = stimulusFor(context, itemId);
+  return (
+    <section data-testid="screen-item-rate">
+      <h1>One more question about that answer</h1>
+      <p className="justification" data-testid="rate-justification">
+        {stimulus.justification_text}
+      </p>
+      <fieldset className="likert">
+        <legend>
+          How strong did you find the reason the assistant gave for its answer?
+        </legend>
+        <span className="anchor">Very weak</span>
+        {STRENGTH_POINTS.map((point) => (
+          <button
+            key={point}
+            type="button"
+            className="choice"
+            data-testid={`argument-strength-${point}`}
+            onClick={() => send({ type: "RATE_ARGUMENT", perceivedStrength: point })}
+          >
+            {point}
+          </button>
+        ))}
+        <span className="anchor">Very strong</span>
+      </fieldset>
+    </section>
+  );
+}
+
 function Slider({
   id,
   label,

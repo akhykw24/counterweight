@@ -40,6 +40,8 @@ export interface SessionContext {
   cefr: CefrLevel | null;
   /** Language of study or work. Covariate only; never a gate. */
   studyWorkLanguage: StudyWorkLanguage | null;
+  /** Perceived argument strength per item, 1-7. */
+  argumentRatings: Readonly<Record<string, number>>;
   /** Why the visitor was turned away, or null if they were not. */
   screenedOutReason: ScreenedOutReason | null;
 
@@ -95,6 +97,7 @@ export type SessionEvent =
   | { type: "SUBMIT_INITIAL" }
   | { type: "REQUEST_FINAL" }
   | { type: "SUBMIT_FINAL" }
+  | { type: "RATE_ARGUMENT"; perceivedStrength: number }
   | { type: "SUBMIT_QUESTIONNAIRE" }
   | { type: "SUBMIT_FUNNEL" }
   | { type: "FINISH" }
@@ -212,10 +215,7 @@ export function createSessionMachine(
     finalComplete: ({ context }) =>
       typeof context.finalEstimate === "number" &&
       typeof context.finalConfidence === "number",
-    finalCompleteWithMoreItems: ({ context }) =>
-      typeof context.finalEstimate === "number" &&
-      typeof context.finalConfidence === "number" &&
-      context.itemIndex + 1 < context.itemIds.length,
+    hasMoreItems: ({ context }) => context.itemIndex + 1 < context.itemIds.length,
     questionnaireComplete: ({ context }) =>
       requiredQuestionIds.every((id) => context.answers[id] !== undefined),
     // Each follow-up may be asked once per item. The reply is pre-written and
@@ -250,6 +250,13 @@ export function createSessionMachine(
         ? { studyWorkLanguage: event.studyWorkLanguage }
         : {},
     ),
+    recordArgumentRating: assign(({ context, event }) => {
+      const itemId = currentItemId(context);
+      if (event.type !== "RATE_ARGUMENT" || !itemId) return {};
+      return {
+        argumentRatings: { ...context.argumentRatings, [itemId]: event.perceivedStrength },
+      };
+    }),
     screenOutForAge: assign(() => ({ screenedOutReason: "age" as const })),
     screenOutForLanguage: assign(() => ({ screenedOutReason: "language" as const })),
     screenOutForPriorTraining: assign(() => ({
@@ -346,6 +353,7 @@ export function createSessionMachine(
     priorTraining: null,
     cefr: null,
     studyWorkLanguage: null,
+    argumentRatings: {},
     screenedOutReason: null,
     condition: null,
     stratum: null,
@@ -456,13 +464,30 @@ export function createSessionMachine(
             // paths in place of SUBMIT_FINAL -- and a model-based UI test
             // cannot click an internal event. Keeping every transition
             // user-driven keeps the generated paths executable against the DOM.
-            SUBMIT_FINAL: [
+            // The rating comes AFTER the estimate is committed, so that
+            // rating an argument cannot influence the judgement it is meant to
+            // explain. It is a separate state rather than a field on the revise
+            // screen for the same reason.
+            SUBMIT_FINAL: { guard: "finalComplete", target: "rate" },
+          },
+        },
+
+        rate: {
+          meta: { screen: "item.rate" },
+          on: {
+            // No skip transition. An optional measure goes missing exactly for
+            // the least engaged participants, which is the worst pattern of
+            // missingness this question could have.
+            RATE_ARGUMENT: [
               {
-                guard: "finalCompleteWithMoreItems",
+                guard: "hasMoreItems",
                 target: "estimate",
-                actions: "nextItem",
+                actions: ["recordArgumentRating", "nextItem"],
               },
-              { guard: "finalComplete", target: "#session.questionnaire" },
+              {
+                target: "#session.questionnaire",
+                actions: "recordArgumentRating",
+              },
             ],
           },
         },

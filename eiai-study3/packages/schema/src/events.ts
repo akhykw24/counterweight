@@ -11,6 +11,7 @@ import {
   FollowupId,
   FunnelStage,
   ItemId,
+  Likert7,
   Language,
   QuestionnaireScale,
   RegisterState,
@@ -200,6 +201,15 @@ export const EstimateFinalized = defineEvent(
   },
 );
 
+export const ArgumentRated = defineEvent(
+  "ARGUMENT_RATED",
+  "Perceived strength of the argument in the advice, asked once per item immediately after the revised estimate. The manipulation check for the within-subjects factor: without it a null interaction cannot be told apart from strong and weak arguments that did not read differently. Recorded AFTER the estimate so that rating cannot influence what it is meant to explain -- the event order in the log is what shows this.",
+  {
+    item_id: ItemId,
+    perceived_strength: Likert7.describe("1 = very weak, 7 = very strong."),
+  },
+);
+
 export const QuestionnaireAnswered = defineEvent(
   "QUESTIONNAIRE_ANSWERED",
   "One questionnaire item. Emitted per item rather than per scale so partial completion is still analysable.",
@@ -252,6 +262,7 @@ export const eventSchemas = [
   WindowBlurred,
   WindowFocused,
   EstimateFinalized,
+  ArgumentRated,
   QuestionnaireAnswered,
   FunnelResponse,
   SessionCompleted,
@@ -273,6 +284,7 @@ export const StudyEvent = z.discriminatedUnion("type", [
   WindowBlurred,
   WindowFocused,
   EstimateFinalized,
+  ArgumentRated,
   QuestionnaireAnswered,
   FunnelResponse,
   SessionCompleted,
