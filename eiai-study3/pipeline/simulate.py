@@ -202,6 +202,9 @@ def simulate_session(
             "stimuli_manifest_hash": manifest_hash,
             "viewport": {"width": 1280, "height": 800},
             "resumed": False,
+            # Simulated participants are always first-timers. Criterion 5 is a
+            # browser-local fact, so the simulator has nothing to vary here.
+            "repeat_session": False,
         },
     )
     writer.advance(rng.randint(2000, 6000))

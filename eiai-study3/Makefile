@@ -7,6 +7,7 @@
 #   make install    dependencies (pnpm + Playwright's Chromium)
 #   make verify     everything CI gates on
 #   make sim        synthetic participants -> tables -> recovery
+#   make exclusions the section 8.6 criteria, counted per criterion
 #   make paper      the whole chain, ending in paper/results.pdf
 #   make repro      proves the projections and generated files are reproducible
 #   make clean      remove generated data (never touches materials/)
@@ -19,6 +20,7 @@ TABLES      := $(DATA)/tables
 EVENTS      := $(DATA)/sim-events.jsonl
 TRUTH       := $(DATA)/sim-truth.csv
 RESULTS     := $(DATA)/results.json
+EXCLUSIONS  := $(DATA)/exclusions.json
 MULTIVERSE  := $(DATA)/multiverse
 PAPER       := paper
 
@@ -27,12 +29,12 @@ PAPER       := paper
 # that the intervals are tight.
 N ?= 60
 
-.PHONY: all install verify sim paper repro clean help
+.PHONY: all install verify sim exclusions paper repro clean help
 
 all: paper
 
 help:
-	@echo "install  verify  sim  paper  repro  clean"
+	@echo "install  verify  sim  exclusions  paper  repro  clean"
 
 install:
 	$(PNPM) install --frozen-lockfile
@@ -52,13 +54,22 @@ $(EVENTS):
 $(TABLES)/trials.csv: $(EVENTS) pipeline/replay.py
 	$(PYTHON) pipeline/replay.py --events $(EVENTS) --out $(TABLES)
 
-$(RESULTS): $(TABLES)/trials.csv pipeline/analysis.py
-	$(PYTHON) pipeline/analysis.py --tables $(TABLES) --recover $(TRUTH) --json $(RESULTS)
+# Exclusions are their own step with their own output (spec v2 section 8.6).
+# Kept separate from the analysis so the per-criterion counts exist as a file
+# somebody can read without running the analysis, and so nobody can adjust them
+# after seeing a result.
+$(EXCLUSIONS): $(TABLES)/trials.csv pipeline/exclusions.py
+	$(PYTHON) pipeline/exclusions.py --tables $(TABLES) --out $(EXCLUSIONS)
+
+$(RESULTS): $(TABLES)/trials.csv $(EXCLUSIONS) pipeline/analysis.py
+	$(PYTHON) pipeline/analysis.py --tables $(TABLES) --recover $(TRUTH) --exclusions --json $(RESULTS)
 
 $(MULTIVERSE)/specification_curve.csv: $(TABLES)/trials.csv pipeline/multiverse.py
 	$(PYTHON) pipeline/multiverse.py --tables $(TABLES) --out $(MULTIVERSE)
 
 sim: $(RESULTS)
+
+exclusions: $(EXCLUSIONS)
 
 # --- the paper ------------------------------------------------------------
 

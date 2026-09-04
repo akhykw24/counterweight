@@ -45,6 +45,8 @@ export interface AppProps {
   /** Drives condition assignment from the committed sequence. */
   sessionId?: string;
   resumed?: boolean;
+  /** This browser already completed a session; exclusion criterion 5. */
+  repeatSession?: boolean;
   snapshot?: unknown;
   onSnapshot?: (snapshot: unknown) => void;
   onComplete?: () => void;
@@ -55,6 +57,7 @@ export function App({
   recorder = noopRecorder,
   sessionId = "00000000-0000-4000-8000-000000000000",
   resumed = false,
+  repeatSession = false,
   snapshot,
   onSnapshot,
   onComplete,
@@ -91,8 +94,9 @@ export function App({
         height: globalThis.innerHeight || 768,
       },
       resumed,
+      repeat_session: repeatSession,
     });
-  }, [recorder, resumed, context.language]);
+  }, [recorder, resumed, repeatSession, context.language]);
 
   // --- resume snapshot, written on every transition ------------------------
   useEffect(() => {

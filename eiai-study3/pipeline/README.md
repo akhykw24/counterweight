@@ -17,6 +17,7 @@ allocation.py          seeded block-randomised condition sequence; --check gates
   simulation and analysis
 simulate.py            three bot policies -> synthetic event log + answer key
 replay.py              event log -> trials/participants/questionnaire/transitions
+exclusions.py          section 8.6 criteria, counted per criterion, as its own step
 analysis.py            H1-H5, Bayes factor, and --recover for parameter recovery
 multiverse.py          48-specification curve
 report.py              results.json + curve -> a self-contained HTML document

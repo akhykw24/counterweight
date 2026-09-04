@@ -267,6 +267,10 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
         "app_version": (started or {}).get("payload", {}).get("app_version"),
         "stimuli_manifest_hash": (started or {}).get("payload", {}).get("stimuli_manifest_hash"),
         "resumed": int(bool((started or {}).get("payload", {}).get("resumed"))),
+        # Exclusion criterion 5. Absent in logs recorded before the flag
+        # existed, which projects as 0 -- the honest reading, since those
+        # sessions carry no evidence either way.
+        "repeat_session": int(bool((started or {}).get("payload", {}).get("repeat_session"))),
         # One consent flow in v2, so the useful facts are whether consent was
         # given at all and whether the visitor was screened out before it.
         "consented": int(consent is not None),
@@ -356,7 +360,7 @@ TRIAL_COLUMNS = [
 
 PARTICIPANT_COLUMNS = [
     "session_id", "condition", "stratum", "allocation_seq", "locale", "app_version",
-    "stimuli_manifest_hash", "resumed", "consented", "screened_out_reason", "language",
+    "stimuli_manifest_hash", "resumed", "repeat_session", "consented", "screened_out_reason", "language",
     "age_band", "primary_language",
     "ai_usage", "prior_knowledge",
     "completed", "withdrawn", "withdrawn_at_state", "total_duration_ms",

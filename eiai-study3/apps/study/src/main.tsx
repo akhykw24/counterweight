@@ -17,6 +17,7 @@ createRoot(root).render(
       recorder={session.recorder}
       sessionId={session.sessionId}
       resumed={session.resumed}
+      repeatSession={session.repeatSession}
       snapshot={session.snapshot}
       onSnapshot={session.persist}
       onComplete={session.complete}

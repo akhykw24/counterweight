@@ -50,6 +50,20 @@ export function loadResume(): ResumeState | null {
   }
 }
 
+/**
+ * Whether this browser already carries a completed session (spec v2 section
+ * 8.6, criterion 5).
+ *
+ * Must be read *before* `startSession`, which clears the marker. That ordering
+ * is the whole mechanism: the evidence of a repeat exists only in the moment
+ * between arriving and starting over.
+ */
+export function hadCompletedSession(): boolean {
+  const store = storage();
+  if (!store) return false;
+  return store.getItem(SESSION_KEY) !== null && store.getItem(COMPLETED_KEY) === "true";
+}
+
 export function startSession(sessionId: string): void {
   const store = storage();
   if (!store) return;

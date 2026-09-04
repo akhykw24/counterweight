@@ -210,6 +210,7 @@ describe("what the client sends is what the schema accepts", () => {
       stimuli_manifest_hash: "a".repeat(64),
       viewport: { width: 1280, height: 800 },
       resumed: false,
+      repeat_session: false,
     });
     await telemetry.record("ALLOCATED", {
       condition: "warm",

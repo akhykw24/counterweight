@@ -1,6 +1,7 @@
 import {
   createTelemetry,
   httpTransport,
+  hadCompletedSession,
   loadResume,
   markCompleted,
   saveSnapshot,
@@ -29,6 +30,7 @@ export interface Bootstrap {
   recorder: Recorder;
   sessionId: string;
   resumed: boolean;
+  repeatSession: boolean;
   snapshot: unknown | null;
   flush: () => Promise<unknown>;
   persist: (snapshot: unknown) => void;
@@ -41,6 +43,10 @@ const INGEST_ENDPOINT =
 export async function bootstrap(): Promise<Bootstrap> {
   const existing = loadResume();
   const resumed = existing !== null;
+  // Read before startSession, which clears the completion marker. This is the
+  // only moment the browser still holds evidence of an earlier finished
+  // session (exclusion criterion 5).
+  const repeatSession = hadCompletedSession();
   const sessionId = existing?.sessionId ?? crypto.randomUUID();
 
   if (!resumed) startSession(sessionId);
@@ -66,6 +72,7 @@ export async function bootstrap(): Promise<Bootstrap> {
     },
     sessionId,
     resumed,
+    repeatSession,
     snapshot: existing?.snapshot ?? null,
     flush: () => telemetry.flush(),
     persist: saveSnapshot,

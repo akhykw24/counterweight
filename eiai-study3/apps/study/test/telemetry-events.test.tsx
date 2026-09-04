@@ -77,6 +77,23 @@ describe("event emission", () => {
     expect(started[0]!.payload["resumed"]).toBe(false);
   });
 
+  it("reports repeat participation on SESSION_STARTED, defaulting to false", () => {
+    // Exclusion criterion 5 reads this field and nothing else. The default
+    // matters as much as the flag: a browser with no history is a first-time
+    // participant, and a missing field would make the criterion unfalsifiable.
+    const first = capturing();
+    render(<App machine={createSessionMachine(ITEM_IDS)} recorder={first.recorder} />);
+    expect(first.of("SESSION_STARTED")[0]!.payload["repeat_session"]).toBe(false);
+
+    cleanup();
+
+    const again = capturing();
+    render(
+      <App machine={createSessionMachine(ITEM_IDS)} recorder={again.recorder} repeatSession />,
+    );
+    expect(again.of("SESSION_STARTED")[0]!.payload["repeat_session"]).toBe(true);
+  });
+
   it("emits SESSION_STARTED once, not twice under StrictMode double-invocation", () => {
     // Event ids are unique, so an unguarded effect would write two genuine
     // rows for one session opening.

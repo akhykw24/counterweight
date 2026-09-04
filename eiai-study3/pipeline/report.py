@@ -117,6 +117,35 @@ def build_html(results: dict[str, Any], multiverse_rows: list[dict[str, str]],
     ]))
     parts.append("</table>")
 
+    exclusions = results.get("exclusions")
+    if exclusions:
+        # Per criterion, never as a single total. An aggregate "18 excluded"
+        # is unauditable: it hides whether the sample lost non-completers or
+        # lost the people who disagreed with the advice.
+        parts.append("<h2>Exclusions</h2>")
+        parts.append(
+            "<p>Specification section 8.6, applied as a separate pipeline step. "
+            f"{exclusions['n_excluded']} of {exclusions['n_participants']} participants "
+            f"flagged; {exclusions['n_retained']} retained. Every test above is reported "
+            "on the unexcluded sample; the excluded-sample figures are in "
+            "<code>results.json</code> under <code>with_exclusions</code>.</p>"
+        )
+        parts.append("<table>")
+        parts.append("<tr><th>#</th><th>Criterion</th><th class='num'>Excluded</th></tr>")
+        for criterion in exclusions["criteria"]:
+            label = criterion["label"]
+            if not criterion["applied"]:
+                label += " <em>(declared, not applied)</em>"
+            parts.append(
+                f"<tr><td>{criterion['number']}</td><td>{label}</td>"
+                f"<td class='num'>{criterion['n_excluded']}</td></tr>"
+            )
+        parts.append("</table>")
+        parts.append(
+            "<p>Participants can be flagged by more than one criterion, so the column "
+            "sums to at least the number excluded.</p>"
+        )
+
     parts.append("<h2>Weight of Advice</h2><table>")
     parts.append("<tr><th>Arm</th><th class='num'>strong</th><th class='num'>weak</th>"
                  "<th class='num'>discrimination</th></tr>")

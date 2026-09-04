@@ -45,6 +45,7 @@ import numpy as np
 import pandas as pd
 from scipy import integrate, stats
 
+from exclusions import apply_exclusions, filter_excluded, print_report as print_exclusions
 from _common import REPO_ROOT
 
 BOOTSTRAP_RESAMPLES = 5000
@@ -692,6 +693,11 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--exclude-suspicious", action="store_true")
     parser.add_argument("--exclude-resumed", action="store_true")
     parser.add_argument("--rt-trim", action="store_true")
+    parser.add_argument(
+        "--exclusions",
+        action="store_true",
+        help="also report the analysis with the section 8.6 exclusions applied",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     spec = Specification(
@@ -710,6 +716,21 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     results = analyse(frames, spec)
     print_report(results)
+
+    if args.exclusions:
+        # Both ways, always, and in this order: the unfiltered result is
+        # printed before anyone has seen which participants the criteria would
+        # remove. Section 8.6 requires the pair; printing only the filtered one
+        # is how an exclusion rule turns into a result-dependent choice.
+        exclusion_report = apply_exclusions(frames["participants"], frames["trials"])
+        print()
+        print_exclusions(exclusion_report)
+        retained = analyse(filter_excluded(frames, exclusion_report), spec)
+        print()
+        print("--- with exclusions applied ---")
+        print_report(retained)
+        results["exclusions"] = exclusion_report.to_log()
+        results["with_exclusions"] = retained
 
     exit_code = 0
     if args.recover:

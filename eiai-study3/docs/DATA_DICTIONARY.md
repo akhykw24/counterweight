@@ -44,6 +44,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | `payload.viewport.width` | integer | yes | > 0 |  |
 | `payload.viewport.height` | integer | yes | > 0 |  |
 | `payload.resumed` | boolean | yes |  | True when continuing an interrupted session. Pre-registered as an exclusion candidate. |
+| `payload.repeat_session` | boolean | yes |  | True when this browser already held a completed session, i.e. the same person is starting a second time. Exclusion criterion 5. Detectable only within a browser; a repeat from another device is undetectable without an identifier the no-PII rule forbids. |
 
 #### `SCREENED_OUT`
 
