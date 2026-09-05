@@ -34,3 +34,12 @@ materials/justifications.json
 # it would put a second copy of the stimuli beside the frozen ones.
 materials/generation_cache.json
 .env
+
+# Compiler output next to sources. A stray handler.js beside handler.ts is not
+# just clutter: the deployment entry imports "./handler.js", so a bundler
+# resolves the stale artefact instead of the source, and the deployed function
+# stops matching the repository. tsc emitted these here once, from a misplaced
+# outDir, and they were committed before anyone noticed.
+services/*/src/*.js
+services/*/api/*.js
+packages/*/src/*.js
