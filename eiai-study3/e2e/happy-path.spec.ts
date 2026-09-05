@@ -1,4 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  resetParticipant,
+  rowsFor,
+  sessionIdOf,
+  typesFor,
+  waitForType,
+} from "./event-log.js";
 
 /**
  * Happy path, end to end, in a real browser (day 5 done-criterion).
@@ -27,38 +34,21 @@ async function setSlider(page: Page, id: string, value: number): Promise<void> {
   await page.locator(testId(id)).fill(String(value));
 }
 
-/** Reads the write-ahead log straight out of IndexedDB. */
-async function walTypes(page: Page): Promise<string[]> {
-  return page.evaluate(async () => {
-    const records = await new Promise<{ seq: number; event: { type: string } }[]>(
-      (resolve, reject) => {
-        const request = indexedDB.open("eiai-telemetry");
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-          const tx = request.result.transaction("events", "readonly");
-          const all = tx.objectStore("events").getAll();
-          all.onsuccess = () => resolve(all.result);
-          all.onerror = () => reject(all.error);
-        };
-      },
-    );
-    return records.sort((a, b) => a.seq - b.seq).map((record) => record.event.type);
-  });
-}
+/*
+ * Events are read from the server's store (./event-log.ts), not from the
+ * browser's write-ahead log.
+ *
+ * These tests used to read IndexedDB directly, which worked only while nothing
+ * consumed it: the log is a buffer, and delivered events are removed from it.
+ * Once the dev server started accepting events, reading it at the end of a
+ * session returned only the undelivered tail. The server's copy is the one the
+ * analysis runs on, so asserting against it makes "recorded" and "received"
+ * one claim instead of two.
+ */
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/");
   // Each test is a fresh participant.
-  await page.evaluate(async () => {
-    localStorage.clear();
-    await new Promise((resolve) => {
-      const request = indexedDB.deleteDatabase("eiai-telemetry");
-      request.onsuccess = resolve;
-      request.onerror = resolve;
-      request.onblocked = resolve;
-    });
-  });
-  await page.reload();
+  await resetParticipant(page);
 });
 
 test("an adult completes a full twelve-item session", async ({ page }) => {
@@ -165,8 +155,13 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
   // Withdrawal is not offered once the session is over.
   await expect(page.locator(testId("withdraw"))).toHaveCount(0);
 
-  // --- the log ---
-  const types = await walTypes(page);
+  // --- the log, as the server received it ---
+  // Delivery is asynchronous, so the completed session is waited for rather
+  // than read immediately: an assertion that ran before the last flush would
+  // fail for a reason that has nothing to do with the study.
+  const id = await sessionIdOf(page);
+  await waitForType(id, "SESSION_COMPLETED", 1);
+  const types = typesFor(id);
   for (const required of [
     "SESSION_STARTED", "CONSENT_GIVEN", "ALLOCATED", "ITEM_PRESENTED",
     "ESTIMATE_CHANGED", "CONFIDENCE_SET", "RESPONSE_REVEALED",
@@ -196,7 +191,9 @@ test("under-18 is screened out before consent, with a reason and no data", async
   await expect(page.locator(testId("screen-consent"))).toHaveCount(0);
 
   // Only the screening outcome is recorded. Nothing identifies the visitor.
-  const types = await walTypes(page);
+  const id = await sessionIdOf(page);
+  await waitForType(id, "SCREENED_OUT", 1);
+  const types = typesFor(id);
   expect(types).toContain("SCREENED_OUT");
   expect(types).not.toContain("CONSENT_GIVEN");
   expect(types).not.toContain("ALLOCATED");
@@ -241,17 +238,24 @@ test("a reload mid-session resumes on the same item and loses nothing", async ({
   await page.locator(testId("submit-initial")).click();
   await expect(page.locator(testId("advice"))).toBeVisible();
 
-  const before = await walTypes(page);
+  const id = await sessionIdOf(page);
+  await waitForType(id, "RESPONSE_REVEALED", 1);
+  const before = rowsFor(id).map((row) => row.event_id);
+
   await page.reload();
 
   await expect(page.locator(testId("advice"))).toBeVisible();
   expect(await screenName(page)).toBe("task.advice");
 
-  const after = await walTypes(page);
-  // Nothing is lost, and the resumed opening is recorded.
-  expect(after.length).toBeGreaterThan(before.length);
+  // The resume is itself an event, so waiting for the second SESSION_STARTED
+  // is what tells us the post-reload flush has landed.
+  await waitForType(id, "SESSION_STARTED", 2);
+
+  // Nothing recorded before the reload was lost, and nothing was duplicated.
+  const after = rowsFor(id).map((row) => row.event_id);
   expect(after.slice(0, before.length)).toEqual(before);
-  expect(after.filter((type) => type === "SESSION_STARTED").length).toBe(2);
+  expect(new Set(after).size).toBe(after.length);
+  expect(typesFor(id).filter((type) => type === "SESSION_STARTED")).toHaveLength(2);
 });
 
 test("withdrawal is available from the item screen and ends the session", async ({ page }) => {
@@ -267,5 +271,7 @@ test("withdrawal is available from the item screen and ends the session", async 
   await page.locator(testId("withdraw-confirm")).click();
 
   await expect(page.locator(testId("screen-withdrawn"))).toBeVisible();
-  expect(await walTypes(page)).toContain("SESSION_WITHDRAWN");
+  const id = await sessionIdOf(page);
+  await waitForType(id, "SESSION_WITHDRAWN", 1);
+  expect(typesFor(id)).toContain("SESSION_WITHDRAWN");
 });

@@ -1,9 +1,17 @@
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { devIngestPlugin } from "../../services/ingest/src/dev-server.js";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Without this `pnpm dev` serves nothing at /api/events, every batch the
+    // browser sends 404s, and the write-ahead log hides it by retrying
+    // forever. The study looks like it works and no data leaves the laptop.
+    // Development now runs the same handler production does, over a file.
+    devIngestPlugin({ logPath: fileURLToPath(new URL("../../data/dev-events.jsonl", import.meta.url)) }),
+  ],
   resolve: {
     alias: {
       "@eiai/schema": fileURLToPath(new URL("../../packages/schema/src/index.ts", import.meta.url)),

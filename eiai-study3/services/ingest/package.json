@@ -5,7 +5,9 @@
   "type": "module",
   "description": "Single append-only write endpoint. Validates against @eiai/schema, inserts idempotently.",
   "exports": {
-    ".": "./src/handler.ts"
+    ".": "./src/handler.ts",
+    "./dev-server": "./src/dev-server.ts",
+    "./file-store": "./src/file-store.ts"
   },
   "dependencies": {
     "@eiai/schema": "workspace:*"

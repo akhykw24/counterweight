@@ -33,3 +33,4 @@ materials/justifications.json
 # Per-cell generation cache: derived, provider-keyed, and regenerable. Committing
 # it would put a second copy of the stimuli beside the frozen ones.
 materials/generation_cache.json
+.env

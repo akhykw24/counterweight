@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { resetParticipant, rowsFor, sessionIdOf, waitForType } from "./event-log.js";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -47,40 +48,16 @@ const POLICIES = {
 
 type PolicyName = keyof typeof POLICIES;
 
-interface WalRecord {
-  seq: number;
-  event: { type: string; payload: Record<string, unknown> };
-}
-
-async function readWal(page: Page): Promise<WalRecord[]> {
-  return page.evaluate(async () => {
-    const records = await new Promise<WalRecord[]>((resolve, reject) => {
-      const request = indexedDB.open("eiai-telemetry");
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const tx = request.result.transaction("events", "readonly");
-        const all = tx.objectStore("events").getAll();
-        all.onsuccess = () => resolve(all.result as WalRecord[]);
-        all.onerror = () => reject(all.error);
-      };
-    });
-    return records.sort((a, b) => a.seq - b.seq);
-  });
-}
-
-async function resetParticipant(page: Page): Promise<void> {
-  await page.goto("/");
-  await page.evaluate(async () => {
-    localStorage.clear();
-    await new Promise((resolve) => {
-      const request = indexedDB.deleteDatabase("eiai-telemetry");
-      request.onsuccess = resolve;
-      request.onerror = resolve;
-      request.onblocked = resolve;
-    });
-  });
-  await page.reload();
-}
+/*
+ * The exported log comes from the server's store, not from IndexedDB.
+ *
+ * This mattered more here than anywhere else. The write-ahead log is a buffer
+ * that empties as events are delivered, so once the dev server started
+ * accepting them, exporting from it would have written a truncated file --
+ * and `pipeline/verify_bridge.py` would then have compared the simulator
+ * against a fragment of a session while reporting agreement. A bridge that
+ * silently narrows what it covers is worse than no bridge.
+ */
 
 /** Scrolls the advice box to a fraction of its extent, as a reader would. */
 async function scrollAdvice(page: Page, fraction: number): Promise<void> {
@@ -91,7 +68,7 @@ async function scrollAdvice(page: Page, fraction: number): Promise<void> {
   }, fraction);
 }
 
-async function runSession(page: Page, policyName: PolicyName): Promise<WalRecord[]> {
+async function runSession(page: Page, policyName: PolicyName): Promise<string> {
   const policy = POLICIES[policyName];
   await resetParticipant(page);
 
@@ -164,13 +141,16 @@ async function runSession(page: Page, policyName: PolicyName): Promise<WalRecord
   await page.locator(testId("submit-debrief")).click();
   await expect(page.locator(testId("screen-done"))).toBeVisible();
 
-  const wal = await readWal(page);
-  expect(wal.length, `${policyName} produced no events`).toBeGreaterThan(0);
+  const id = await sessionIdOf(page);
+  await waitForType(id, "SESSION_COMPLETED", 1, 60_000);
+
+  const rows = rowsFor(id);
+  expect(rows.length, `${policyName} produced no events`).toBeGreaterThan(0);
   expect(
-    wal.filter((r) => r.event.type === "ESTIMATE_FINALIZED"),
+    rows.filter((row) => row.type === "ESTIMATE_FINALIZED"),
     `${policyName} (${condition}) did not finalise twelve trials`,
   ).toHaveLength(12);
-  return wal;
+  return id;
 }
 
 test("bot policies complete real sessions and export a comparable log", async ({ page }) => {
@@ -180,12 +160,22 @@ test("bot policies complete real sessions and export a comparable log", async ({
   const conditionsSeen = new Set<string>();
 
   for (const policyName of Object.keys(POLICIES) as PolicyName[]) {
-    const wal = await runSession(page, policyName);
-    for (const record of wal) {
-      lines.push(JSON.stringify(record.event));
+    const id = await runSession(page, policyName);
+    const rows = rowsFor(id);
+    for (const row of rows) {
+      lines.push(
+        JSON.stringify({
+          event_id: row.event_id,
+          session_id: row.session_id,
+          seq: row.seq,
+          client_ts: row.client_ts,
+          type: row.type,
+          payload: row.payload,
+        }),
+      );
     }
-    const allocated = wal.find((r) => r.event.type === "ALLOCATED");
-    conditionsSeen.add(String(allocated?.event.payload["condition"]));
+    const allocated = rows.find((row) => row.type === "ALLOCATED");
+    conditionsSeen.add(String(allocated?.payload["condition"]));
   }
 
   mkdirSync(dirname(OUTPUT), { recursive: true });

@@ -34,7 +34,10 @@
     "bridge": "python pipeline/verify_bridge.py",
     "test:py": "python -m pytest pipeline/tests -q",
     "power": "python pipeline/power.py --tables data/tables",
-    "stimuli:estimate": "python pipeline/generate.py --dry-run"
+    "stimuli:estimate": "python pipeline/generate.py --dry-run",
+    "dev": "pnpm --dir apps/study dev",
+    "ingest:check": "node scripts/verify-ingest.mjs",
+    "e2e:ingest": "playwright test e2e/ingest.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
