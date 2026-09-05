@@ -57,7 +57,8 @@ Thirteen gates, all passing. Nothing is skipped, disabled or marked `.only`.
 | # | Requirement | Status | Implemented in | Test that proves it | Comment |
 |---|---|---|---|---|---|
 | 3.1 | Append-only event log, immutable, replayable | **done** | `packages/schema/src/events.ts` (19 event types) | `packages/schema/test/events.test.ts` | Every payload field carries a description; the data dictionary is generated from them. |
-| 3.2 | Ingest service, idempotent on `event_id` | **done** | `services/ingest/src` | `services/ingest/test` | At-least-once delivery reconciled by event UUID. |
+| 3.2 | Ingest service, idempotent on `event_id` | **done** | `services/ingest/src` | `services/ingest/test`, `e2e/ingest.spec.ts` | At-least-once delivery reconciled by event UUID. `pnpm dev` mounts the production handler over a file-backed store, so the participant-to-server path runs and is tested with no cloud account. |
+| 3.4 | The events actually reach a server | **code done, not deployed** | `api/events.ts`, `vercel.json`, `services/ingest/sql/001_events.sql` | `e2e/ingest.spec.ts` (5 tests, including a mid-session outage); `scripts/verify-ingest.mjs` against a deployment | No Supabase project and no hosting yet, so a participant's data would stay on their own device. [`docs/DEPLOY.md`](DEPLOY.md) is the runbook; the verify script is the gate. See "Needs you" #5. |
 | 3.3 | Projections are pure functions of the log | **done** | `pipeline/replay.py` | `python pipeline/replay.py --check` | Reprojection is byte-identical from 66,614 events. |
 | 4.1 | Typed end to end, documentation generated from the schemas | **done** | `packages/schema`, `packages/schema/scripts/generate-data-dictionary.ts` | `pnpm codegen:check` | 248 documented fields; drift fails CI. |
 | 5.1 | Session flow as a statechart | **done** | `packages/fsm/src/session.ts` | `packages/fsm/test/session.test.ts` | Register selection is deliberately a pure function, not a state. |
@@ -124,3 +125,10 @@ Thirteen gates, all passing. Nothing is skipped, disabled or marked `.only`.
 4. **§8.4 process dynamics.** Exploratory in the specification. The data are
    logged, so it can be added after collection without changing anything the
    participant sees. Say the word if you want it now.
+
+5. **Deployment.** A Supabase project and a hosting project, both on free
+   tiers, both needing accounts only you can create. Follow
+   [`docs/DEPLOY.md`](DEPLOY.md); it ends in a command that tells you whether
+   it worked. This is the one blocker that cannot be worked around, because
+   the client survives a missing server silently: without it, participants
+   complete the study and the data stays on their laptops.
