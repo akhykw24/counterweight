@@ -122,17 +122,43 @@ without anyone having to remember it is there.
 **Do not recruit until this prints `All checks passed. Participants' data will
 reach the database.`**
 
-Finally, take the study yourself, end to end, on the deployed URL. Then check
-in Supabase:
+### Do not take the whole study on the production deployment
+
+An earlier version of this document told you to. That advice was wrong, and the
+reason is worth stating because it is easy to repeat.
+
+A completed test session carries `SESSION_COMPLETED`, so exclusion criterion 1
+does **not** drop it: it enters every analysis as a participant. It also
+consumes a randomisation slot, which shifts the block balance for everyone
+recruited after it. And the events table is append-only by construction --
+that is the guarantee the paper makes -- so the row cannot be deleted
+afterwards.
+
+The end-to-end path is already covered without touching production data:
+`e2e/ingest.spec.ts` drives the real app through the real handler for a full
+twelve-item session, and `verify-ingest --write` proves the deployed function
+reaches Supabase. Between them, everything a manual production run would tell
+you is already known.
+
+If you still want one full rehearsal against production -- reasonable before
+recruiting -- do it deliberately:
+
+1. Run it, and write down the session id (`localStorage.getItem("eiai.session_id")`).
+2. Record that id in the pre-registration as a known test session.
+3. Regenerate the allocation sequence afterwards (`pnpm allocation`) and
+   re-commit the digest, so the consumed slot does not bias the real sample.
+
+Opening the study and stopping before the consent screen is always safe: it
+writes a `SESSION_STARTED` with no completion, which criterion 1 removes.
+
+To see what has arrived so far, in Supabase:
 
 ```sql
 select type, count(*) from public.events group by type order by 2 desc;
 ```
 
-You should see `ITEM_PRESENTED`, `ESTIMATE_FINALIZED` and `ARGUMENT_RATED` at
-twelve each.
-
----
+After a genuine twelve-item session you would see `ITEM_PRESENTED`,
+`ESTIMATE_FINALIZED` and `ARGUMENT_RATED` at twelve each.
 
 ## Running it locally
 
