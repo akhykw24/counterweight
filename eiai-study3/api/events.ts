@@ -1,5 +1,3 @@
-import ingest from "../services/ingest/api/events.js";
-
 /**
  * Deployment entry point for the ingest endpoint.
  *
@@ -12,16 +10,51 @@ import ingest from "../services/ingest/api/events.js";
  * guarantee this service makes is that everything reaching the table was
  * validated by exactly one piece of code.
  *
- * `config` is declared here, literally, and NOT re-exported.
+ * Two things here are load-bearing and neither is style.
  *
- * That is not style. Vercel decides which runtime a function gets by reading
- * `export const config` statically, before anything is executed. A re-exported
- * value is invisible to that analysis, so the function was built for the
- * Node.js runtime -- whose handlers take `(req, res)` -- while the code below
- * is a Web-standard `(Request) => Response`. It deployed cleanly and then
- * failed on every invocation with FUNCTION_INVOCATION_FAILED, which says
- * nothing about the cause. The literal is what makes the two agree.
+ * `config` is declared literally, not re-exported
+ * ------------------------------------------------
+ * Vercel decides which runtime a function gets by reading `export const config`
+ * statically, before any code executes. A re-exported value is invisible to
+ * that analysis, so the function gets built for the Node.js runtime -- whose
+ * handlers take `(req, res)` -- while the code is a Web-standard
+ * `(Request) => Response`. That deploys cleanly and fails on every invocation.
+ *
+ * The import is dynamic, inside a try/catch
+ * -----------------------------------------
+ * A module-level import that throws takes the whole function down before any
+ * code of ours runs, and the platform reports FUNCTION_INVOCATION_FAILED with
+ * no detail. On a study whose client silently retries forever, that is the
+ * worst possible failure: data collection stops and nothing says so.
+ *
+ * Loading inside the handler means an import error becomes a described 503
+ * instead of an opaque one. The client's behaviour is unchanged -- any 5xx
+ * keeps the batch in the write-ahead log and retries -- but `verify-ingest`
+ * and the logs can now say what actually broke.
  */
+
 export const config = { runtime: "edge" };
 
-export default ingest;
+type Ingest = (request: Request) => Promise<Response>;
+
+let ingest: Ingest | null = null;
+
+export default async function handler(request: Request): Promise<Response> {
+  try {
+    if (!ingest) {
+      const module = await import("../services/ingest/api/events.js");
+      ingest = module.default as Ingest;
+    }
+    return await ingest(request);
+  } catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    return new Response(
+      JSON.stringify({
+        error: "ingest_boot_failed",
+        detail,
+        stack: error instanceof Error ? error.stack?.split("\n").slice(0, 6) : undefined,
+      }),
+      { status: 503, headers: { "content-type": "application/json" } },
+    );
+  }
+}
