@@ -2,13 +2,18 @@ import { ingestRequest } from "../src/handler.js";
 import { supabaseStore } from "../src/supabase.js";
 
 /**
- * Deployment entry point (Vercel / any fetch-style runtime).
+ * The configured handler: the generic ingest wrapper bound to the Supabase
+ * store, with the credentials read from the environment.
  *
- * The service key lives only here, server-side. No key of any kind reaches the
- * client bundle -- that is ADR-002's other half.
+ * Not the deployment entry any more -- `api/events.ts` at the project root is,
+ * because that is where the platform looks. The runtime declaration lives
+ * there too, and deliberately not here: Vercel reads `export const config`
+ * statically from the function file, so a copy in this module would be dead
+ * weight that looks authoritative.
+ *
+ * The service key lives only on the server side. No key of any kind reaches
+ * the client bundle -- that is ADR-002's other half.
  */
-
-export const config = { runtime: "edge" };
 
 export default async function handler(request: Request): Promise<Response> {
   const url = process.env["SUPABASE_URL"];
