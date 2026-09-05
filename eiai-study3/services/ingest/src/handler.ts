@@ -1,4 +1,19 @@
-import { EventBatch, type StudyEvent } from "@eiai/schema";
+// Relative, not the "@eiai/schema" package name, and that is deliberate.
+//
+// Vercel's Edge Function bundler refused the deployment with
+//
+//     The Edge Function "api/events" is referencing unsupported modules:
+//     - services/ingest/src/handler.js: @eiai/schema
+//
+// It had already followed this file; the one thing it could not inline was the
+// bare specifier, which resolves through a pnpm workspace symlink into a
+// package whose entry point is TypeScript source. A relative path is a file the
+// bundler can simply read, so the whole chain becomes self-contained.
+//
+// Nothing else changes: same module, same types, and vite/vitest resolve it
+// identically. It is the only workspace import in this service, so the cost is
+// one path here rather than a build step or a compiled artefact to keep in sync.
+import { EventBatch, type StudyEvent } from "../../../packages/schema/src/index.js";
 
 /**
  * The single write endpoint (STUDY3_SPEC_v3.md section 3).
