@@ -231,6 +231,63 @@ describe("funnel", () => {
   });
 });
 
+describe("consent", () => {
+  async function reachConsent() {
+    const user = userEvent.setup();
+    render(<App machine={createSessionMachine(ITEM_IDS)} />);
+    await user.click(screen.getByTestId("age-35+"));
+    await user.click(screen.getByTestId("cefr-B2"));
+    await user.click(screen.getByTestId("study-language-english"));
+    await user.click(screen.getByTestId("training-no"));
+    await user.click(screen.getByTestId("submit-eligibility"));
+    return screen.getByTestId("screen-consent").textContent ?? "";
+  }
+
+  it("states the real number of questions, not a range", async () => {
+    // It said "eight to twelve" for months. A session is twelve items, always:
+    // the machine takes DEFAULT_ITEM_IDS and nothing shortens it. A consent
+    // form that underpromises work is still a consent form that misdescribes
+    // the study.
+    const text = await reachConsent();
+    expect(text).toContain("twelve");
+    expect(text).not.toMatch(/eight to twelve/i);
+  });
+
+  it("tells the participant how long it takes", async () => {
+    const text = await reachConsent();
+    expect(text).toMatch(/20 minutes/);
+  });
+
+  it("names the tab-switch logging explicitly, as the spec requires", async () => {
+    // Spec: "tab-blur logging is behavioural monitoring and must be named
+    // explicitly in the consent form. Do not bury it."
+    const text = await reachConsent();
+    expect(text.toLowerCase()).toContain("switch away from this tab");
+  });
+
+  it("says the full purpose is explained at the end", async () => {
+    // The study uses incomplete disclosure; the standard licence for that is
+    // telling people up front that a full explanation is coming.
+    const text = await reachConsent();
+    expect(text.toLowerCase()).toContain("full purpose");
+  });
+
+  it("names who is running it and how to reach them", async () => {
+    const text = await reachConsent();
+    expect(text).toContain("Dasha Prokop");
+    expect(text).toContain("@");
+  });
+
+  it("explains what anonymity costs: no removal after the final screen", async () => {
+    // The honest consequence of storing nothing identifying: once the session
+    // is over, nobody can tell which rows are yours, so nothing can be pulled
+    // out. Saying "you can withdraw at any time" without this would promise
+    // something the append-only design cannot deliver.
+    const text = await reachConsent();
+    expect(text.toLowerCase()).toContain("can no longer be removed");
+  });
+});
+
 describe("debrief", () => {
   async function reachDebrief() {
     const user = await reachQuestionnaire();
@@ -286,6 +343,21 @@ describe("debrief", () => {
     const user = await reachDebrief();
     await user.click(screen.getByTestId("submit-debrief"));
     expect(screen.getByTestId("screen").dataset["state"]).toBe("done");
+  });
+
+  it("discloses the style manipulation itself, not only the planted errors", async () => {
+    // The debrief revealed the wrong answers and said nothing about the
+    // study's independent variable: that the participant was randomly assigned
+    // a warm or a neutral advisor. Debriefing the errors but not the
+    // manipulation explains the deception while hiding the experiment.
+    await reachDebrief();
+    const disclosure = screen.getByTestId("debrief-manipulation").textContent ?? "";
+    expect(disclosure.toLowerCase()).toContain("random");
+    expect(disclosure.toLowerCase()).toContain("warm");
+    expect(disclosure.toLowerCase()).toContain("neutral");
+    // And the argument-quality half of the design, which is also manipulated.
+    expect(disclosure.toLowerCase()).toContain("strong");
+    expect(disclosure.toLowerCase()).toContain("weak");
   });
 
   it("cites a source for every correction, which is what makes it checkable", async () => {

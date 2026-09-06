@@ -154,16 +154,30 @@ export function ConsentScreen({ send }: { send: Send }) {
     <section data-testid="screen-consent">
       <h1>Informed consent</h1>
       <p>
-        This study is about how people interact with AI assistants. You will
-        answer eight to twelve estimation questions and see an assistant's
-        response to each.
+        This study is about how people interact with AI assistants. It is run
+        by Dasha Prokop as part of a graduate research project. You will answer
+        twelve estimation questions about the deep sea and see an assistant's
+        response to each. The whole session takes about 20 minutes.
       </p>
       <p>
         We record what you enter, how long you take, how far you scroll through
         each response, and when you switch away from this tab. We do not record
-        your name, your email, or your exact age.
+        your name, your email, your exact age, or anything else that could
+        identify you. Your responses are stored under a random code on a secure
+        research server and are used for research only.
       </p>
-      <p>You may stop at any point, and stopping costs you nothing.</p>
+      <p>
+        Taking part is voluntary. You may stop at any point, and stopping costs
+        you nothing. At the end of the session we will explain the full purpose
+        of the study, and you will be given one more chance to withdraw your
+        responses. After you close the final screen, your responses can no
+        longer be removed &mdash; not as a restriction, but because nothing in
+        the data can tell us which responses are yours.
+      </p>
+      <p className="contact">
+        Questions or concerns, now or later: Dasha Prokop,{" "}
+        <a href="mailto:dashaprokop24@gmail.com">dashaprokop24@gmail.com</a>.
+      </p>
       <button
         type="button"
         className="primary"

@@ -263,6 +263,12 @@ export function DebriefScreen({
       <h1>{t("debrief.title")}</h1>
       <p>{t("debrief.body")}</p>
 
+      {/* The independent variable, disclosed before the errors. A debrief
+          that reveals the wrong answers but not the experiment explains the
+          deception while hiding the study. */}
+      <h2>{t("debrief.designTitle")}</h2>
+      <p data-testid="debrief-manipulation">{t("debrief.designBody")}</p>
+
       <h2>{t("debrief.errorsTitle")}</h2>
       <ul className="debrief-errors">
         {errorItems.map((item) => (

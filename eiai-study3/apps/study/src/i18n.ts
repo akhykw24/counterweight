@@ -64,6 +64,9 @@ const en = {
   "debrief.title": "What this study was really about",
   "debrief.body":
     "You were told this study was about how people interact with AI assistants. That was true, but incomplete. Some of the assistant's answers were deliberately wrong, and we did not tell you in advance because knowing would have changed how you read them.",
+  "debrief.designTitle": "There were two versions of the assistant",
+  "debrief.designBody":
+    "You were randomly assigned to one of two versions. One spoke warmly and adapted its tone to how confident you said you were; the other was neutral and matter-of-fact. The facts, numbers and reasoning were identical in both — only the style differed. Separately, some answers came with strong supporting arguments and some with deliberately weak ones. We are studying whether a warm style changes how much people rely on an assistant, and how carefully they weigh strong against weak arguments. Telling you any of this in advance would have changed the very behaviour we needed to observe.",
   "debrief.errorsTitle": "The answers that were wrong",
   "debrief.correct": "Correct value",
   "debrief.told": "What the assistant said",
