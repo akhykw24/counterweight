@@ -205,7 +205,12 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     if args.confirm_verified:
         digest = manifest_digest(entries)
-        record = confirm(digest, args.confirm_verified)
+        try:
+            record = confirm(digest, args.confirm_verified)
+        except ValueError as bad:
+            # A traceback is the wrong answer to "you typed the argument wrong".
+            print(str(bad), file=sys.stderr)
+            return 2
         print(f"Hand verification recorded for {record.verified_by} at {record.verified_at}.")
         print(f"  covers manifest_sha256 {digest}")
         print("  Regenerating any stimulus changes that digest and lapses this record.")

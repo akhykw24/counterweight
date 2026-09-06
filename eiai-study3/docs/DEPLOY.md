@@ -160,6 +160,32 @@ select type, count(*) from public.events group by type order by 2 desc;
 After a genuine twelve-item session you would see `ITEM_PRESENTED`,
 `ESTIMATE_FINALIZED` and `ARGUMENT_RATED` at twelve each.
 
+## 4. Confirm you have read the stimuli
+
+The study will not serve stimuli it considers unready, and generating them is
+not what makes them ready. `launch_ready` in the manifest is the conjunction of
+two things: the stimuli are real (not offline placeholders) **and** a person has
+recorded that they read them. Generating real texts satisfies the first and
+leaves the second false, which is the state the repository is in now.
+
+Read all 48 responses in `materials/responses/*.json` -- paying particular
+attention to the four planted-error items (03, 05, 09, 11), where the advice
+must state the wrong value confidently and must not let the true one slip.
+Then record it:
+
+```bash
+python pipeline/hash_manifest.py --confirm-verified "Darya Prokopenko"
+```
+
+That is the only thing that sets `launch_ready` to true. It is a separate
+command on purpose: rebuilding the manifest is something a script does, and a
+script must never quietly perform an approval.
+
+The record is bound to the manifest digest it covers, so regenerating any
+single cell lapses it and the gate closes again. That is intended -- an
+approval that outlived the texts it described would read as diligence while
+meaning nothing. Re-read what changed and run the command again.
+
 ## Running it locally
 
 `pnpm --dir apps/study dev` serves the app at <http://localhost:5173> **and**
