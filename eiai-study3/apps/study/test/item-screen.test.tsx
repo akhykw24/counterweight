@@ -33,6 +33,7 @@ async function reachFirstItem(sessionId?: string) {
   await user.click(screen.getByTestId("study-language-english"));
   await user.click(screen.getByTestId("training-no"));
   await user.click(screen.getByTestId("submit-eligibility"));
+  await user.click(screen.getByTestId("confirm-adult"));
   await user.click(screen.getByTestId("give-consent"));
   await user.click(screen.getByTestId("allocate"));
   expect(screen.getByTestId("screen").dataset["state"]).toBe("task.estimate");

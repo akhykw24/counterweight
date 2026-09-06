@@ -198,6 +198,43 @@ def apply_exclusions(participants: pd.DataFrame, trials: pd.DataFrame) -> Exclus
     return ExclusionReport(flags=flag_frame, counts=counts, n_total=len(participants))
 
 
+def remove_withdrawn(frames: dict[str, pd.DataFrame]) -> tuple[dict[str, pd.DataFrame], int]:
+    """Copies of `frames` with every withdrawn participant removed, and the count.
+
+    Deliberately not one of section 8.6's criteria. Those are methodological --
+    they ask whether data is informative, they are counted per criterion, and
+    every analysis is reported both with and without them. Withdrawal asks
+    whether we have permission, and the answer is no in every specification,
+    including the "without exclusions" one. Filing it beside the five would
+    make consent look like an analytic choice, and would let a sensitivity
+    analysis that re-admits excluded participants quietly re-admit people who
+    asked to be left out.
+
+    So it happens first and unconditionally. The event rows themselves stay:
+    the log is append-only by construction, which is a claim the paper makes.
+    Nothing derived from them is used or reported, and the consent form says
+    exactly that rather than promising a deletion the design cannot perform.
+    """
+    participants = frames.get("participants")
+    if participants is None or "withdrawn" not in participants.columns:
+        raise KeyError(
+            "participants table is missing 'withdrawn'. Withdrawal is a consent "
+            "obligation, not an option: a missing column must stop the pipeline "
+            "rather than let it analyse data nobody has permission to use."
+        )
+
+    withdrawn = set(
+        participants.loc[participants["withdrawn"].astype(int) == 1, "session_id"].astype(str)
+    )
+    out: dict[str, pd.DataFrame] = {}
+    for name, frame in frames.items():
+        if "session_id" not in frame.columns:
+            out[name] = frame
+            continue
+        out[name] = frame[~frame["session_id"].astype(str).isin(withdrawn)].reset_index(drop=True)
+    return out, len(withdrawn)
+
+
 def filter_excluded(
     frames: dict[str, pd.DataFrame], report: ExclusionReport
 ) -> dict[str, pd.DataFrame]:

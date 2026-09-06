@@ -62,6 +62,7 @@ test("an adult completes a full twelve-item session", async ({ page }) => {
   await page.locator(testId("submit-eligibility")).click();
 
   await expect(page.locator(testId("screen-consent"))).toBeVisible();
+  await page.locator(testId("confirm-adult")).click();
   await page.locator(testId("give-consent")).click();
 
   // The condition now comes from the committed allocation sequence keyed on the
@@ -230,6 +231,7 @@ test("a reload mid-session resumes on the same item and loses nothing", async ({
   await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
+  await page.locator(testId("confirm-adult")).click();
   await page.locator(testId("give-consent")).click();
   await page.locator(testId("allocate")).click();
 
@@ -264,6 +266,7 @@ test("withdrawal is available from the item screen and ends the session", async 
   await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
+  await page.locator(testId("confirm-adult")).click();
   await page.locator(testId("give-consent")).click();
   await page.locator(testId("allocate")).click();
 

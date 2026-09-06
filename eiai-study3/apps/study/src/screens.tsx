@@ -150,41 +150,87 @@ export function EligibilityScreen({
 }
 
 export function ConsentScreen({ send }: { send: Send }) {
+  // The affirmation is held in the component rather than the machine: it is a
+  // property of this screen, not of the session, and nothing outside needs it.
+  // The screening gate already turns away under-18s; a consent form is also a
+  // record, and it has to record the affirmation itself.
+  const [isAdult, setIsAdult] = useState(false);
+
   return (
     <section data-testid="screen-consent">
       <h1>Informed consent</h1>
+
       <p>
-        This study is about how people interact with AI assistants. It is run
-        by Darya Prokopenko as part of a graduate research project. You will answer
-        twelve estimation questions about the deep sea and see an assistant's
-        response to each. The whole session takes about 20 minutes.
+        This study looks at how people use answers from an AI assistant. It is a
+        school research project by <strong>Prokopenko Darya Artyomovna</strong>,
+        a 12th grade student at Nazarbayev Intellectual School of Science and
+        Mathematics in Kokshetau, Kazakhstan. Her supervisor is Rakhimbekova Saya
+        Dissembeyevna, a teacher at the same school.
       </p>
+
       <p>
-        We record what you enter, how long you take, how far you scroll through
-        each response, and when you switch away from this tab. We do not record
-        your name, your email, your exact age, or anything else that could
-        identify you. Your responses are stored under a random code on a secure
-        research server and are used for research only.
+        You will answer <strong>12 questions</strong> about the deep sea. For
+        each one you give an estimate, read an assistant&rsquo;s answer, and then
+        give your estimate again. The whole session takes about{" "}
+        <strong>15 minutes</strong>.
       </p>
+
       <p>
-        Taking part is voluntary. You may stop at any point, and stopping costs
-        you nothing. At the end of the session we will explain the full purpose
-        of the study, and you will be given one more chance to withdraw your
-        responses. After you close the final screen, your responses can no
-        longer be removed &mdash; not as a restriction, but because nothing in
-        the data can tell us which responses are yours.
+        <strong>We are not telling you everything about the study yet.</strong>{" "}
+        Some details are held back on purpose, because knowing them would change
+        how you read the answers. Nothing here is dangerous or unpleasant. Right
+        after you finish, we explain the full purpose on a debriefing screen, and
+        you can then decide whether to let us keep your answers.
       </p>
+
+      <p>
+        Your answers are <strong>anonymous</strong>. We do not ask for your name,
+        your email, your exact age, or anything else that identifies you. Your
+        session is stored under a random code. We record what you type, how long
+        you take, how far you scroll through each answer, and when you switch
+        away from this tab.
+      </p>
+
+      <p>
+        We publish only totals and averages across all participants, in a school
+        research report and any paper that follows from it. No single person can
+        be recognised in what we publish, because nothing stored can be traced
+        back to a person. The anonymous data are kept for as long as the project
+        and its results need to be checked, and then no longer serve any purpose.
+      </p>
+
+      <p>
+        Taking part is <strong>voluntary</strong>. You can close the tab at any
+        moment and there are <strong>no consequences</strong>: nobody is told,
+        and nothing is lost to you. On the debriefing screen there is also a
+        button that deletes your answers from the study.
+      </p>
+
       <p className="contact">
-        Questions or concerns, now or later: Darya Prokopenko,{" "}
-        <a href="mailto:dashaprokop24@gmail.com">dashaprokop24@gmail.com</a>.
+        Questions or concerns, now or later:{" "}
+        <a href="mailto:dashaprokop24@gmail.com">dashaprokop24@gmail.com</a>{" "}
+        (Prokopenko Darya Artyomovna), or the supervisor Rakhimbekova Saya
+        Dissembeyevna at [supervisor email &mdash; to be added].
       </p>
+
+      <label className="confirm">
+        <input
+          type="checkbox"
+          data-testid="confirm-adult"
+          checked={isAdult}
+          onChange={(event) => setIsAdult(event.target.checked)}
+        />{" "}
+        I am 18 years old or older.
+      </label>
+
       <button
         type="button"
         className="primary"
         data-testid="give-consent"
+        disabled={!isAdult}
         onClick={() => send({ type: "GIVE_CONSENT" })}
       >
-        I consent, and I want to take part
+        I have read this, and I agree to take part
       </button>
     </section>
   );

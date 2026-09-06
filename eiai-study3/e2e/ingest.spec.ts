@@ -52,6 +52,7 @@ async function consentAndAllocate(page: Page): Promise<void> {
   await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
+  await page.locator(testId("confirm-adult")).click();
   await page.locator(testId("give-consent")).click();
   await page.locator(testId("allocate")).click();
 }

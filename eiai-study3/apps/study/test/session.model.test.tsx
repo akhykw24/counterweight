@@ -163,6 +163,9 @@ async function execute(user: ReturnType<typeof userEvent.setup>, event: any) {
     case "SUBMIT_ELIGIBILITY":
       return click("submit-eligibility");
     case "GIVE_CONSENT":
+      // The consent button is disabled until the participant affirms they are
+      // 18 or older, so the model-based driver has to do what a person does.
+      await click("confirm-adult");
       return click("give-consent");
     case "ALLOCATE":
       return click("allocate");

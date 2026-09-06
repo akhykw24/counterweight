@@ -267,7 +267,15 @@ export function DebriefScreen({
           that reveals the wrong answers but not the experiment explains the
           deception while hiding the study. */}
       <h2>{t("debrief.designTitle")}</h2>
-      <p data-testid="debrief-manipulation">{t("debrief.designBody")}</p>
+      {/* Split on blank lines: three paragraphs read far better than one wall
+          of text, and this is the part the participant most needs to follow. */}
+      <div data-testid="debrief-manipulation">
+        {t("debrief.designBody")
+          .split("\n\n")
+          .map((paragraph) => (
+            <p key={paragraph.slice(0, 24)}>{paragraph}</p>
+          ))}
+      </div>
 
       <h2>{t("debrief.errorsTitle")}</h2>
       <ul className="debrief-errors">

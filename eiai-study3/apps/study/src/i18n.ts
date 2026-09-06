@@ -64,17 +64,17 @@ const en = {
   "debrief.title": "What this study was really about",
   "debrief.body":
     "You were told this study was about how people interact with AI assistants. That was true, but incomplete. Some of the assistant's answers were deliberately wrong, and we did not tell you in advance because knowing would have changed how you read them.",
-  "debrief.designTitle": "There were two versions of the assistant",
+  "debrief.designTitle": "What we did not tell you before",
   "debrief.designBody":
-    "You were randomly assigned to one of two versions. One spoke warmly and adapted its tone to how confident you said you were; the other was neutral and matter-of-fact. The facts, numbers and reasoning were identical in both — only the style differed. Separately, some answers came with strong supporting arguments and some with deliberately weak ones. We are studying whether a warm style changes how much people rely on an assistant, and how carefully they weigh strong against weak arguments. Telling you any of this in advance would have changed the very behaviour we needed to observe.",
+    "There were two versions of the assistant, and you were placed in one of them at random. One version spoke in a warm, personal way and changed its tone depending on how confident you said you were. The other spoke in a plain, neutral way. The facts and the numbers were exactly the same in both versions — only the manner of speaking was different.\n\nSomething else was arranged on purpose: for some questions the assistant gave a strong reason for its answer, and for others the reason was deliberately weak. Which questions got which was fixed in advance, the same for everyone.\n\nWe are studying how the manner of speaking and the strength of a reason work together when a person decides how much to trust an answer. If we had told you this at the start, you would have watched for it, and we would have measured your attention to the study instead of your ordinary way of reading an answer. That is why the description at the beginning was incomplete. We are not saying which result we expected, because you may meet other people who have not taken part yet.",
   "debrief.errorsTitle": "The answers that were wrong",
   "debrief.correct": "Correct value",
   "debrief.told": "What the assistant said",
   "debrief.source": "Source",
-  "debrief.withdrawTitle": "You can still withdraw",
+  "debrief.withdrawTitle": "You can still take your answers out",
   "debrief.withdrawBody":
-    "Now that you know what the study involved, you may withdraw your responses. Nothing you did will be used. This costs you nothing and needs no explanation.",
-  "debrief.withdraw": "Withdraw my responses",
+    "Now that you know what the study was really about, you may decide you would rather not take part after all. The button below deletes your answers from the study: nothing you did will be counted, analysed, or reported. You do not have to give a reason, and nobody will ask. This costs you nothing.",
+  "debrief.withdraw": "Delete my answers from the study",
   "debrief.finish": "Finish",
 
   "done.title": "Thank you",

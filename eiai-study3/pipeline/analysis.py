@@ -45,7 +45,12 @@ import numpy as np
 import pandas as pd
 from scipy import integrate, stats
 
-from exclusions import apply_exclusions, filter_excluded, print_report as print_exclusions
+from exclusions import (
+    apply_exclusions,
+    filter_excluded,
+    print_report as print_exclusions,
+    remove_withdrawn,
+)
 from _common import REPO_ROOT
 
 BOOTSTRAP_RESAMPLES = 5000
@@ -977,6 +982,17 @@ def main(argv: Iterable[str] | None = None) -> int:
     except FileNotFoundError as error:
         print(str(error), file=sys.stderr)
         return 2
+
+    # Before anything else, and outside the exclusion machinery. Participants
+    # who withdrew did not consent to this analysis, so no specification --
+    # including the unexcluded one -- may include them.
+    frames, n_withdrawn = remove_withdrawn(frames)
+    if n_withdrawn:
+        print(
+            f"{n_withdrawn} participant(s) withdrew their responses and are excluded "
+            "from every analysis below, unconditionally."
+        )
+        print()
 
     results = analyse(frames, spec)
     print_report(results)

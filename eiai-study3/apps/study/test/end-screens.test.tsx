@@ -31,6 +31,7 @@ async function reachAdvice(recorder?: Recorder) {
   await user.click(screen.getByTestId("study-language-english"));
   await user.click(screen.getByTestId("training-no"));
   await user.click(screen.getByTestId("submit-eligibility"));
+  await user.click(screen.getByTestId("confirm-adult"));
   await user.click(screen.getByTestId("give-consent"));
   await user.click(screen.getByTestId("allocate"));
   fireEvent.change(screen.getByTestId("initial-estimate"), { target: { value: "12000" } });
@@ -210,6 +211,7 @@ describe("funnel", () => {
     await user.click(screen.getByTestId("study-language-english"));
     await user.click(screen.getByTestId("training-no"));
     await user.click(screen.getByTestId("submit-eligibility"));
+    await user.click(screen.getByTestId("confirm-adult"));
     await user.click(screen.getByTestId("give-consent"));
     await user.click(screen.getByTestId("allocate"));
     fireEvent.change(screen.getByTestId("initial-estimate"), { target: { value: "12000" } });
@@ -249,51 +251,95 @@ describe("consent", () => {
     await user.click(screen.getByTestId("study-language-english"));
     await user.click(screen.getByTestId("training-no"));
     await user.click(screen.getByTestId("submit-eligibility"));
+    return user;
+  }
+
+  async function consentText() {
+    await reachConsent();
     return screen.getByTestId("screen-consent").textContent ?? "";
   }
 
-  it("states the real number of questions, not a range", async () => {
-    // It said "eight to twelve" for months. A session is twelve items, always:
-    // the machine takes DEFAULT_ITEM_IDS and nothing shortens it. A consent
-    // form that underpromises work is still a consent form that misdescribes
-    // the study.
-    const text = await reachConsent();
-    expect(text).toContain("twelve");
+  it("names the researcher, her school, and that this is a school project", async () => {
+    const text = await consentText();
+    expect(text).toContain("Prokopenko Darya Artyomovna");
+    expect(text).toContain("Nazarbayev Intellectual School");
+    expect(text).toContain("Kokshetau");
+    expect(text.toLowerCase()).toContain("school research project");
+  });
+
+  it("names the supervisor", async () => {
+    const text = await consentText();
+    expect(text).toContain("Rakhimbekova Saya Dissembeyevna");
+    expect(text.toLowerCase()).toContain("supervisor");
+  });
+
+  it("gives a contact address that works", async () => {
+    await reachConsent();
+    const mailto = screen
+      .getByTestId("screen-consent")
+      .querySelector('a[href^="mailto:"]');
+    expect(mailto).not.toBeNull();
+    expect(mailto!.getAttribute("href")).toContain("@");
+  });
+
+  it("states the real number of questions and the real duration", async () => {
+    // It said "eight to twelve" for months, and later "about 20 minutes".
+    // A session is twelve items and runs about fifteen.
+    const text = await consentText();
+    expect(text).toContain("12 questions");
+    expect(text).toMatch(/15 minutes/);
     expect(text).not.toMatch(/eight to twelve/i);
   });
 
-  it("tells the participant how long it takes", async () => {
-    const text = await reachConsent();
-    expect(text).toMatch(/20 minutes/);
+  it("says outright that some details are held back until the end", async () => {
+    // The licence for incomplete disclosure: the participant is told in
+    // advance that they are not being told everything, and when they will be.
+    const text = await consentText();
+    expect(text.toLowerCase()).toContain("not telling you everything");
+    expect(text.toLowerCase()).toContain("after you finish");
+  });
+
+  it("promises the debriefing that the study actually gives", async () => {
+    const text = await consentText();
+    expect(text.toLowerCase()).toContain("debriefing");
+  });
+
+  it("describes anonymity, publication, and how long data are kept", async () => {
+    const text = await consentText();
+    expect(text.toLowerCase()).toContain("anonymous");
+    expect(text.toLowerCase()).toContain("publish");
+    expect(text.toLowerCase()).toContain("kept");
   });
 
   it("names the tab-switch logging explicitly, as the spec requires", async () => {
     // Spec: "tab-blur logging is behavioural monitoring and must be named
     // explicitly in the consent form. Do not bury it."
-    const text = await reachConsent();
+    const text = await consentText();
     expect(text.toLowerCase()).toContain("switch away from this tab");
   });
 
-  it("says the full purpose is explained at the end", async () => {
-    // The study uses incomplete disclosure; the standard licence for that is
-    // telling people up front that a full explanation is coming.
-    const text = await reachConsent();
-    expect(text.toLowerCase()).toContain("full purpose");
+  it("states that leaving costs nothing", async () => {
+    const text = await consentText();
+    expect(text.toLowerCase()).toContain("voluntary");
+    expect(text.toLowerCase()).toContain("no consequences");
   });
 
-  it("names who is running it and how to reach them", async () => {
-    const text = await reachConsent();
-    expect(text).toContain("Darya Prokopenko");
-    expect(text).toContain("@");
+  it("cannot be consented to without confirming adulthood", async () => {
+    // The screening gate already turns away under-18s, but a consent form is
+    // also a record, and it has to record the affirmation itself.
+    const user = await reachConsent();
+    const button = screen.getByTestId("give-consent") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+
+    await user.click(screen.getByTestId("confirm-adult"));
+    expect(button.disabled).toBe(false);
   });
 
-  it("explains what anonymity costs: no removal after the final screen", async () => {
-    // The honest consequence of storing nothing identifying: once the session
-    // is over, nobody can tell which rows are yours, so nothing can be pulled
-    // out. Saying "you can withdraw at any time" without this would promise
-    // something the append-only design cannot deliver.
-    const text = await reachConsent();
-    expect(text.toLowerCase()).toContain("can no longer be removed");
+  it("does not proceed while the box is unticked", async () => {
+    const user = await reachConsent();
+    await user.click(screen.getByTestId("give-consent"));
+    // Still on consent: the click did nothing.
+    expect(screen.getByTestId("screen").dataset["state"]).toBe("consent");
   });
 });
 
@@ -352,6 +398,33 @@ describe("debrief", () => {
     const user = await reachDebrief();
     await user.click(screen.getByTestId("submit-debrief"));
     expect(screen.getByTestId("screen").dataset["state"]).toBe("done");
+  });
+
+  it("explains why the details were held back, without giving the direction", async () => {
+    // A debrief has to justify the deception, and must not hand the
+    // participant the hypothesis -- they may talk to future participants.
+    await reachDebrief();
+    const text = screen.getByTestId("debrief-manipulation").textContent ?? "";
+    expect(text.toLowerCase()).toContain("if we had told you");
+    // No directional claim: nothing saying which style was expected to win.
+    expect(text.toLowerCase()).not.toMatch(/we expect(ed)? (that )?(the )?warm/);
+    expect(text.toLowerCase()).not.toMatch(/more likely to (accept|rely)/);
+  });
+
+  it("says some arguments were deliberately weak", async () => {
+    await reachDebrief();
+    const text = screen.getByTestId("debrief-manipulation").textContent ?? "";
+    expect(text.toLowerCase()).toContain("on purpose");
+    expect(text.toLowerCase()).toContain("weak");
+  });
+
+  it("offers a button that removes the participant's data from the study", async () => {
+    const user = await reachDebrief();
+    const remove = screen.getByTestId("debrief-withdraw");
+    expect(remove.textContent?.toLowerCase()).toContain("delete");
+
+    await user.click(remove);
+    expect(screen.getByTestId("screen").dataset["state"]).toBe("withdrawn");
   });
 
   it("discloses the style manipulation itself, not only the planted errors", async () => {

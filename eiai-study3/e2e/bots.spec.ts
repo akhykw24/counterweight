@@ -77,6 +77,7 @@ async function runSession(page: Page, policyName: PolicyName): Promise<string> {
   await page.locator(testId("study-language-english")).click();
   await page.locator(testId("training-no")).click();
   await page.locator(testId("submit-eligibility")).click();
+  await page.locator(testId("confirm-adult")).click();
   await page.locator(testId("give-consent")).click();
 
   const allocateButton = page.locator(testId("allocate"));
