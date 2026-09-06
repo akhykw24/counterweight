@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { createSessionMachine } from "@eiai/fsm";
+import manifest from "../../../materials/manifest.json";
 import { App } from "../src/App";
 import { allocate } from "../src/allocation";
 import { stratumForCefr } from "../src/strata";
@@ -150,11 +151,20 @@ describe("advice rendering", () => {
     );
   });
 
-  it("labels a placeholder stimulus on screen", async () => {
-    // While the frozen set is offline placeholders, nobody should be able to
-    // pilot against it without noticing.
+  it("shows no placeholder warning, because the committed set is real", async () => {
+    // This asserted the opposite for months: while the frozen set was offline
+    // placeholders, every advice screen carried a warning so that nobody could
+    // pilot against them without noticing. The stimuli were generated for real
+    // on 2026-09-05 and the warning correctly went quiet.
+    //
+    // The absence is tied to its reason rather than asserted bare. If someone
+    // regenerates placeholders, generator_mode flips and this fails on the
+    // premise, which is the failure that carries information -- a lone
+    // `toBeNull()` would simply keep passing while the warning was broken.
     await reachAdvice(55);
-    expect(screen.queryByTestId("placeholder-warning")).not.toBeNull();
+    expect(manifest.generator_mode).toBe("live_api");
+    expect(manifest.files.length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("placeholder-warning")).toBeNull();
   });
 
   it("resets both answers when moving to the next item", async () => {

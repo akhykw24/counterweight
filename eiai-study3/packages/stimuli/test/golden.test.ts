@@ -63,7 +63,13 @@ describe("golden file: stimulus integrity", () => {
     const entry = stimuli.manifest.files[0]!;
     const absolute = fileURLToPath(new URL(`../../../${entry.path}`, import.meta.url));
     const original = readFileSync(absolute, "utf8");
-    const tampered = original.replace("PLACEHOLDER", "PLACEHOLDEQ");
+    // Flip one character at a fixed offset rather than substituting a word.
+    // This used to replace "PLACEHOLDER", which vanished the day the stimuli
+    // became real -- the tamper then equalled the original and the test failed
+    // for a reason that had nothing to do with hashing.
+    const at = Math.floor(original.length / 2);
+    const tampered =
+      original.slice(0, at) + (original[at] === "a" ? "b" : "a") + original.slice(at + 1);
     expect(tampered).not.toBe(original);
 
     const tamperedHash = createHash("sha256")
@@ -195,18 +201,34 @@ describe("resolution by register", () => {
 });
 
 describe("launch-readiness gate", () => {
-  it("currently refuses, because the committed set is offline placeholders", () => {
-    // When real stimuli are generated this test flips to expecting no throw.
-    // It is written as an assertion rather than a skip so the transition has to
-    // be deliberate.
-    expect(stimuli.manifest.generator_mode).toBe("offline_placeholder");
+  // The committed set is now real: generated 2026-09-05 through Groq's
+  // gpt-oss-120b, equivalence-checked, hash-manifested. The gate did not open
+  // with it, and that is the point of this block.
+  it("the stimuli are real, so nothing is marked placeholder any more", () => {
+    expect(stimuli.manifest.generator_mode).toBe("live_api");
+    for (const response of stimuli.byResponseId.values()) {
+      expect(response.placeholder, response.response_id).toBe(false);
+    }
+  });
+
+  it("still refuses, because being real is not the same as being read", () => {
+    // Written as an assertion rather than a skip so that opening the gate has
+    // to be a deliberate act. Previously the flag was computed from the
+    // placeholder field alone, so this would have flipped to true on its own
+    // the moment generation finished -- with nobody having read a sentence.
+    expect(stimuli.manifest.hand_verified).toBe(false);
     expect(stimuli.launchReady).toBe(false);
     expect(() => assertLaunchReady(stimuli)).toThrow(StimulusIntegrityError);
   });
 
-  it("marks every placeholder response as such", () => {
-    for (const response of stimuli.byResponseId.values()) {
-      expect(response.placeholder, response.response_id).toBe(true);
-    }
+  it("keeps readiness tied to hand verification, not merely to being live", () => {
+    // The two conditions are separable, and the conjunction is what the
+    // specification's "hand-verified" means. If this ever reads as "live
+    // implies ready" again, the last barrier before a participant sees
+    // unreviewed text is gone.
+    expect(stimuli.launchReady).toBe(
+      stimuli.manifest.generator_mode !== "offline_placeholder" &&
+        stimuli.manifest.hand_verified,
+    );
   });
 });

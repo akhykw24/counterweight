@@ -304,7 +304,10 @@ export const StimulusManifest = z
     model: z.string().min(1),
     launch_ready: z
       .boolean()
-      .describe("False whenever any stimulus is a placeholder. The loader refuses to serve a set with this false."),
+      .describe("True only when the stimuli are real AND a person has confirmed reading them. The loader refuses to serve a set with this false. Two conditions rather than one: it was previously computed from the placeholder flag alone, so it would have flipped to true the moment generation replaced the placeholders, with nobody having read a sentence."),
+    hand_verified: z
+      .boolean()
+      .describe("Whether materials/hand_verification.json records an approval of exactly this manifest_sha256. Regenerating any cell changes the digest and lapses the approval, because it no longer describes the texts on disk."),
     items_file_sha256: Sha256,
     manifest_sha256: Sha256.describe("Digest over the sorted per-file digests. This is what SESSION_STARTED records."),
     files: z.array(

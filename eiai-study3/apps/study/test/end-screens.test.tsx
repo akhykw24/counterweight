@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { REQUIRED_QUESTION_IDS, createSessionMachine } from "@eiai/fsm";
 import { App } from "../src/App";
 import { isTranslated, missingKeys, translator } from "../src/i18n";
-import { items, resolveStimulus } from "../src/stimuli";
+import { items, stimulusByResponseId } from "../src/stimuli";
 import type { Recorder } from "../src/telemetry";
 
 const ITEM_IDS = ["item_01"];
@@ -68,10 +68,19 @@ afterEach(cleanup);
 describe("follow-ups", () => {
   it("shows the pre-written reply from the frozen stimulus, not a generated one", async () => {
     const user = await reachAdvice();
-    const expected = resolveStimulus("en", "warm", "LOW", "item_01").followups.challenge;
+
+    // Read which stimulus the app actually served rather than assuming the
+    // warm arm. Allocation comes from the committed sequence, so the arm is
+    // not the test's to choose -- this asserted "warm" and passed only while
+    // the placeholder texts were formulaic enough to coincide across
+    // conditions. The first real stimuli exposed it immediately.
+    const responseId = screen.getByTestId("advice").getAttribute("data-response-id")!;
+    const served = stimulusByResponseId(responseId);
 
     await user.click(screen.getByTestId("followup-challenge"));
-    expect(screen.getByTestId("followup-challenge-reply").textContent).toBe(expected);
+    expect(screen.getByTestId("followup-challenge-reply").textContent).toBe(
+      served.followups.challenge,
+    );
   });
 
   it("records the selection, since challenge rate is a behavioural measure", async () => {

@@ -105,6 +105,30 @@ def texts_of(response: dict[str, Any]) -> list[tuple[str, str]]:
     return out
 
 
+def stray_numbers(text: str, advice: float, question: str) -> list[float]:
+    """Numbers in `text` that are neither the advice value nor given by the question.
+
+    The second exemption is narrow and was added for one figure. item_12 asks
+    "the ambient water temperature at 4,000 metres depth", and every generation
+    restates that depth -- it is how the sentence is written in English. The
+    participant is reading 4,000 on the same screen, so echoing it is a
+    reference to the question, not a claim about the world, and it can leak
+    nothing: it is the question's own parameter.
+
+    Confined to the item's OWN question on purpose. A leaked true value, an
+    invented figure, or a number lifted from a different item's question all
+    remain failures, which is what pipeline/tests/test_stem_numbers.py pins.
+    item_12 is the only item in the bank whose question contains a number at
+    all, so the reach of this is one figure in one item.
+    """
+    allowed = {advice, *extract_numbers(question)}
+    return sorted(
+        n
+        for n in set(extract_numbers(text))
+        if all(abs(n - a) > 1e-9 * max(1.0, abs(a)) for a in allowed)
+    )
+
+
 def verify(report: Report) -> None:
     bank = load_items()
     items = {i["id"]: i for i in bank["items"]}
@@ -148,14 +172,11 @@ def verify(report: Report) -> None:
                         contains_value(text, advice),
                         f"{response['response_id']}.{field}: missing advice value {format_number(advice)}",
                     )
-                    stray = [
-                        n
-                        for n in set(extract_numbers(text))
-                        if abs(n - advice) > 1e-9 * max(1.0, abs(advice))
-                    ]
+                    stray = stray_numbers(text, advice, item["question"][language])
                     report.check(
                         not stray,
-                        f"{response['response_id']}.{field}: carries numeric claims beyond the advice value: {sorted(stray)}",
+                        f"{response['response_id']}.{field}: carries numeric claims beyond "
+                        f"the advice value and the question's own figures: {stray}",
                     )
 
             # 2. justification identical across all four variants -- the load-bearing check

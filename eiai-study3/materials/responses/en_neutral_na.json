@@ -2,7 +2,7 @@
   "meta": {
     "condition": "neutral",
     "generator": "pipeline/generate.py",
-    "generator_mode": "offline_placeholder",
+    "generator_mode": "live_api",
     "generator_version": "2.1.0",
     "human_verification": {
       "back_translation_completed": false,
@@ -11,8 +11,8 @@
       "native_speaker_verified": false
     },
     "language": "en",
-    "model": "none (offline placeholder)",
-    "placeholder": true,
+    "model": "openai/gpt-oss-120b",
+    "placeholder": false,
     "prompt_hashes": {
       "justification_format_block": "4f6d1673323903218b3f98e87aad99b4b932d97e20a8bad22be23e53f0151501",
       "justification_translation": "257f949ba278e9f206139c6094f9a8e984d064d7f6ae6a429a9ff256bf6f1651",
@@ -21,7 +21,7 @@
       "output_format_block": "10c50a778706b1a42b04ca1c454048acaa245c4db70a820fb9a641a61a913c78",
       "shared_constraints": "d0f60f1f5de7e25dff27092f0ac5f05b2432ecbc8ba65785b8e3dd551cd5156a"
     },
-    "provider": "offline",
+    "provider": "groq",
     "register_state": null,
     "schema_version": "1.0",
     "study": "eiai-study3",
@@ -30,21 +30,21 @@
   "responses": [
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "The maximum depth of the Challenger Deep is approximately 10935 metres. This depth is recorded as approximately 10935 metres in scientific observations. The figure of approximately 10935 metres represents the deepest known point in the ocean. Multiple surveys have reported a depth of approximately 10935 metres. Thus, the accepted maximum depth remains approximately 10935 metres. The value is consistently cited as approximately 10935 metres across references.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 10935. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The confidence level is moderate, and the depth is approximately 10935 metres. The estimate is given as approximately 10935 metres with moderate certainty. The accepted figure stays at approximately 10935 metres under moderate confidence.",
+        "challenge": "You indicate that the figure might be wrong; however, the depth remains approximately 10935 metres. The value is still reported as approximately 10935 metres. No revision alters the established depth of approximately 10935 metres.",
+        "measurement": "The depth is measured as approximately 10935 metres. This measurement is reported as approximately 10935 metres in depth assessments. The recorded figure remains approximately 10935 metres, reflecting the standard reported depth."
       },
       "item_id": "item_01",
       "justification_quality": "strong",
       "justification_text": "This figure comes from pressure-referenced altimeter transects taken by crewed submersible, cross-checked against independent ship-based sonar mapping of the same site, with the two methods agreeing closely.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_01",
-      "sha256": "c29ec73dd4396b03f20ccf6bc02d5e31b00fd137b54c11dc7a762dc8daf84f58",
+      "sha256": "c4bc5e5c143286b456a1b81a38fc737b0c1f4b87f90a2173410a90b5ce552e62",
       "validation": {
         "errors": [],
         "ok": true,
@@ -53,21 +53,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "The best estimate is approximately 28.7 percent. This figure, approximately 28.7 percent, reflects the current assessment. According to the available information, approximately 28.7 percent of the ocean floor has been mapped to modern standards. The same value, approximately 28.7 percent, is reported across sources. In summary, the proportion is approximately 28.7 percent. Thus, the estimate remains approximately 28.7 percent. Researchers continue to reference approximately 28.7 percent as the benchmark.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 28.7. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The confidence level is moderate, so the estimate is given as approximately 28.7 percent. This moderate certainty reflects the current state of knowledge, and the figure remains approximately 28.7 percent. No additional confidence adjustment is provided beyond the moderate qualifier.",
+        "challenge": "You note a concern about the figure. The response remains unchanged: the proportion is approximately 28.7 percent. This value, approximately 28.7 percent, is the stated estimate, and no revision is made. The answer stays at approximately 28.7 percent.",
+        "measurement": "The measurement is derived from the same data set, resulting in approximately 28.7 percent. This value, approximately 28.7 percent, is calculated using the standard mapping criteria applied across surveyed regions. Consequently, the reported proportion is approximately 28.7 percent."
       },
       "item_id": "item_02",
       "justification_quality": "weak",
       "justification_text": "This figure is the number people generally give for this, it is repeated consistently wherever the topic comes up, and nobody disputes it as far as I know.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_02",
-      "sha256": "7ba906b39b67810c7c1e87049904f64db48d1356be91e7887162cc62b142db3b",
+      "sha256": "33f01304b0ec4366e5d9e29c69a163a364a92b12e68caa002da39cfb6dd34f48",
       "validation": {
         "errors": [],
         "ok": true,
@@ -76,21 +76,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "The longest recorded sperm whale dive is approximately 35 minutes. This figure represents the maximum duration observed in scientific records for this species. It reflects the longest single descent and ascent combined measured under controlled observation. The reported time is approximately 35 minutes, consistent with the documented extreme dive length for sperm whales. All other documented dives fall below this duration.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 35. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The estimate is given with moderate confidence, as the value is approximately 35 minutes based on the best available observations of sperm whale diving behavior. This confidence reflects the limited number of extreme dives recorded and the precision of the timing devices used.",
+        "challenge": "I understand you believe the figure might be incorrect, however the documented longest recorded sperm whale dive continues to be reported as approximately 35 minutes. This value reflects the longest single dive measured in scientific studies and remains the accepted record.",
+        "measurement": "The measurement is based on time‑depth recorders attached to the animal, which log the interval from the start of descent to the end of ascent. The recorded interval for the longest dive equals approximately 35 minutes."
       },
       "item_id": "item_03",
       "justification_quality": "weak",
       "justification_text": "This figure is what the sources on this subject tend to say, it is the number that gets quoted in this context, and it is the usual answer given.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_03",
-      "sha256": "9b24e2d568f7ffc5c4a75e2e8ed1e9fbf427e6119304add6bb6e4446f55edafa",
+      "sha256": "3c9cd1df59d0ebb8f70a546d73c698bb3ce199aee033fc62d114b192f024cfaa",
       "validation": {
         "errors": [],
         "ok": true,
@@ -99,21 +99,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "Approximately 1000 metres is the depth at which sunlight becomes undetectable in the ocean. At this distance from the surface, the intensity of solar illumination falls below the threshold required for visual perception by marine organisms. The transition marks the onset of the aphotic zone where photosynthetic activity ceases. Consequently, light‑dependent processes are no longer viable beyond this point, and the environment is characterized by complete darkness.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 1000. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "My confidence is moderate; the depth is approximately 1000 metres. The figure reflects the best current understanding, and the qualifier indicates a moderate level of certainty without implying absolute precision.",
+        "challenge": "I understand you think the figure may be incorrect. However, the depth at which sunlight becomes undetectable remains approximately 1000 metres, and this moderate estimate continues to be the referenced value.",
+        "measurement": "Approximately 1000 metres is the depth where sunlight is no longer detectable. This depth is determined by the same observational criteria that define the limit of visible illumination, and the value remains around 1000 metres."
       },
       "item_id": "item_04",
       "justification_quality": "strong",
       "justification_text": "This figure comes from calibrated downwelling irradiance profiles measured by photometers lowered through the water column, with the detection limit set by the instrument's characterised noise floor.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_04",
-      "sha256": "104201aa9d9e4809897467ffaf6af6710623db9696cd3061ba69362d574b8380",
+      "sha256": "420660cc8e0f6c8284c5e2f22a4e5bb70c828689a362b832f1f1d6b888dbc9a2",
       "validation": {
         "errors": [],
         "ok": true,
@@ -122,21 +122,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "The maximum temperature of black smoker vent fluid is approximately 150 degrees Celsius. The maximum temperature of black smoker vent fluid is approximately 150 degrees Celsius. The maximum temperature of black smoker vent fluid is approximately 150 degrees Celsius. The maximum temperature of black smoker vent fluid is approximately 150 degrees Celsius. The maximum temperature of black smoker vent fluid is approximately 150 degrees Celsius.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 150. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The estimate is given with moderate confidence, so it is approximately 150 degrees Celsius. The confidence remains moderate, indicating the value is approximately 150 degrees Celsius. This reflects a moderate level of certainty about approximately 150 degrees Celsius.",
+        "challenge": "I understand you think the figure may be incorrect. However, the maximum temperature remains approximately 150 degrees Celsius. The accepted value continues to be approximately 150 degrees Celsius despite that concern.",
+        "measurement": "The measured temperature is approximately 150 degrees Celsius. The recorded temperature is approximately 150 degrees Celsius. The reported value remains approximately 150 degrees Celsius. All measurements converge on approximately 150 degrees Celsius."
       },
       "item_id": "item_05",
       "justification_quality": "strong",
       "justification_text": "This figure comes from high-temperature probes inserted directly into the vent orifice by remotely operated vehicle, with the reading repeated across separate dives to confirm it was stable.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_05",
-      "sha256": "076c401e8edf3a7843ac75d964cf68bb2a28d002153a2d870aba5681ea61d21f",
+      "sha256": "237b1a1419cc7496f2ed93c20f25912317c1799a75a0f28b1883a082ab0e4807",
       "validation": {
         "errors": [],
         "ok": true,
@@ -145,21 +145,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "The maximum recorded total length of a giant squid is approximately 13 metres. This measurement is approximately 13 metres. The figure reported is approximately 13 metres. All sources cite approximately 13 metres as the maximum total length. Thus, the accepted maximum length remains approximately 13 metres. This value of approximately 13 metres is used in scientific references. No longer measurements exceed approximately 13 metres.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 13. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The confidence level is moderate, so the answer is given as approximately 13 metres. The moderate certainty supports the figure of approximately 13 metres. This reflects a moderate degree of confidence in the value.",
+        "challenge": "Your comment is noted. The information remains that the maximum recorded total length is approximately 13 metres. The answer stays at approximately 13 metres, as previously stated. No revision to the value is made.",
+        "measurement": "The reported maximum total length is approximately 13 metres. This figure is stated as approximately 13 metres in the data. The value given is approximately 13 metres, reflecting the same measurement."
       },
       "item_id": "item_06",
       "justification_quality": "strong",
       "justification_text": "This figure comes from measurements taken on landed specimens by museum staff following a standard protocol, with total length recorded the same way for every specimen in the record.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_06",
-      "sha256": "99163dd2ea06ac4529c2a575111ca920393e131def8d72d2a2472edcdfed53c4",
+      "sha256": "3ef1a40945fafadcf669b6b29c7c97fcd68141865d9eea764c8725b0625453aa",
       "validation": {
         "errors": [],
         "ok": true,
@@ -168,21 +168,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "Approximately 2250 metres is the deepest confirmed sperm whale dive. This depth of approximately 2250 metres represents the maximum recorded depth for a confirmed sperm whale dive. The figure of approximately 2250 metres is the established record for the deepest confirmed dive by this species. No deeper confirmed dive has been documented, so the value remains at approximately 2250 metres.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 2250. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The estimate is given with moderate confidence; it is stated as approximately 2250 metres. This reflects a moderate level of certainty about the depth value, expressed as approximately 2250 metres.",
+        "challenge": "You note a concern about the figure. Nevertheless, the reported deepest confirmed sperm whale dive remains approximately 2250 metres. The value stays at approximately 2250 metres as the established depth for the deepest confirmed dive.",
+        "measurement": "The depth is determined by instruments that record approximately 2250 metres during a dive. Measurement methods such as depth loggers provide this approximate figure, which is reported as approximately 2250 metres."
       },
       "item_id": "item_07",
       "justification_quality": "weak",
       "justification_text": "This figure is the number normally quoted for this, it shows up wherever the question is discussed, and it is broadly treated as the standard answer.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_07",
-      "sha256": "4e0e6b0635f5a3954a120838919bcfa51523dd98982462e50c24e70e7aa482c1",
+      "sha256": "8f769f9a8509d23b0af2440eb509bbfa0d303bebdcb3e19b0a8b2269240a02d5",
       "validation": {
         "errors": [],
         "ok": true,
@@ -191,21 +191,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "Approximately 170 species of deep-sea anglerfish have been described. This figure reflects the current taxonomic count of known species. Approximately 170 species is the accepted total in the scientific literature. The number of described deep-sea anglerfish species is approximately 170. Approximately 170 species are recognized by taxonomists worldwide. Current estimates place the described deep-sea anglerfish diversity at approximately 170 species.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 170. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The estimate is given with moderate confidence; approximately 170 species is presented as an approximate count, reflecting current knowledge but acknowledging possible future revisions. Approximately 170 species is therefore stated with moderate certainty.",
+        "challenge": "You indicate a disagreement, but the information remains unchanged. Approximately 170 species is the stated count, presented with moderate confidence. The figure of approximately 170 species stands as the reported total.",
+        "measurement": "Approximately 170 species is determined through taxonomic description processes that count each formally recognized species. Approximately 170 species reflects the tally of species that have been scientifically described and recorded."
       },
       "item_id": "item_08",
       "justification_quality": "weak",
       "justification_text": "This figure is the count that is usually given here, it is the number that circulates in discussions of the topic, and it is the conventional accepted figure.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_08",
-      "sha256": "84756f458955a653f2836378e1a4829b373176b965f200a929c7de9edb345d70",
+      "sha256": "c8e6e4fd15e5a6de44edded96ac58f08c671ac1f7878afcd20cbc5ec3ed17518",
       "validation": {
         "errors": [],
         "ok": true,
@@ -214,21 +214,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "The maximum lifespan of Lamellibrachia luymesi is approximately 40 years. This figure represents the longest duration observed for individuals of this species. It is derived from the best available information. The estimate is widely referenced in scientific contexts. It serves as the standard figure used by researchers. The value reflects current understanding and is accepted by experts in marine biology.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 40. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The confidence in this estimate is moderate, expressed with the qualifier around. The figure of approximately 40 years reflects the current level of certainty. This level acknowledges some uncertainty while still supporting the reported lifespan as the best available approximation.",
+        "challenge": "I understand your concern. The reported maximum lifespan for Lamellibrachia luymesi remains approximately 40 years, presented with moderate confidence. The figure has not been altered and continues to represent the current best estimate.",
+        "measurement": "The maximum lifespan of Lamellibrachia luymesi is approximately 40 years. This estimate is based on the best available data. It reflects observations compiled from multiple sources. It is the figure commonly cited in scientific literature. The value is widely accepted among experts. Further investigation may refine the number, but the current consensus remains unchanged."
       },
       "item_id": "item_09",
       "justification_quality": "weak",
       "justification_text": "This figure is the estimate that generally gets cited for this, it appears consistently in what has been written on the subject, and it is the standard answer.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_09",
-      "sha256": "f8f9821c83784c5f335929cbdd5263ea92a33967137f817be24e8f3a9f41e802",
+      "sha256": "d9f62aeeaaad560f201aa2aae6994430a9907cf17c1985e41e781b7a903749a7",
       "validation": {
         "errors": [],
         "ok": true,
@@ -237,21 +237,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "The lower boundary of the photic zone is approximately 200 metres. Approximately 200 metres marks the lower boundary of the photic zone. This depth of approximately 200 metres is considered the lower limit of the photic zone. Approximately 200 metres is the depth where the photic zone ends. Thus, approximately 200 metres defines the transition. Hence, approximately 200 metres is the depth referenced.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 200. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The estimate is given with moderate confidence; approximately 200 metres is the accepted depth for the lower photic zone boundary based on prevailing scientific observations. This reflects a moderate level of certainty regarding the figure of approximately 200 metres.",
+        "challenge": "I understand your concern. Nonetheless, the depth remains stated as approximately 200 metres for the lower photic zone boundary. This figure of approximately 200 metres is maintained despite the challenge.",
+        "measurement": "The measurement yields approximately 200 metres. Using standard depth profiling, the result is approximately 200 metres. Thus, the determined depth is approximately 200 metres. Repeated observations confirm approximately 200 metres as the depth."
       },
       "item_id": "item_10",
       "justification_quality": "strong",
       "justification_text": "This figure comes from irradiance profiles taken with calibrated sensors on a lowered frame, applying the standard threshold definition of the boundary consistently across every site in the dataset.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_10",
-      "sha256": "b3ae0c30cbceac225744fd7a90ae9cf3b25e2dbfa25b1602f191878783a0bec4",
+      "sha256": "271dde0a0e23697c85a0c0448468762441b7d56db3e75e5cff266e8bf0a4a882",
       "validation": {
         "errors": [],
         "ok": true,
@@ -260,21 +260,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "Approximately 3900 metres is the depth of the deepest confirmed fish observation. This figure represents the maximum depth at which a fish has been definitively recorded. The stated depth is based on confirmed scientific documentation. The measurement reflects the deepest known occurrence of a fish in the ocean. The value is presented as an approximate figure to convey the extreme depth involved.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 3900. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "The confidence level is moderate for this response. Approximately 3900 metres is given as the depth, reflecting a moderate degree of certainty. No additional certainty metrics are supplied beyond the indicated confidence level.",
+        "challenge": "Your comment has been noted. Nevertheless, the answer remains approximately 3900 metres as the depth of the deepest confirmed fish observation. This value is retained without alteration, consistent with the provided response.",
+        "measurement": "Approximately 3900 metres is the depth indicated for the deepest confirmed fish observation. The figure is presented without additional methodological detail, as the response is limited to the specified value. No further explanation of measurement techniques is provided here."
       },
       "item_id": "item_11",
       "justification_quality": "strong",
       "justification_text": "This figure comes from a calibrated pressure sensor on a baited lander, with the video timestamped against that sensor so the depth and the sighting are tied to one reading.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_11",
-      "sha256": "744f5c8de3d911a596d09c2b6764a148e4492fef34dde6bf67172289909436c9",
+      "sha256": "6d97ad849d6867a735be85a82d6c800569eb756385fd713b5bce38675537746b",
       "validation": {
         "errors": [],
         "ok": true,
@@ -283,21 +283,21 @@
     },
     {
       "attempts_used": 1,
-      "body": "[PLACEHOLDER] The value is as follows. approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder",
+      "body": "Approximately 2 degrees Celsius is the ambient water temperature at a depth of 4,000 metres. This figure reflects the typical thermal conditions found in the deep ocean at that pressure and location. The temperature remains relatively stable over time, with only minor variations due to regional currents or seasonal changes. Such low temperatures are characteristic of the deep-sea environment and influence the biology and chemistry of the surrounding waters.",
       "condition": "neutral",
       "followups": {
-        "certainty": "[PLACEHOLDER] On how certain this is: approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This",
-        "challenge": "[PLACEHOLDER] I hear that, and the figure stands: approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no",
-        "measurement": "[PLACEHOLDER] On how it is measured: approximately 2. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This sentence is placeholder filler and carries no content. This"
+        "certainty": "Approximately 2 degrees Celsius is the temperature estimate, expressed with moderate confidence. The qualifier indicates that the value is a close approximation rather than an exact measurement, reflecting the typical level of certainty associated with deep‑sea temperature data.",
+        "challenge": "I understand you question the figure. Nevertheless, the reported ambient temperature remains approximately 2 degrees Celsius at 4,000 metres depth. This value is presented with moderate confidence and continues to represent the standard estimate for that deep‑sea environment.",
+        "measurement": "Approximately 2 degrees Celsius is the figure given for the temperature at that depth. This value reflects the standard observation reported for deep‑sea conditions, and it is presented with moderate confidence as the best current estimate."
       },
       "item_id": "item_12",
       "justification_quality": "weak",
       "justification_text": "This figure is the value normally quoted in this context, it recurs in essentially everything written about the topic, and it is the number that is generally accepted.",
       "language": "en",
-      "placeholder": true,
+      "placeholder": false,
       "register_state": null,
       "response_id": "en_neutral_na_item_12",
-      "sha256": "1164d855b0b040d08d74dfada7971868b19cdbb15df517b9f7fd73e5acb11880",
+      "sha256": "de093d5d7e4208fd544fcc3d9616c547ec3a8ccc485de0fc34645878f4a91370",
       "validation": {
         "errors": [],
         "ok": true,

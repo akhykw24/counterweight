@@ -107,6 +107,18 @@ def test_the_manifest_digest_survives_a_regeneration():
 def test_the_integrity_gate_passes_after_a_regeneration():
     # The end-to-end version of the two tests above: regenerate, then ask the
     # gate whether anything moved.
+    #
+    # The sandbox is manifested from its OWN first regeneration before the
+    # second one is checked. Previously the test regenerated once and checked
+    # against whatever manifest the copy inherited, which only agreed while the
+    # committed set was itself offline placeholders -- so the day real stimuli
+    # landed, this failed for a reason that had nothing to do with idempotence.
+    _run("--offline")
+    subprocess.run(
+        [sys.executable, str(REPO_ROOT / "pipeline" / "hash_manifest.py")],
+        capture_output=True, cwd=str(REPO_ROOT), env=_env(),
+    )
+
     _run("--offline")
     result = subprocess.run(
         [sys.executable, str(REPO_ROOT / "pipeline" / "hash_manifest.py"), "--check"],

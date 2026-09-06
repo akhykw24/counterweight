@@ -119,4 +119,17 @@ export function resolveStimulus(
   return response;
 }
 
+/**
+ * The frozen stimulus with this response id.
+ *
+ * Exists so a test can assert against whatever the app actually served rather
+ * than naming an arm itself. Allocation comes from the committed sequence, so
+ * a test that hardcodes "warm" is asserting something it does not control.
+ */
+export function stimulusByResponseId(responseId: string): StimulusResponse {
+  const response = byResponseId.get(responseId);
+  if (!response) throw new Error(`no frozen stimulus with response_id ${responseId}`);
+  return response;
+}
+
 export const stimulusCount = byResponseId.size;

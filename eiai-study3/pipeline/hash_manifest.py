@@ -24,6 +24,7 @@ import sys
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
+from hand_verification import confirm, is_verified
 from _common import (
     ITEMS_PATH,
     MANIFEST_JSON,
@@ -93,6 +94,7 @@ def build(entries: list[dict[str, Any]]) -> dict[str, Any]:
                 "  The frozen set must come from one run. Regenerate with --force."
             )
 
+    digest = manifest_digest(entries)
     return {
         # `Z`, not `+00:00`: the TypeScript schema uses zod's z.iso.datetime(),
         # which accepts only the Z form, and this manifest is read by both
@@ -105,9 +107,15 @@ def build(entries: list[dict[str, Any]]) -> dict[str, Any]:
         "generator_mode": modes.pop(),
         "provider": providers.pop(),
         "model": models.pop(),
-        "launch_ready": not placeholder,
+        # Two conditions, not one. Real stimuli are necessary and were, until
+        # now, treated as sufficient -- so the flag would have flipped to true
+        # the moment generation replaced the placeholders, with nobody having
+        # read a sentence. The specification says "hand-verified"; this is
+        # where that word becomes enforceable.
+        "launch_ready": (not placeholder) and is_verified(digest),
+        "hand_verified": is_verified(digest),
         "items_file_sha256": sha256_file(ITEMS_PATH),
-        "manifest_sha256": manifest_digest(entries),
+        "manifest_sha256": digest,
         "files": entries,
     }
 
@@ -167,13 +175,22 @@ def check(entries: list[dict[str, Any]]) -> int:
     print(f"Stimulus integrity confirmed: {len(entries)} files match the committed manifest.")
     print(f"  manifest_sha256 {current_digest}")
     if not committed.get("launch_ready", False):
-        print("  NOTE: manifest records launch_ready=false (placeholder stimuli).")
+        reason = "placeholder stimuli" if committed.get("hand_verified") else (
+            "stimuli not yet hand-verified"
+        )
+        print(f"  NOTE: manifest records launch_ready=false ({reason}).")
     return 0
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build or check the stimulus hash manifest.")
     parser.add_argument("--check", action="store_true", help="verify against the committed manifest")
+    parser.add_argument(
+        "--confirm-verified",
+        metavar="NAME",
+        default=None,
+        help="record that NAME has read every frozen stimulus, then rebuild the manifest",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     entries, missing = collect()
@@ -186,6 +203,14 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.check:
         return check(entries)
 
+    if args.confirm_verified:
+        digest = manifest_digest(entries)
+        record = confirm(digest, args.confirm_verified)
+        print(f"Hand verification recorded for {record.verified_by} at {record.verified_at}.")
+        print(f"  covers manifest_sha256 {digest}")
+        print("  Regenerating any stimulus changes that digest and lapses this record.")
+        print()
+
     manifest = build(entries)
     write_json(MANIFEST_JSON, manifest)
     write_sha256sum(entries, manifest["manifest_sha256"])
@@ -197,7 +222,18 @@ def main(argv: Iterable[str] | None = None) -> int:
     print("  -> materials/manifest.json")
     print("  -> materials/manifest.sha256")
     if not manifest["launch_ready"]:
-        print("\nlaunch_ready is false: these are placeholder stimuli, not collection material.")
+        if manifest["generator_mode"] == "offline_placeholder":
+            print("\nlaunch_ready is false: these are placeholder stimuli, not collection material.")
+        else:
+            # The state this run creates: real texts, nobody has read them.
+            # Saying so with the exact command to clear it is the difference
+            # between a gate and an obstacle.
+            print(
+                "\nlaunch_ready is false: the stimuli are real, but nobody has confirmed "
+                "reading them."
+            )
+            print("  Read all 48, then record it:")
+            print('    python pipeline/hash_manifest.py --confirm-verified "Your Name"')
     return 0
 
 
