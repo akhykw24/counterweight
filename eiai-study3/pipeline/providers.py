@@ -80,9 +80,15 @@ DEFAULT_PROVIDER = "groq"
 
 # Groq charges the daily token budget for what a request RESERVES, not what it
 # returns: a call with a ~1200-token prompt was billed 5253 with max_tokens at
-# 4096. The longest response the set contains is roughly 700 tokens, so 4096
-# reserved five times what any stimulus needs and paid for it in wall-clock days.
-DEFAULT_MAX_TOKENS = 1536
+# 4096. The longest response the set contains is roughly 700 tokens -- but on a
+# reasoning model the chain of thought spends from the SAME completion budget
+# before the answer starts. Cutting the cap to 1536 on that "700 tokens" logic
+# made the first live run fail on its very first call: reasoning plus answer
+# did not fit. 2560 leaves room for both and still fits the whole 48-cell run
+# inside one 200k day (~185k reserved); the cap changes nothing about what the
+# model writes unless it is hit, so the word-count bands measured at 4096 stay
+# valid.
+DEFAULT_MAX_TOKENS = 2560
 DEFAULT_MAX_ATTEMPTS = 6
 # Per-call reservation is ~2700 tokens against a per-minute cap of 8000, which
 # divides into 2.9 calls -- so 22s, not the 20s that sits exactly on the line.
@@ -101,11 +107,26 @@ MANUAL_PROVIDER = "manual"
 PROVIDER_CHOICES: tuple[str, ...] = tuple(sorted(PROVIDERS)) + (MANUAL_PROVIDER,)
 
 
-class QuotaExhausted(RuntimeError):
-    """The provider will not serve more work today.
+class GenerationHalt(RuntimeError):
+    """The run cannot usefully continue, through no fault of one cell.
 
-    Distinct from a transient failure: the caller is expected to stop, keep
-    everything already produced, and resume later -- not to retry.
+    The caller is expected to stop cleanly, keep everything already produced,
+    and let a later run resume -- not to retry, and not to die with a
+    traceback. Both concrete halts share this so generate.py has one catch.
+    """
+
+
+class QuotaExhausted(GenerationHalt):
+    """The provider will not serve more work today."""
+
+
+class TokenBudgetTooSmall(GenerationHalt):
+    """The model cannot fit its reasoning plus the answer in max_tokens.
+
+    Structural, not transient: the cap is identical for every call, so the
+    next cell would fail the same way, and backing off changes nothing. The
+    first live run spent five paid retries and four minutes of exponential
+    backoff proving that before dying with a traceback.
     """
 
 
@@ -253,7 +274,20 @@ class LiveProvider:
                 # json_validate_failed is the exception: the request was accepted
                 # and the model simply sampled something off-schema, which is a
                 # re-roll rather than a defect.
-                malformed = status == 400 and "json_validate_failed" in str(error)
+                text = str(error)
+                malformed = status == 400 and "json_validate_failed" in text
+                # Same provider code, opposite meanings. A truncation is not a
+                # bad sample: the reasoning the model emits before its answer
+                # comes out of the same completion budget, and when the two
+                # together exceed max_tokens every re-roll hits the same wall.
+                if malformed and "max completion tokens reached" in text:
+                    raise TokenBudgetTooSmall(
+                        f"{cell_id}: the model ran out of completion tokens before "
+                        f"finishing valid JSON (max_tokens={self.max_tokens}). Its "
+                        "reasoning shares that budget with the answer. Re-run with a "
+                        "larger --max-tokens; the provider's 'adjust your prompt' "
+                        "advice points at the wrong knob."
+                    ) from error
                 transient = status in (408, 409, 429, 500, 502, 503, 504) or malformed
 
                 if status == 429 and _is_daily_limit(error):

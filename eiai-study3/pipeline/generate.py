@@ -89,6 +89,7 @@ from providers import (  # noqa: E402
     DEFAULT_SLEEP,
     PROVIDERS,
     ProviderError,
+    GenerationHalt,
     QuotaExhausted,
     build_provider,
     resolve_defaults,
@@ -1030,7 +1031,7 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     try:
         justifications = build_justifications(items, args.languages, provider, cache, args)
-    except QuotaExhausted as stop:
+    except GenerationHalt as stop:
         print(f"\nQuota exhausted during phase 1: {stop}", file=sys.stderr)
         print("Nothing was written. Re-run when the quota resets.", file=sys.stderr)
         return 2
@@ -1041,7 +1042,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     written_responses = 0
     planned = [(lang, c, s) for lang in args.languages for c, s in variants]
     completed: set[tuple[str, str, str | None]] = set()
-    exhausted: QuotaExhausted | None = None
+    exhausted: GenerationHalt | None = None
 
     for language in args.languages:
         for condition, state in variants:
@@ -1051,7 +1052,7 @@ def main(argv: Iterable[str] | None = None) -> int:
                 document, file_failures = build_variant_file(
                     items, language, condition, state, justifications, provider, cache, args
                 )
-            except QuotaExhausted as stop:
+            except GenerationHalt as stop:
                 # Stop cleanly and keep everything already on disk; a resume
                 # skips finished variants rather than re-spending the quota.
                 exhausted = stop
