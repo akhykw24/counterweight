@@ -155,7 +155,7 @@ export function ConsentScreen({ send }: { send: Send }) {
       <h1>Informed consent</h1>
       <p>
         This study is about how people interact with AI assistants. It is run
-        by Dasha Prokop as part of a graduate research project. You will answer
+        by Darya Prokopenko as part of a graduate research project. You will answer
         twelve estimation questions about the deep sea and see an assistant's
         response to each. The whole session takes about 20 minutes.
       </p>
@@ -175,7 +175,7 @@ export function ConsentScreen({ send }: { send: Send }) {
         the data can tell us which responses are yours.
       </p>
       <p className="contact">
-        Questions or concerns, now or later: Dasha Prokop,{" "}
+        Questions or concerns, now or later: Darya Prokopenko,{" "}
         <a href="mailto:dashaprokop24@gmail.com">dashaprokop24@gmail.com</a>.
       </p>
       <button

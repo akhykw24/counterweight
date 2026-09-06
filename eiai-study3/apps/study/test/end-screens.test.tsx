@@ -274,7 +274,7 @@ describe("consent", () => {
 
   it("names who is running it and how to reach them", async () => {
     const text = await reachConsent();
-    expect(text).toContain("Dasha Prokop");
+    expect(text).toContain("Darya Prokopenko");
     expect(text).toContain("@");
   });
 
