@@ -51,7 +51,7 @@ from exclusions import (
     print_report as print_exclusions,
     remove_withdrawn,
 )
-from _common import REPO_ROOT
+from _common import REPO_ROOT, REVERSE_SCORED
 
 BOOTSTRAP_RESAMPLES = 5000
 BOOTSTRAP_SEED = 20260817
@@ -192,11 +192,11 @@ def per_participant(trials: pd.DataFrame, questionnaire: pd.DataFrame) -> pd.Dat
     )
     wide = wide.merge(extras, on="session_id", how="left")
 
-    trust = _scale_score(questionnaire, "trust", reverse={"trust_03"})
-    warmth = _scale_score(questionnaire, "warmth", reverse={"warmth_04"})
+    trust = _scale_score(questionnaire, "trust", reverse=set(REVERSE_SCORED["trust"]))
+    warmth = _scale_score(questionnaire, "warmth", reverse=set(REVERSE_SCORED["warmth"]))
     # The control scale. Collected since day one and, until now, never scored --
     # which meant the study declared a control check it could not perform.
-    competence = _scale_score(questionnaire, "competence", reverse={"competence_04"})
+    competence = _scale_score(questionnaire, "competence", reverse=set(REVERSE_SCORED["competence"]))
     wide = wide.merge(trust.rename("trust"), on="session_id", how="left")
     wide = wide.merge(warmth.rename("warmth_perceived"), on="session_id", how="left")
     wide = wide.merge(competence.rename("competence_perceived"), on="session_id", how="left")
@@ -233,6 +233,112 @@ def _scale_score(questionnaire: pd.DataFrame, scale: str, reverse: set[str]) -> 
     flip = subset["question_id"].isin(reverse)
     subset.loc[flip, "numeric"] = 8 - subset.loc[flip, "numeric"]
     return subset.groupby("session_id")["numeric"].mean()
+
+
+#: Scales, their reverse-scored items, and nothing inferred. Naming the reversed
+#: ids explicitly rather than deriving them from a heuristic is the same choice
+#: `_scale_score` makes, for the same reason: getting one wrong silently flips
+#: the sign of a hypothesis.
+SCALES: tuple[tuple[str, set[str]], ...] = tuple(
+    (scale, set(items)) for scale, items in REVERSE_SCORED.items()
+)
+
+
+def _wide(questionnaire: pd.DataFrame, scale: str, reverse: set[str]) -> pd.DataFrame:
+    """One row per participant, one column per item, reverse scoring applied."""
+    subset = questionnaire[questionnaire["scale"] == scale].copy()
+    if subset.empty:
+        return pd.DataFrame()
+    subset["numeric"] = pd.to_numeric(subset["value"], errors="coerce")
+    flip = subset["question_id"].isin(reverse)
+    subset.loc[flip, "numeric"] = 8 - subset.loc[flip, "numeric"]
+    wide = subset.pivot_table(
+        index="session_id", columns="question_id", values="numeric", aggfunc="mean"
+    )
+    # Complete cases only. Alpha is computed from a covariance matrix, and a
+    # matrix assembled from different subsets of participants per pair is not
+    # internally consistent -- it can even fail to be positive semi-definite.
+    return wide.dropna()
+
+
+def cronbach_alpha(wide: pd.DataFrame) -> float | None:
+    """Standard alpha from item variances. None when it is undefined.
+
+    Undefined for fewer than two items or fewer than two participants, and
+    returning 0.0 or 1.0 in those cases would produce a number somebody quotes.
+    """
+    k = wide.shape[1]
+    if k < 2 or len(wide) < 2:
+        return None
+    item_variance = wide.var(axis=0, ddof=1).sum()
+    total_variance = wide.sum(axis=1).var(ddof=1)
+    if total_variance == 0:
+        return None
+    return float((k / (k - 1)) * (1 - item_variance / total_variance))
+
+
+def reliability(
+    questionnaire: pd.DataFrame, scale: str, reverse: set[str]
+) -> dict[str, Any]:
+    """Internal consistency of one scale, with per-item diagnostics.
+
+    These items were written for this study: the repository holds no citation
+    to a published instrument, and the earliest record of the wording is the v1
+    specification, where the items already appear as finished text. Original
+    items borrow no psychometrics, so alpha is the only evidence a reader has
+    that the five warmth questions measure one thing rather than five.
+
+    Per item, two figures that answer different questions:
+
+    - `item_total_r`, the **corrected** item-total correlation: this item
+      against the sum of the others. Correlating an item with a total that
+      contains it inflates every figure and hides the weak one.
+    - `alpha_if_dropped`, which is what actually identifies the item breaking a
+      scale -- an alpha that rises when a question is removed is a question
+      measuring something else.
+    """
+    wide = _wide(questionnaire, scale, reverse)
+    if wide.empty:
+        return {
+            "scale": scale,
+            "alpha": None,
+            "n_items": 0,
+            "n_participants": 0,
+            "items": {},
+        }
+
+    items: dict[str, dict[str, float | None]] = {}
+    for column in wide.columns:
+        rest = wide.drop(columns=[column])
+        if rest.shape[1] == 0:
+            items[str(column)] = {"item_total_r": None, "alpha_if_dropped": None}
+            continue
+        rest_total = rest.sum(axis=1)
+        # A constant item has zero variance, so its correlation is undefined
+        # rather than zero. Reported as 0.0 with the variance implicitly nil is
+        # wrong; numpy would return nan and print as "nan", so it is made
+        # explicit instead.
+        if wide[column].std(ddof=1) == 0 or rest_total.std(ddof=1) == 0:
+            correlation = 0.0
+        else:
+            correlation = float(wide[column].corr(rest_total))
+        items[str(column)] = {
+            "item_total_r": correlation,
+            "alpha_if_dropped": cronbach_alpha(rest),
+        }
+
+    return {
+        "scale": scale,
+        "alpha": cronbach_alpha(wide),
+        "n_items": int(wide.shape[1]),
+        "n_participants": int(len(wide)),
+        "items": items,
+    }
+
+
+def reliabilities(questionnaire: pd.DataFrame) -> dict[str, dict[str, Any]]:
+    """Every rating scale's internal consistency, in one call."""
+    return {scale: reliability(questionnaire, scale, reverse) for scale, reverse in SCALES}
 
 
 # ---------------------------------------------------------------------------
@@ -642,6 +748,7 @@ def analyse(frames: dict[str, pd.DataFrame], spec: Specification) -> dict[str, A
 
     secondaries = holm_bonferroni({"H2_vigilance": h2["p"], "H5_trust": h5["p"]})
     checks = manipulation_checks(people)
+    scale_reliability = reliabilities(frames["questionnaire"])
 
     # CEFR lives on the participant table, not on trials, so it is merged in
     # here rather than carried through per_participant -- which is about the
@@ -675,6 +782,7 @@ def analyse(frames: dict[str, pd.DataFrame], spec: Specification) -> dict[str, A
         },
         "H1_interaction": h1,
         "manipulation_checks": checks,
+        "reliability": scale_reliability,
         "H3_adjusted_for_cefr": adjusted,
         "sensitivity_excluding_b1": sensitivity,
         "jackknife_over_items": jackknife,
@@ -826,6 +934,30 @@ def print_report(results: dict[str, Any]) -> None:
         f"{n['trials_used']} of {n['trials_available']} trials used"
     )
     print()
+    scales = results.get("reliability")
+    if scales:
+        print("Internal consistency (items written for this study, so alpha is")
+        print("the only evidence they measure one thing each)")
+        for name, scale in scales.items():
+            alpha = scale["alpha"]
+            shown = "n/a" if alpha is None else f"{alpha:.3f}"
+            print(f"  {name:<12} alpha = {shown:>6}   {scale['n_items']} items, "
+                  f"n = {scale['n_participants']}")
+            for item_id, stats in scale["items"].items():
+                r = stats["item_total_r"]
+                dropped = stats["alpha_if_dropped"]
+                # Flagged when removing the item would IMPROVE the scale, which
+                # is the condition that actually matters and is easy to miss in
+                # a column of numbers.
+                flag = "  <-- scale improves without it" if (
+                    dropped is not None and alpha is not None and dropped > alpha
+                ) else ""
+                r_shown = "  n/a" if r is None else f"{r:+.2f}"
+                d_shown = "  n/a" if dropped is None else f"{dropped:.3f}"
+                print(f"      {item_id:<16} r(item, rest) = {r_shown}   "
+                      f"alpha without = {d_shown}{flag}")
+        print()
+
     checks = results.get("manipulation_checks")
     if checks:
         warmth = checks["warmth"]

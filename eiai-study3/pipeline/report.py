@@ -117,6 +117,55 @@ def build_html(results: dict[str, Any], multiverse_rows: list[dict[str, str]],
     ]))
     parts.append("</table>")
 
+    scales = results.get("reliability")
+    if scales:
+        # Placed before the checks that use these scales. The items were
+        # written for this study -- no published instrument, no borrowed
+        # psychometrics -- so alpha is the only evidence a reader has that each
+        # set of questions measures one thing.
+        parts.append("<h2>Scale reliability</h2>")
+        parts.append(
+            "<p>The warmth, competence and trust items were written for this study rather "
+            "than adapted from a published instrument, so internal consistency is reported "
+            "for each. Reverse-scored items are flipped before alpha is computed. "
+            "Item-total correlations are corrected: each item against the sum of the "
+            "<em>others</em>, since correlating an item with a total containing itself "
+            "inflates every figure and hides the weak one.</p>"
+        )
+        parts.append("<table>")
+        parts.append(
+            "<tr><th>Scale</th><th class='num'>Items</th><th class='num'>n</th>"
+            "<th class='num'>Cronbach's &alpha;</th></tr>"
+        )
+        for name, scale in scales.items():
+            alpha = scale["alpha"]
+            parts.append(
+                f"<tr><td>{name}</td><td class='num'>{scale['n_items']}</td>"
+                f"<td class='num'>{scale['n_participants']}</td>"
+                f"<td class='num'>{'—' if alpha is None else _fmt(alpha)}</td></tr>"
+            )
+        parts.append("</table>")
+
+        parts.append("<h3>Per item</h3>")
+        parts.append("<table>")
+        parts.append(
+            "<tr><th>Item</th><th class='num'>r with the rest</th>"
+            "<th class='num'>&alpha; without it</th></tr>"
+        )
+        for name, scale in scales.items():
+            alpha = scale["alpha"]
+            for item_id, stats in scale["items"].items():
+                dropped = stats["alpha_if_dropped"]
+                improves = dropped is not None and alpha is not None and dropped > alpha
+                label = f"{item_id} <em>(scale improves without it)</em>" if improves else item_id
+                r = stats["item_total_r"]
+                parts.append(
+                    f"<tr><td>{label}</td>"
+                    f"<td class='num'>{'—' if r is None else _fmt(r)}</td>"
+                    f"<td class='num'>{'—' if dropped is None else _fmt(dropped)}</td></tr>"
+                )
+        parts.append("</table>")
+
     checks = results.get("manipulation_checks")
     if checks:
         # Placed before the hypotheses on purpose. If the warmth manipulation

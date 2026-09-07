@@ -55,7 +55,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from strata import load_strata, stratum_for_cefr
-from _common import LANGUAGES, REPO_ROOT, load_items
+from _common import ALL_REVERSE_SCORED, LANGUAGES, REPO_ROOT, load_items
 
 #: Levels the screening gate admits, taken from the stratum configuration so
 #: adding a stratum does not need an edit here.
@@ -392,27 +392,46 @@ def simulate_session(
     # Questionnaire. Warmth and trust track the manipulation so H2 and H5 have
     # something to find; competence deliberately does not, because a style
     # manipulation that moved perceived competence would be a confound.
+    #
+    # Two properties this used to get wrong, both exposed the first time the
+    # reliability report ran:
+    #
+    #   1. Reverse-scored items were answered in the same direction as the
+    #      rest. A participant who found the assistant warm rates "The
+    #      assistant felt impersonal" LOW; the simulator rated it high, the
+    #      scoring code flipped it as instructed, and the item then pointed
+    #      against its own scale (r = -0.43). ALL_REVERSE_SCORED is shared with
+    #      the analysis so the two cannot drift apart again.
+    #
+    #   2. Every item was an independent draw, so there was no person-level
+    #      agreement and alpha was zero by construction. Real questionnaire data
+    #      has a person in it: one latent level per scale per participant, which
+    #      is what alpha measures.
+    def answer(scale_base: float, latent: float, question_id: str) -> None:
+        writer.advance(rng.randint(300, 1500))
+        value = int(round(_clamp_likert(scale_base + latent + rng.gauss(0, 0.6))))
+        if question_id in ALL_REVERSE_SCORED:
+            value = 8 - value
+        writer.record(
+            "QUESTIONNAIRE_ANSWERED",
+            {"scale": question_id.rsplit("_", 1)[0], "question_id": question_id, "value": value},
+        )
+
     warm_bump = 1.2 if condition == "warm" else 0.0
+    warmth_latent = rng.gauss(0, 0.8)
     for question_id, base in (
         ("warmth_01", 3.4), ("warmth_02", 3.3), ("warmth_03", 3.5),
         ("warmth_04", 3.4), ("warmth_05", 3.3),
     ):
-        writer.advance(rng.randint(400, 1500))
-        value = int(round(_clamp_likert(base + warm_bump + rng.gauss(0, 0.9))))
-        writer.record("QUESTIONNAIRE_ANSWERED",
-                      {"scale": "warmth", "question_id": question_id, "value": value})
+        answer(base + warm_bump, warmth_latent, question_id)
 
+    competence_latent = rng.gauss(0, 0.8)
     for question_id in ("competence_01", "competence_02", "competence_03", "competence_04"):
-        writer.advance(rng.randint(300, 1200))
-        writer.record("QUESTIONNAIRE_ANSWERED",
-                      {"scale": "competence", "question_id": question_id,
-                       "value": int(round(_clamp_likert(4.5 + rng.gauss(0, 1.0))))})
+        answer(4.5, competence_latent, question_id)
 
+    trust_latent = rng.gauss(0, 0.8)
     for question_id in ("trust_01", "trust_02", "trust_03", "trust_04"):
-        writer.advance(rng.randint(300, 1200))
-        writer.record("QUESTIONNAIRE_ANSWERED",
-                      {"scale": "trust", "question_id": question_id,
-                       "value": int(round(_clamp_likert(3.8 + warm_bump * 0.6 + rng.gauss(0, 1.0))))})
+        answer(3.8 + warm_bump * 0.6, trust_latent, question_id)
 
     for question_id, value in (
         ("cov_age_band", age_band),

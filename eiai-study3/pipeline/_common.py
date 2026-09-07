@@ -85,6 +85,23 @@ MANIFEST_SHA256 = MATERIALS / "manifest.sha256"
 LANGUAGES = ("en",)
 ARCHIVED_LANGUAGES = ("kk", "ru")
 LANGUAGE_NAMES = {"kk": "Kazakh", "ru": "Russian", "en": "English"}
+# Reverse-scored questionnaire items, named rather than inferred.
+#
+# One definition, three consumers: the scale score, the reliability analysis,
+# and the simulator. They were three separate copies until the reliability
+# report exposed the consequence -- the simulator answered every warmth item in
+# the same direction, including "The assistant felt impersonal", so the scoring
+# code dutifully flipped an item that had never been reversed and the scale
+# looked broken (r = -0.43 against the rest). A shared constant cannot disagree
+# with itself.
+REVERSE_SCORED: dict[str, frozenset[str]] = {
+    "warmth": frozenset({"warmth_04"}),
+    "competence": frozenset({"competence_04"}),
+    "trust": frozenset({"trust_03"}),
+}
+
+ALL_REVERSE_SCORED: frozenset[str] = frozenset().union(*REVERSE_SCORED.values())
+
 REGISTERS = ("LOW", "MODERATE", "HIGH")
 
 # (condition, register_state) pairs. The neutral condition does not branch.
