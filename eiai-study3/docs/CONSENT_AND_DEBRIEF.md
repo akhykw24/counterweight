@@ -16,20 +16,15 @@ questionnaire, three open questions, and the debriefing screen.
 
 ---
 
-> **Two items need the researcher's input before this goes to the committee.**
+> **One item may need the researcher's input before this goes to the committee.**
 >
-> 1. The supervisor's email address. The consent screen currently reads
->    "[supervisor email — to be added]" and must not be shown to a participant
->    in that state.
-> 2. A retention period, if the committee requires a specific one. The text
+> 1. A retention period, if the committee requires a specific one. The text
 >    below states retention in terms of purpose rather than a number of years,
 >    because no period has been set. Both wordings are acceptable to most
 >    committees; a number can be substituted if asked for.
 >
-> The study cannot be launched while the first is unresolved: the launch gate
-> (`launch_ready` in the stimulus manifest) is closed and opens only by an
-> explicit command, so an unfinished consent form cannot reach a participant by
-> accident.
+> Contact addresses are complete: dashaprokop24@gmail.com and
+> rakhimbekova_s@kt.nis.edu.kz.
 
 ---
 
@@ -82,7 +77,7 @@ questionnaire, three open questions, and the debriefing screen.
 >
 > Questions or concerns, now or later: dashaprokop24@gmail.com
 > (Prokopenko Darya Artyomovna), or the supervisor Rakhimbekova Saya
-> Dissembeyevna at [supervisor email — to be added].
+> Dissembeyevna at rakhimbekova_s@kt.nis.edu.kz.
 >
 > ☐ I am 18 years old or older.
 >

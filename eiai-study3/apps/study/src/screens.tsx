@@ -210,7 +210,8 @@ export function ConsentScreen({ send }: { send: Send }) {
         Questions or concerns, now or later:{" "}
         <a href="mailto:dashaprokop24@gmail.com">dashaprokop24@gmail.com</a>{" "}
         (Prokopenko Darya Artyomovna), or the supervisor Rakhimbekova Saya
-        Dissembeyevna at [supervisor email &mdash; to be added].
+        Dissembeyevna at{" "}
+        <a href="mailto:rakhimbekova_s@kt.nis.edu.kz">rakhimbekova_s@kt.nis.edu.kz</a>.
       </p>
 
       <label className="confirm">

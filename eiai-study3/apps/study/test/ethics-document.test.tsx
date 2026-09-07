@@ -100,21 +100,21 @@ describe("the ethics document quotes the running screens", () => {
     }
   });
 
-  it("flags the supervisor's email as outstanding in both places", () => {
-    // The one thing that must not ship unnoticed. It appears on the consent
-    // screen and in the document, and this fails the moment one is filled in
-    // without the other -- which is exactly when it would be forgotten.
-    const placeholder = "supervisor email";
-    expect(DOCUMENT.toLowerCase()).toContain(placeholder);
+  it("gives both contact addresses, on the screen and in the document", async () => {
+    // The placeholder this replaced was the one thing that must not have
+    // shipped unnoticed. Now the assertion is that both addresses are present
+    // in both places, so dropping one is a failure rather than a silence.
+    for (const address of ["dashaprokop24@gmail.com", "rakhimbekova_s@kt.nis.edu.kz"]) {
+      expect(DOCUMENT, `${address} is missing from the ethics document`).toContain(address);
+    }
 
-    return reachConsent().then(() => {
-      const onScreen = (screen.getByTestId("screen-consent").textContent ?? "").toLowerCase();
-      expect(
-        onScreen.includes(placeholder),
-        "the consent screen and the ethics document disagree about whether the " +
-          "supervisor's email is still outstanding",
-      ).toBe(DOCUMENT.toLowerCase().includes(placeholder));
-    });
+    await reachConsent();
+    const consent = screen.getByTestId("screen-consent");
+    const addresses = [...consent.querySelectorAll('a[href^="mailto:"]')].map((a) =>
+      a.getAttribute("href")?.replace("mailto:", ""),
+    );
+    expect(addresses).toContain("dashaprokop24@gmail.com");
+    expect(addresses).toContain("rakhimbekova_s@kt.nis.edu.kz");
   });
 
   it("states what deletion actually does, in the document", () => {
