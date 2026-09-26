@@ -174,6 +174,10 @@ class SessionWriter:
                 "session_id": self.session_id,
                 "seq": self.seq,
                 "client_ts": self.clock,
+                # Synthetic participants stand in for the real study, so they
+                # are marked live. A simulator that produced 'test' rows would
+                # be filtered out by the very step it is meant to exercise.
+                "run_mode": "live",
                 "type": event_type,
                 "payload": payload,
             }

@@ -1,6 +1,7 @@
 import type { StudyEvent } from "@eiai/schema";
 import { openWal, type Wal } from "./wal.js";
 import { backoffDelay, TransportError, type BackoffOptions, type Transport } from "./transport.js";
+import type { RunMode } from "./run-mode.js";
 
 /**
  * The capture API the app talks to.
@@ -13,6 +14,9 @@ import { backoffDelay, TransportError, type BackoffOptions, type Transport } fro
 export interface TelemetryOptions {
   sessionId: string;
   transport: Transport;
+  /** Which kind of run this is. Defaults to `live`: a forgotten flag must
+   *  never mark real data as disposable. */
+  runMode?: RunMode;
   /** Events per POST. */
   batchSize?: number;
   /** Idle interval between flush attempts while the queue is non-empty. */
@@ -45,6 +49,7 @@ export async function createTelemetry(options: TelemetryOptions): Promise<Teleme
     onError = () => {},
   } = options;
 
+  const runMode = options.runMode ?? "live";
   const wal = options.wal ?? (await openWal(sessionId));
 
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -103,6 +108,9 @@ export async function createTelemetry(options: TelemetryOptions): Promise<Teleme
         session_id: sessionId,
         seq,
         client_ts: now().toISOString(),
+        // Stamped here rather than at the call site: every event gets it,
+        // including ones added later by somebody who never read this file.
+        run_mode: runMode,
         type,
         payload,
       }) as unknown as StudyEvent);

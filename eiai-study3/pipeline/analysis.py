@@ -48,6 +48,7 @@ from scipy import integrate, stats
 from exclusions import (
     apply_exclusions,
     filter_excluded,
+    keep_live_only,
     print_report as print_exclusions,
     remove_withdrawn,
 )
@@ -1115,9 +1116,18 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(str(error), file=sys.stderr)
         return 2
 
-    # Before anything else, and outside the exclusion machinery. Participants
-    # who withdrew did not consent to this analysis, so no specification --
-    # including the unexcluded one -- may include them.
+    # First of all: a pilot or test session is a rehearsal, not an
+    # observation. Before even the consent filter, because there is no sense
+    # in asking whether a rehearsal withdrew.
+    frames, rehearsals = keep_live_only(frames)
+    if rehearsals:
+        summary = ", ".join(f"{count} {mode}" for mode, count in sorted(rehearsals.items()))
+        print(f"Removed before analysis: {summary}. Only live sessions are analysed.")
+        print()
+
+    # Then consent. Participants who withdrew did not consent to this
+    # analysis, so no specification -- including the unexcluded one -- may
+    # include them.
     frames, n_withdrawn = remove_withdrawn(frames)
     if n_withdrawn:
         print(

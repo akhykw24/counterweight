@@ -13,6 +13,7 @@ const envelope = {
   session_id: "3b1d9e42-5a6f-4c8b-9d0e-1f2a3b4c5d6e",
   seq: 0,
   client_ts: "2026-08-09T10:00:00.000Z",
+  run_mode: "live" as const,
 };
 
 function itemPresented(overrides: Record<string, unknown> = {}) {

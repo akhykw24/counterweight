@@ -16,6 +16,7 @@ import {
   QuestionnaireScale,
   RegisterState,
   ResponseId,
+  RunMode,
   ScreenedOutReason,
   ScrollFraction,
   Seq,
@@ -39,6 +40,7 @@ export const eventEnvelopeShape = {
   session_id: SessionId,
   seq: Seq,
   client_ts: ClientTimestamp,
+  run_mode: RunMode,
 } as const;
 
 export const EventEnvelope = z.strictObject(eventEnvelopeShape);

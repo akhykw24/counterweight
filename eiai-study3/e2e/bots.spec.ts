@@ -170,6 +170,7 @@ test("bot policies complete real sessions and export a comparable log", async ({
           session_id: row.session_id,
           seq: row.seq,
           client_ts: row.client_ts,
+          run_mode: row.run_mode,
           type: row.type,
           payload: row.payload,
         }),

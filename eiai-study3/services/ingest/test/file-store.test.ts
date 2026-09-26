@@ -35,6 +35,7 @@ function row(over: Partial<EventRow> = {}): EventRow {
     session_id: "22222222-2222-4222-8222-222222222222",
     seq: 1,
     client_ts: "2026-09-04T10:00:00.000Z",
+    run_mode: "live",
     type: "SESSION_STARTED",
     payload: { app_version: "0.1.0" },
     ...over,

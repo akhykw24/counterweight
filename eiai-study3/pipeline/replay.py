@@ -124,6 +124,23 @@ def _of_type(events: list[dict[str, Any]], event_type: str) -> list[dict[str, An
     return [e for e in events if e["type"] == event_type]
 
 
+def _run_mode(session_id: str, events: list[dict[str, Any]]) -> str:
+    """The run mode every event in this session agrees on.
+
+    Raises when they disagree. A session whose events carry different modes
+    cannot be filed anywhere honestly: keeping it risks a pilot response in the
+    analysed sample, dropping it risks discarding a real participant, and
+    guessing hides whichever mistake produced it.
+    """
+    modes = {str(e.get("run_mode", "live")) for e in events}
+    if len(modes) > 1:
+        raise ReplayError(
+            f"{session_id}: events disagree about run_mode ({sorted(modes)}). "
+            "A session is one kind of run or another; this one cannot be filed."
+        )
+    return modes.pop() if modes else "live"
+
+
 def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[str, Any]) -> dict[str, Any]:
     """Everything one participant contributes, as plain dicts ready for CSV."""
     started = _last(events, "SESSION_STARTED")
@@ -280,6 +297,11 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
         "language": STUDY_LANGUAGE,
         "app_version": (started or {}).get("payload", {}).get("app_version"),
         "stimuli_manifest_hash": (started or {}).get("payload", {}).get("stimuli_manifest_hash"),
+        # Which kind of run this was. Read from the events themselves rather
+        # than from one of them: `_run_mode` fails loudly if a session's events
+        # disagree, because a session that is half pilot and half live is a
+        # bug nobody should be left to discover in the analysis.
+        "run_mode": _run_mode(session_id, events),
         "resumed": int(bool((started or {}).get("payload", {}).get("resumed"))),
         # Exclusion criterion 5. Absent in logs recorded before the flag
         # existed, which projects as 0 -- the honest reading, since those
@@ -373,7 +395,7 @@ TRIAL_COLUMNS = [
 ]
 
 PARTICIPANT_COLUMNS = [
-    "session_id", "condition", "stratum", "cefr", "allocation_seq", "locale", "app_version",
+    "session_id", "run_mode", "condition", "stratum", "cefr", "allocation_seq", "locale", "app_version",
     "stimuli_manifest_hash", "resumed", "repeat_session", "consented", "screened_out_reason", "language",
     "age_band", "primary_language",
     "ai_usage", "prior_knowledge",

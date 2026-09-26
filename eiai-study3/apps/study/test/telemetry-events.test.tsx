@@ -358,6 +358,7 @@ describe("everything emitted validates against the shared schema", () => {
         session_id: SESSION,
         seq: index,
         client_ts: "2026-08-09T10:00:00.000Z",
+        run_mode: "live" as const,
         type: event.type,
         payload: event.payload,
       })),

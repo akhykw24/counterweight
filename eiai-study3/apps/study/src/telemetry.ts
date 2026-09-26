@@ -3,10 +3,12 @@ import {
   httpTransport,
   hadCompletedSession,
   loadResume,
+  runModeFromSearch,
   markCompleted,
   saveSnapshot,
   startSession,
 } from "@eiai/telemetry";
+import type { RunMode } from "@eiai/telemetry";
 import manifest from "../../../materials/manifest.json";
 
 /**
@@ -31,6 +33,7 @@ export interface Bootstrap {
   sessionId: string;
   resumed: boolean;
   repeatSession: boolean;
+  runMode: RunMode;
   snapshot: unknown | null;
   flush: () => Promise<unknown>;
   persist: (snapshot: unknown) => void;
@@ -51,8 +54,14 @@ export async function bootstrap(): Promise<Bootstrap> {
 
   if (!resumed) startSession(sessionId);
 
+  // Read once, at the start, from the link the participant opened. Held for
+  // the life of the session so a mid-session navigation cannot change what
+  // kind of run this is.
+  const runMode = runModeFromSearch(globalThis.location?.search ?? "");
+
   const telemetry = await createTelemetry({
     sessionId,
+    runMode,
     transport: httpTransport(INGEST_ENDPOINT),
     // Failures are expected in a classroom and are not the participant's
     // problem; the WAL holds everything until the network returns.
@@ -73,6 +82,7 @@ export async function bootstrap(): Promise<Bootstrap> {
     sessionId,
     resumed,
     repeatSession,
+    runMode,
     snapshot: existing?.snapshot ?? null,
     flush: () => telemetry.flush(),
     persist: saveSnapshot,

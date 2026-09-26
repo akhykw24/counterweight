@@ -10,3 +10,4 @@ export * from "./wal.js";
 export * from "./transport.js";
 export * from "./resume.js";
 export * from "./recorder.js";
+export * from "./run-mode.js";

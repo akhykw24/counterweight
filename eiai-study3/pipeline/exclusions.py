@@ -198,6 +198,65 @@ def apply_exclusions(participants: pd.DataFrame, trials: pd.DataFrame) -> Exclus
     return ExclusionReport(flags=flag_frame, counts=counts, n_total=len(participants))
 
 
+#: The only run mode whose data is an observation rather than a rehearsal.
+LIVE = "live"
+
+#: Everything the client can write. An value outside this set means something
+#: upstream is wrong, not that a participant typed something unusual.
+KNOWN_RUN_MODES = frozenset({LIVE, "pilot", "test"})
+
+
+def keep_live_only(
+    frames: dict[str, pd.DataFrame],
+) -> tuple[dict[str, pd.DataFrame], dict[str, int]]:
+    """Copies of `frames` holding the real study only, and what was removed.
+
+    Pilot and test sessions land in the same table as the real study, and
+    nothing about a pilot response looks different once it is in a CSV. So the
+    separation is structural: every event carries its run mode, and this runs
+    before any statistic is computed.
+
+    Not one of section 8.6's criteria, for the same reason withdrawal is not.
+    Those are methodological and reported both ways. This is about what the
+    data *is* -- a rehearsal is not an observation, and no specification,
+    including the one that keeps excluded participants, may contain one.
+    """
+    participants = frames.get("participants")
+    if participants is None or "run_mode" not in participants.columns:
+        raise KeyError(
+            "participants table is missing 'run_mode'. Without it every pilot "
+            "and test session would be analysed as a participant, and nothing "
+            "would look wrong -- so this stops rather than guessing."
+        )
+
+    modes = set(participants["run_mode"].astype(str))
+    unknown = sorted(modes - KNOWN_RUN_MODES)
+    if unknown:
+        raise ValueError(
+            f"unrecognised run_mode(s) {unknown}. The client writes only "
+            f"{sorted(KNOWN_RUN_MODES)}, so this means something upstream is "
+            "wrong; guessing how to file these rows is how a rehearsal reaches "
+            "the sample."
+        )
+
+    rehearsals = participants.loc[
+        participants["run_mode"].astype(str) != LIVE, ["session_id", "run_mode"]
+    ]
+    removed = set(rehearsals["session_id"].astype(str))
+    counts = {
+        mode: int(count)
+        for mode, count in rehearsals["run_mode"].astype(str).value_counts().items()
+    }
+
+    out: dict[str, pd.DataFrame] = {}
+    for name, frame in frames.items():
+        if "session_id" not in frame.columns:
+            out[name] = frame
+            continue
+        out[name] = frame[~frame["session_id"].astype(str).isin(removed)].reset_index(drop=True)
+    return out, counts
+
+
 def remove_withdrawn(frames: dict[str, pd.DataFrame]) -> tuple[dict[str, pd.DataFrame], int]:
     """Copies of `frames` with every withdrawn participant removed, and the count.
 

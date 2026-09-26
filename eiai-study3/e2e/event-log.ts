@@ -37,6 +37,7 @@ export interface StoredRow {
   session_id: string;
   seq: number;
   client_ts: string;
+  run_mode: string;
   type: string;
   payload: Record<string, unknown>;
 }

@@ -35,6 +35,18 @@ export const ResponseId = z
   .regex(/^[a-z]{2}_(warm|neutral)_(low|moderate|high|na)_item_(0[1-9]|1[0-2])$/)
   .describe("Frozen stimulus identifier: {lang}_{condition}_{register}_{item}. Resolves to exactly one hash-manifested response file.");
 
+/**
+ * Which kind of run produced an event: the real study, the pilot, or a test.
+ *
+ * In the envelope rather than in one opening event, so a session whose first
+ * event was lost cannot silently read as live. Defaults to `live` nowhere --
+ * it is always written explicitly, because the failure that matters is a
+ * pilot response sitting undetected in the analysed sample.
+ */
+export const RunMode = z
+  .enum(["live", "pilot", "test"])
+  .describe("live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed.");
+
 export const Language = z
   .enum(["en"])
   .describe("Active study language. English only under spec v2; the Russian and Kazakh sets are in archive/ and are not in the active manifest, so nothing can serve them.");

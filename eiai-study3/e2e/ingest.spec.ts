@@ -227,6 +227,7 @@ test("the server refuses an event the schema does not recognise", async ({ page 
           session_id: "55555555-5555-4555-8555-555555555555",
           seq: 1,
           client_ts: "2026-09-04T10:00:00.000Z",
+          run_mode: "test",
           type: "NOT_A_REAL_EVENT",
           payload: {},
         },

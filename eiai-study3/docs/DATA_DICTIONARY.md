@@ -37,6 +37,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"SESSION_STARTED"` | yes |  |  |
 | `payload.app_version` | string | yes | minLen 1 | Build identifier of the study app. |
 | `payload.stimuli_manifest_hash` | string | yes | pattern `^[a-f0-9]{64}$` | SHA-256 of the stimulus manifest in force for this session. Lets you prove post hoc that stimuli were unaltered. |
@@ -56,6 +57,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"SCREENED_OUT"` | yes |  |  |
 | `payload.reason` | `age` \| `language` \| `prior_training` | yes |  | Why a visitor was turned away before consent. This is the ONLY thing a screened-out visitor contributes: no age, no answers, no session (spec v2 §3). It exists so the participant-flow diagram can report screening counts. |
 
@@ -69,6 +71,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"CONSENT_GIVEN"` | yes |  |  |
 
 #### `ALLOCATED`
@@ -81,6 +84,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"ALLOCATED"` | yes |  |  |
 | `payload.condition` | `warm` \| `neutral` | yes |  | Between-subjects emotional style condition. |
 | `payload.stratum` | string | yes | minLen 1 | Randomisation stratum id, drawn from materials/strata.json. Two under spec v2: B1-B2 and C1-C2/native. |
@@ -97,6 +101,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"ITEM_PRESENTED"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.position` | integer | yes | >= 1, <= 12 | Presentation position, 1-12. Order is randomized per participant. |
@@ -111,6 +116,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"ESTIMATE_CHANGED"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.phase` | `initial` \| `final` | yes |  | Whether an estimate or confidence reading was taken before or after the AI response. |
@@ -127,6 +133,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"CONFIDENCE_SET"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.phase` | `initial` \| `final` | yes |  | Whether an estimate or confidence reading was taken before or after the AI response. |
@@ -142,6 +149,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"RESPONSE_REVEALED"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.response_id` | string | yes | pattern `^[a-z]{2}_(warm\|neutral)_(low\|moderate\|high\|na)_item_(0[1-9]\|1[0-2])$` | Frozen stimulus identifier: {lang}_{condition}_{register}_{item}. Resolves to exactly one hash-manifested response file. |
@@ -157,6 +165,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"RESPONSE_SCROLLED"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.max_scroll_fraction` | number | yes | >= 0, <= 1 | Deepest fraction of the AI response scrolled into view. 1.0 means the justification was at least displayed. |
@@ -171,6 +180,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"FOLLOWUP_SELECTED"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.followup_id` | `measurement` \| `certainty` \| `challenge` | yes |  | Fixed follow-up options. 'challenge' ("I think that might be wrong") is itself a behavioural measure. |
@@ -186,6 +196,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"VERIFY_CLICKED"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.ms_since_reveal` | integer | yes | >= 0 | Elapsed milliseconds. |
@@ -200,6 +211,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"WINDOW_BLURRED"` | yes |  |  |
 | `payload.item_id` | string \| null | yes |  | Item on screen at blur, or null outside the item loop. |
 | `payload.ms_since_session_start` | integer | yes | >= 0 | Elapsed milliseconds. |
@@ -214,6 +226,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"WINDOW_FOCUSED"` | yes |  |  |
 | `payload.item_id` | string \| null | yes |  |  |
 | `payload.ms_since_session_start` | integer | yes | >= 0 | Elapsed milliseconds. |
@@ -229,6 +242,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"ESTIMATE_FINALIZED"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.value` | number | yes |  | A numeric estimate in the item's own unit. Unbounded — participants may enter any finite value. |
@@ -245,6 +259,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"ARGUMENT_RATED"` | yes |  |  |
 | `payload.item_id` | string | yes | pattern `^item_(0[1-9]\|1[0-2])$` | Item bank identifier, item_01 through item_12. |
 | `payload.perceived_strength` | integer | yes | >= 1, <= 7 | 1 = very weak, 7 = very strong. |
@@ -259,6 +274,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"QUESTIONNAIRE_ANSWERED"` | yes |  |  |
 | `payload.scale` | `warmth` \| `competence` \| `trust` \| `covariates` | yes |  | Which questionnaire instrument an answer belongs to. |
 | `payload.question_id` | string | yes | minLen 1 | Stable question identifier, e.g. warmth_01. |
@@ -274,6 +290,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"FUNNEL_RESPONSE"` | yes |  |  |
 | `payload.stage` | `purpose` \| `anomaly` \| `belief` | yes |  | Funnelled suspicion probe stage, administered in this order without backtracking. |
 | `payload.text` | string | yes |  | Verbatim free-text response, or the selected option at the belief stage. |
@@ -288,6 +305,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"SESSION_COMPLETED"` | yes |  |  |
 | `payload.total_duration_ms` | integer | yes | >= 0 | Elapsed milliseconds. |
 
@@ -301,6 +319,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"SESSION_WITHDRAWN"` | yes |  |  |
 | `payload.reason` | string \| null | yes |  | Optional free-text reason. Null when the participant declined to give one. |
 | `payload.at_state` | string | yes | minLen 1 | Statechart state the participant withdrew from. |

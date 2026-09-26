@@ -19,6 +19,7 @@ function itemPresented(seq: number, overrides: Record<string, unknown> = {}) {
     session_id: SESSION,
     seq,
     client_ts: "2026-08-09T10:00:00.000Z",
+    run_mode: "live",
     type: "ITEM_PRESENTED",
     payload: { item_id: "item_01", position: 1 },
     ...overrides,

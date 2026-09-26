@@ -34,6 +34,7 @@ export interface EventRow {
   client_ts: string;
   type: string;
   payload: unknown;
+  run_mode: string;
 }
 
 export interface EventStore {
@@ -49,10 +50,9 @@ export interface IngestResult {
 export const MAX_BATCH_BYTES = 1_000_000;
 
 function toRow(event: StudyEvent): EventRow {
-  const { event_id, session_id, seq, client_ts, type, payload } = event as StudyEvent & {
-    payload: unknown;
-  };
-  return { event_id, session_id, seq, client_ts, type, payload };
+  const { event_id, session_id, seq, client_ts, type, payload, run_mode } =
+    event as StudyEvent & { payload: unknown; run_mode: string };
+  return { event_id, session_id, seq, client_ts, type, payload, run_mode };
 }
 
 export async function handleIngest(

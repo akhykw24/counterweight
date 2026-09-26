@@ -20,6 +20,12 @@ create table if not exists public.events (
     client_ts   timestamptz not null,
     type        text        not null,
     payload     jsonb       not null,
+    -- Which kind of run produced this. Only 'live' enters the analysed sample;
+    -- the pilot and any test run are removed by pipeline/exclusions.py before
+    -- a single statistic is computed. Carried on every row rather than on one
+    -- opening event, so a session cannot lose its mark and read as live.
+    run_mode    text        not null default 'live'
+                            check (run_mode in ('live', 'pilot', 'test')),
     -- Server clock. Client clocks are not trustworthy; `seq` establishes order
     -- within a session and this establishes arrival order across them.
     received_at timestamptz not null default now(),
@@ -39,6 +45,7 @@ comment on column public.events.event_id is
 
 create index if not exists events_session_seq_idx on public.events (session_id, seq);
 create index if not exists events_type_idx        on public.events (type);
+create index if not exists events_run_mode_idx    on public.events (run_mode);
 create index if not exists events_received_at_idx on public.events (received_at);
 
 -- ---------------------------------------------------------------------------
