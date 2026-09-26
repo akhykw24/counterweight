@@ -236,6 +236,17 @@ export const FunnelResponse = defineEvent(
   },
 );
 
+export const PilotFeedback = defineEvent(
+  "PILOT_FEEDBACK",
+  "Optional usability feedback, asked only in a pilot run and only after the session is already complete. Never part of the analysed study: these rows carry run_mode 'pilot' or 'test' and are removed before any statistic is computed.",
+  {
+    question: z
+      .enum(["clarity", "duration", "purpose_guess"])
+      .describe("Which of the three closing questions this answers."),
+    text: z.string().min(1).describe("Verbatim answer. Blank answers are not recorded at all, so an empty string never appears."),
+  },
+);
+
 export const SessionCompleted = defineEvent(
   "SESSION_COMPLETED",
   "Participant reached the debrief and finished.",
@@ -274,6 +285,7 @@ export const eventSchemas = [
   FunnelResponse,
   SessionCompleted,
   SessionWithdrawn,
+  PilotFeedback,
 ] as const;
 
 export const StudyEvent = z.discriminatedUnion("type", [
@@ -296,6 +308,7 @@ export const StudyEvent = z.discriminatedUnion("type", [
   FunnelResponse,
   SessionCompleted,
   SessionWithdrawn,
+  PilotFeedback,
 ]);
 
 /** What the client POSTs to the ingest service. */

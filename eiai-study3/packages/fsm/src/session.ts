@@ -98,6 +98,10 @@ export type SessionEvent =
   | { type: "REQUEST_FINAL" }
   | { type: "SUBMIT_FINAL" }
   | { type: "RATE_ARGUMENT"; perceivedStrength: number }
+  // Pilot runs only, and only once the machine is already in `done`. No
+  // transition handles it: the session is over, and this is an addendum the
+  // statechart has no business modelling.
+  | { type: "PILOT_FEEDBACK"; question: "clarity" | "duration" | "purpose_guess"; text: string }
   | { type: "SUBMIT_QUESTIONNAIRE" }
   | { type: "SUBMIT_FUNNEL" }
   | { type: "FINISH" }

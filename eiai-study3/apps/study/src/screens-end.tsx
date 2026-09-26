@@ -245,6 +245,75 @@ export function FunnelScreen({
   );
 }
 
+/**
+ * Three optional questions asked only in a pilot run.
+ *
+ * Placed after the session is already complete -- SESSION_COMPLETED has been
+ * recorded by the time this renders -- so a participant who closes the tab
+ * here has still given a full, valid session. That ordering is what makes it
+ * honest to call them optional: nothing about the study's data depends on
+ * them, and a pilot participant doing a favour should not meet a form that
+ * refuses to let them leave.
+ *
+ * A blank answer records nothing at all. An empty string stored as an answer
+ * would read as "had nothing to say", which is a different fact from "skipped
+ * the question".
+ */
+const PILOT_QUESTIONS = [
+  { id: "clarity", text: "Was anything unclear or confusing? If so, what?" },
+  { id: "duration", text: "Roughly how long did the study take you?" },
+  { id: "purpose_guess", text: "What do you think this study was investigating?" },
+] as const;
+
+export function PilotFeedbackScreen({ send }: { send: Send }) {
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [sent, setSent] = useState(false);
+
+  if (sent) return null;
+
+  return (
+    <section data-testid="pilot-feedback" className="pilot-feedback">
+      <h2>Three last questions — optional</h2>
+      <p>
+        These are about the study itself rather than the deep sea, and they help
+        us fix anything awkward before other people take part. You are finished
+        either way: your answers have already been recorded, and you can close
+        this tab now if you would rather.
+      </p>
+
+      {PILOT_QUESTIONS.map((question) => (
+        <label key={question.id} className="pilot-feedback-question">
+          <span>{question.text}</span>
+          <textarea
+            data-testid={`pilot-feedback-${question.id}`}
+            rows={question.id === "duration" ? 1 : 3}
+            value={answers[question.id] ?? ""}
+            onChange={(event) =>
+              setAnswers((previous) => ({ ...previous, [question.id]: event.target.value }))
+            }
+          />
+        </label>
+      ))}
+
+      <button
+        type="button"
+        className="primary"
+        data-testid="pilot-feedback-submit"
+        onClick={() => {
+          for (const question of PILOT_QUESTIONS) {
+            const text = (answers[question.id] ?? "").trim();
+            if (text.length === 0) continue;
+            send({ type: "PILOT_FEEDBACK", question: question.id, text });
+          }
+          setSent(true);
+        }}
+      >
+        Send and finish
+      </button>
+    </section>
+  );
+}
+
 export function DebriefScreen({
   send,
   t,

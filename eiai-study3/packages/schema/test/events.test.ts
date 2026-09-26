@@ -57,7 +57,9 @@ describe("taxonomy coverage", () => {
     // 18 in v1. v2 removed ASSENT_GIVEN with the minor flow and added
     // SCREENED_OUT (screening counts, without storing anything about the
     // person) and ARGUMENT_RATED (the within-subjects manipulation check).
-    expect(eventSchemas).toHaveLength(19);
+    // PILOT_FEEDBACK is the twentieth: pilot runs only, after the session is
+    // already complete, and never part of the analysed study.
+    expect(eventSchemas).toHaveLength(20);
   });
 
   it("exposes every defined event through the discriminated union", () => {

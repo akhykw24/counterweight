@@ -21,7 +21,12 @@ import {
   WithdrawButton,
   type Send,
 } from "./screens";
-import { DebriefScreen, FunnelScreen, QuestionnaireScreen } from "./screens-end";
+import {
+  DebriefScreen,
+  FunnelScreen,
+  PilotFeedbackScreen,
+  QuestionnaireScreen,
+} from "./screens-end";
 
 /** Flattens a possibly-nested state value to a dotted name, e.g. `task.estimate`. */
 export function stateName(value: StateValue): string {
@@ -261,6 +266,12 @@ export function App({
       case "ANSWER_FUNNEL":
         recorder.record("FUNNEL_RESPONSE", { stage: event.stage, text: event.text });
         break;
+      case "PILOT_FEEDBACK":
+        recorder.record("PILOT_FEEDBACK", {
+          question: event.question,
+          text: event.text,
+        });
+        break;
       case "FINISH":
         recorder.record("SESSION_COMPLETED", {
           total_duration_ms: Date.now() - startedAt.current,
@@ -350,11 +361,16 @@ export function App({
         )}
 
         {name === "done" && (
-          <TerminalScreen
-            name="done"
-            title={t("done.title")}
-            body={t("done.body")}
-          />
+          <>
+            <TerminalScreen
+              name="done"
+              title={t("done.title")}
+              body={t("done.body")}
+            />
+            {/* Pilot only, and after the session is already complete, so
+                closing the tab here costs the study nothing. */}
+            {pilot && <PilotFeedbackScreen send={send} />}
+          </>
         )}
         {name === "withdrawn" && (
           <TerminalScreen

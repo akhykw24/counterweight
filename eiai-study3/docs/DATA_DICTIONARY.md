@@ -309,6 +309,21 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | `type` | `"SESSION_COMPLETED"` | yes |  |  |
 | `payload.total_duration_ms` | integer | yes | >= 0 | Elapsed milliseconds. |
 
+#### `PILOT_FEEDBACK`
+
+Optional usability feedback, asked only in a pilot run and only after the session is already complete. Never part of the analysed study: these rows carry run_mode 'pilot' or 'test' and are removed before any statistic is computed.
+
+*Emitted when:* pilot runs only, after the session is complete
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"PILOT_FEEDBACK"` | yes |  |  |
+| `payload.question` | `clarity` \| `duration` \| `purpose_guess` | yes |  | Which of the three closing questions this answers. |
+| `payload.text` | string | yes | minLen 1 | Verbatim answer. Blank answers are not recorded at all, so an empty string never appears. |
+
 #### `SESSION_WITHDRAWN`
 
 Withdrawal, reachable from every screen. Events already logged still count up to this point unless the participant requests deletion.
