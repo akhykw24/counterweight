@@ -1,0 +1,60 @@
+{
+  "conditions": [
+    "warm",
+    "neutral"
+  ],
+  "participants": 20,
+  "pre_registered": false,
+  "purpose": "pilot runs only; never the analysed study",
+  "schema_version": "1.0",
+  "seed": 20260926,
+  "sequence": {
+    "B1-B2": [
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral"
+    ],
+    "C1-C2/native": [
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral",
+      "warm",
+      "neutral"
+    ]
+  },
+  "sequence_sha256": "cd72c7d10faca67d57fa274f0dcd59025af1170dacc18be3defe74a6f753743b",
+  "strata_sha256": "400afbfe33d3f8b5036b5e70508d2b50953b94e16248b4c887c3a071081a9861",
+  "study": "eiai-study3"
+}

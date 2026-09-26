@@ -56,6 +56,16 @@ from strata import STRATA_PATH, Strata, load_strata
 SEED = 20260817
 
 ALLOCATION_PATH = MATERIALS / "allocation.json"
+PILOT_ALLOCATION_PATH = MATERIALS / "allocation-pilot.json"
+
+#: The pilot's own seed, distinct from the study's so the two sequences cannot
+#: be confused for one another by digest.
+PILOT_SEED = 20260926
+
+#: How many numbered pilot links exist. Small on purpose: a pilot is five
+#: people, and a bounded range means a mistyped `?p=99` is refused rather than
+#: wrapping silently onto somebody else's slot.
+PILOT_PARTICIPANTS = 20
 PRECOMMIT_PATH = MATERIALS.parent / "docs" / "allocation-precommit.txt"
 
 
@@ -81,6 +91,48 @@ def build_sequence(seed: int = SEED, strata: Strata | None = None) -> dict[str, 
     return sequence
 
 
+def build_pilot_sequence(strata: Strata | None = None) -> dict[str, list[str]]:
+    """Strictly alternating arms, per stratum.
+
+    Deliberately not randomised. With five participants, block randomisation
+    has roughly a 6% chance of putting everyone in one arm, which would waste
+    the pilot -- and a pilot is not analysed, so there is nothing for
+    randomisation to protect. Alternation guarantees both arms appear as soon
+    as two people take part.
+
+    The seed decides only which arm goes first, which is why PILOT_SEED exists
+    at all: it keeps this sequence distinguishable from the study's by digest.
+    """
+    config = strata or load_strata()
+    conditions = list(config.conditions)
+    offset = random.Random(PILOT_SEED).randrange(len(conditions))
+    return {
+        stratum: [conditions[(i + offset) % len(conditions)] for i in range(PILOT_PARTICIPANTS)]
+        for stratum in config.ids
+    }
+
+
+def build_pilot_document(strata: Strata | None = None,
+                         strata_path: Path | None = None) -> dict[str, object]:
+    config = strata or load_strata(strata_path)
+    sequence = build_pilot_sequence(config)
+    payload: dict[str, object] = {
+        "schema_version": "1.0",
+        "study": "eiai-study3",
+        # Carried in the file itself so nobody can mistake this for the
+        # sequence the study pre-registers.
+        "purpose": "pilot runs only; never the analysed study",
+        "pre_registered": False,
+        "seed": PILOT_SEED,
+        "participants": PILOT_PARTICIPANTS,
+        "conditions": list(config.conditions),
+        "strata_sha256": sha256_text(canonical_json(read_json(strata_path or STRATA_PATH))),
+        "sequence": sequence,
+    }
+    payload["sequence_sha256"] = sha256_text(canonical_json(sequence))
+    return payload
+
+
 def build_document(seed: int = SEED, strata: Strata | None = None,
                    strata_path: Path | None = None) -> dict[str, object]:
     config = strata or load_strata(strata_path)
@@ -99,6 +151,29 @@ def build_document(seed: int = SEED, strata: Strata | None = None,
     }
     payload["sequence_sha256"] = sha256_text(canonical_json(sequence))
     return payload
+
+
+def verify_alternation(sequence: dict[str, list[str]]) -> list[str]:
+    """Problems with a pilot sequence, empty when it is sound.
+
+    Block balance is the wrong check here: the pilot's guarantee is not "the
+    arms are level at every block boundary" but "two participants already give
+    both arms". Running the study's check against it would reject a correct
+    sequence, and skipping the check entirely would leave the pilot's own
+    property unverified.
+    """
+    problems: list[str] = []
+    for stratum, assignments in sorted(sequence.items()):
+        if len(set(assignments)) < 2:
+            problems.append(f"{stratum}: only one arm appears; the pilot would test half the design")
+        for index in range(1, len(assignments)):
+            if assignments[index] == assignments[index - 1]:
+                problems.append(
+                    f"{stratum}: positions {index - 1} and {index} repeat "
+                    f"'{assignments[index]}'; the sequence does not alternate"
+                )
+                break
+    return problems
 
 
 def verify_balance(sequence: dict[str, list[str]], strata: Strata | None = None) -> list[str]:
@@ -170,6 +245,11 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true",
                         help="fail if the committed allocation is missing or stale")
     parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument(
+        "--pilot",
+        action="store_true",
+        help="write the pilot sequence instead; never pre-committed, never consumed by the study",
+    )
     parser.add_argument("--strata", default=None,
                         help="path to a strata config; defaults to materials/strata.json")
     parser.add_argument("--out", default=None,
@@ -177,11 +257,25 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     strata_path = Path(args.strata) if args.strata else None
-    out_path = Path(args.out) if args.out else ALLOCATION_PATH
+    out_path = Path(args.out) if args.out else (
+        PILOT_ALLOCATION_PATH if args.pilot else ALLOCATION_PATH
+    )
 
     config = load_strata(strata_path)
-    document = build_document(args.seed, config, strata_path)
-    problems = verify_balance(document["sequence"], config)  # type: ignore[arg-type]
+    # The pilot document is built by its own function and written to its own
+    # path. write_precommit below is keyed on ALLOCATION_PATH, so the pilot
+    # sequence can never reach docs/allocation-precommit.txt -- which is the
+    # property that keeps the study's pre-registered list untouched.
+    document = (
+        build_pilot_document(config, strata_path)
+        if args.pilot
+        else build_document(args.seed, config, strata_path)
+    )
+    problems = (
+        verify_alternation(document["sequence"])  # type: ignore[arg-type]
+        if args.pilot
+        else verify_balance(document["sequence"], config)  # type: ignore[arg-type]
+    )
     if problems:
         print("Generated sequence is not balanced:", file=sys.stderr)
         for line in problems:

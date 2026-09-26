@@ -34,6 +34,8 @@ export interface Bootstrap {
   resumed: boolean;
   repeatSession: boolean;
   runMode: RunMode;
+  /** `?p=N`, when the researcher handed out numbered pilot links. */
+  pilotParticipant: number | undefined;
   snapshot: unknown | null;
   flush: () => Promise<unknown>;
   persist: (snapshot: unknown) => void;
@@ -57,7 +59,15 @@ export async function bootstrap(): Promise<Bootstrap> {
   // Read once, at the start, from the link the participant opened. Held for
   // the life of the session so a mid-session navigation cannot change what
   // kind of run this is.
-  const runMode = runModeFromSearch(globalThis.location?.search ?? "");
+  const search = globalThis.location?.search ?? "";
+  const runMode = runModeFromSearch(search);
+  // Undefined rather than a default: an unnumbered link falls back to the
+  // session id, and inventing a number here would put two people in one arm.
+  const rawParticipant = new URLSearchParams(search).get("p");
+  const pilotParticipant =
+    rawParticipant !== null && /^\d+$/.test(rawParticipant)
+      ? Number(rawParticipant)
+      : undefined;
 
   const telemetry = await createTelemetry({
     sessionId,
@@ -83,6 +93,7 @@ export async function bootstrap(): Promise<Bootstrap> {
     resumed,
     repeatSession,
     runMode,
+    pilotParticipant,
     snapshot: existing?.snapshot ?? null,
     flush: () => telemetry.flush(),
     persist: saveSnapshot,

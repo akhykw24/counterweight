@@ -1,4 +1,5 @@
 import allocationDocument from "../../../materials/allocation.json";
+import pilotDocument from "../../../materials/allocation-pilot.json";
 import type { Condition, Stratum } from "@eiai/schema";
 
 /**
@@ -85,6 +86,75 @@ export class SlotsExhaustedError extends Error {
     );
     this.name = "SlotsExhaustedError";
   }
+}
+
+/**
+ * How many numbered pilot links exist.
+ *
+ * Bounded on purpose: a mistyped `?p=99` is refused rather than wrapping
+ * silently onto somebody else's slot, which in a five-person pilot would mean
+ * two people in the same arm without anyone noticing.
+ */
+export const PILOT_PARTICIPANT_LIMIT = (pilotDocument as PilotDocument).participants;
+
+type PilotDocument = {
+  readonly seed: number;
+  readonly participants: number;
+  readonly sequence: Record<string, readonly string[]>;
+  readonly sequence_sha256: string;
+};
+
+/**
+ * Condition assignment for a pilot or test run.
+ *
+ * Reads `materials/allocation-pilot.json`, never the study's sequence. That
+ * separation is the point: the study's list is pre-registered by digest before
+ * recruitment, so a pilot session drawing from it would shift the block
+ * balance for every real participant afterwards -- silently, and with no way
+ * to undo it once the digest is published.
+ *
+ * With a participant number the assignment is exact, and the pilot sequence
+ * alternates, so five numbered links guarantee both arms. Without one it falls
+ * back to the session id, which is convenient for a quick look but gives no
+ * such guarantee.
+ */
+export function allocatePilot(
+  sessionId: string,
+  stratum: Stratum,
+  participantNumber?: number,
+): Allocation {
+  const document = pilotDocument as PilotDocument;
+  const sequence = document.sequence[stratum];
+  if (!sequence) {
+    throw new AllocationError(
+      `no pilot allocation sequence for stratum '${stratum}'. ` +
+        "Regenerate with pipeline/allocation.py --pilot.",
+    );
+  }
+
+  let index: number;
+  if (participantNumber === undefined) {
+    index = hashToIndex(sessionId, sequence.length);
+  } else {
+    if (
+      !Number.isInteger(participantNumber) ||
+      participantNumber < 1 ||
+      participantNumber > document.participants
+    ) {
+      throw new AllocationError(
+        `pilot participant number must be a whole number from 1 to ` +
+          `${document.participants}; got ${participantNumber}. Refusing rather ` +
+          "than wrapping, because a wrapped number puts two people in one arm unnoticed.",
+      );
+    }
+    index = participantNumber - 1;
+  }
+
+  const condition = sequence[index];
+  if (condition !== "warm" && condition !== "neutral") {
+    throw new AllocationError(`pilot sequence holds an unknown condition '${condition}'`);
+  }
+  return { condition, stratum, allocationSeq: index };
 }
 
 export function allocate(

@@ -18,6 +18,8 @@ createRoot(root).render(
       sessionId={session.sessionId}
       resumed={session.resumed}
       repeatSession={session.repeatSession}
+      pilot={session.runMode !== "live"}
+      pilotParticipant={session.pilotParticipant}
       snapshot={session.snapshot}
       onSnapshot={session.persist}
       onComplete={session.complete}

@@ -3,7 +3,7 @@ import type { AgeScreenAnswer, CefrLevel, FollowupId, StimulusResponse } from "@
 import type { SessionContext, SessionEvent } from "@eiai/fsm";
 import { currentItemId } from "@eiai/fsm";
 import { stratumForCefr } from "./strata";
-import { SlotsExhaustedError, allocate } from "./allocation";
+import { SlotsExhaustedError, allocate, allocatePilot } from "./allocation";
 import { itemById, requireLanguage, stimulusFor } from "./stimuli";
 
 /**
@@ -262,11 +262,17 @@ export function AllocatingScreen({
   send,
   sessionId,
   takenSlots = new Set<number>(),
+  pilot = false,
+  pilotParticipant,
 }: {
   context: SessionContext;
   send: Send;
   sessionId: string;
   takenSlots?: ReadonlySet<number>;
+  /** True for a pilot or test run: draws from the pilot sequence instead. */
+  pilot?: boolean;
+  /** `?p=N` from the link, when the researcher handed out numbered links. */
+  pilotParticipant?: number | undefined;
 }) {
   // Drawn from the committed seeded sequence in materials/allocation.json,
   // against the participant's real stratum. Both used to be literals (`warm`,
@@ -283,7 +289,13 @@ export function AllocatingScreen({
   let exhausted = false;
   if (stratum) {
     try {
-      assignment = allocate(sessionId, stratum, takenSlots);
+      // A pilot never draws from the study's pre-registered sequence. Doing
+      // so would shift the block balance for every real participant
+      // afterwards, silently and with no way to undo it once the digest is
+      // published.
+      assignment = pilot
+        ? allocatePilot(sessionId, stratum, pilotParticipant)
+        : allocate(sessionId, stratum, takenSlots);
     } catch (error) {
       if (error instanceof SlotsExhaustedError) {
         exhausted = true;

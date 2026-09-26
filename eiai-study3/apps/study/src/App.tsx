@@ -45,6 +45,10 @@ export interface AppProps {
   /** Drives condition assignment from the committed sequence. */
   sessionId?: string;
   resumed?: boolean;
+  /** Pilot or test run: uses the pilot allocation and shows the feedback questions. */
+  pilot?: boolean;
+  /** `?p=N` from a numbered pilot link. */
+  pilotParticipant?: number | undefined;
   /** This browser already completed a session; exclusion criterion 5. */
   repeatSession?: boolean;
   snapshot?: unknown;
@@ -57,6 +61,8 @@ export function App({
   recorder = noopRecorder,
   sessionId = "00000000-0000-4000-8000-000000000000",
   resumed = false,
+  pilot = false,
+  pilotParticipant,
   repeatSession = false,
   snapshot,
   onSnapshot,
@@ -295,7 +301,13 @@ export function App({
         )}
         {name === "consent" && <ConsentScreen send={send} />}
         {name === "allocating" && (
-          <AllocatingScreen context={context} send={send} sessionId={sessionId} />
+          <AllocatingScreen
+            context={context}
+            send={send}
+            sessionId={sessionId}
+            pilot={pilot}
+            pilotParticipant={pilotParticipant}
+          />
         )}
 
         {name === "task.estimate" && (
