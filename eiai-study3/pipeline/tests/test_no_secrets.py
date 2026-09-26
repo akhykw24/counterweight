@@ -21,12 +21,23 @@ import pytest
 from check_secrets import Finding, scan_text, scan_tree
 
 # Fabricated, and shaped only to match each pattern. None is a real credential.
+#
+# Every one is assembled from fragments rather than written out, and the
+# variable names below are assembled too. That is not obfuscation: this file is
+# tracked, so a literal here would be a finding, and the only way to keep the
+# gate green would be to exempt this path -- which is exactly the hole an
+# attacker, or a hurried colleague, would then use. The scanner reads the
+# assembled string, so the tests lose nothing.
 PLANTED = {
-    "supabase service key (JWT)": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abcdefghij.signature",
+    "supabase service key (JWT)": "eyJ" + "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + ".abcdefghij.signature",
     "groq key": "gsk_" + "A1b2C3d4E5f6G7h8I9j0" + "K1l2M3n4O5p6Q7r8S9t0",
     "google key": "AIza" + "SyA1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
     "openai key": "sk-" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8S9t0",
 }
+
+#: The variable name the scanner treats as a tell, kept out of the source in
+#: one piece for the same reason.
+SERVICE_KEY = "SUPABASE" + "_SERVICE_KEY"
 
 
 @pytest.mark.parametrize("label,secret", sorted(PLANTED.items()))
@@ -38,25 +49,21 @@ def test_each_shape_of_credential_is_recognised(label: str, secret: str) -> None
 def test_a_service_key_assignment_is_recognised_even_without_a_known_prefix() -> None:
     # A key rotated into a new format still matters. The variable name is the
     # tell, so an assignment with any non-empty value is a finding.
-    findings = scan_text(".env", "SUPABASE_SERVICE_KEY=whatever-this-is")
+    findings = scan_text(".env", f"{SERVICE_KEY}=whatever-this-is")
     assert findings
 
 
 def test_naming_a_variable_without_a_value_is_fine() -> None:
     # Documentation, .env.example and deployment runbooks all name the
     # variables. A checker that flagged those would be turned off within a day.
-    assert scan_text("docs/DEPLOY.md", "Set `SUPABASE_SERVICE_KEY` in Vercel.") == []
-    assert scan_text(".env.example", "SUPABASE_SERVICE_KEY=") == []
-    assert scan_text(".env.example", "SUPABASE_URL=") == []
+    assert scan_text("docs/DEPLOY.md", f"Set `{SERVICE_KEY}` in Vercel.") == []
+    assert scan_text(".env.example", f"{SERVICE_KEY}=") == []
+    assert scan_text(".env.example", "SUPABASE" + "_URL=") == []
 
 
 def test_a_placeholder_is_not_a_secret() -> None:
-    for placeholder in [
-        "SUPABASE_SERVICE_KEY=your-key-here",
-        "SUPABASE_SERVICE_KEY=<paste it here>",
-        "SUPABASE_SERVICE_KEY=xxx",
-        "SUPABASE_SERVICE_KEY=changeme",
-    ]:
+    for value in ["your-key-here", "<paste it here>", "xxx", "changeme"]:
+        placeholder = f"{SERVICE_KEY}={value}"
         assert scan_text(".env.example", placeholder) == [], placeholder
 
 
@@ -69,7 +76,7 @@ def test_a_tracked_env_file_is_itself_a_finding(tmp_path: Path) -> None:
 
 
 def test_the_example_file_is_allowed(tmp_path: Path) -> None:
-    (tmp_path / ".env.example").write_text("SUPABASE_SERVICE_KEY=\n", encoding="utf-8")
+    (tmp_path / ".env.example").write_text(f"{SERVICE_KEY}=\n", encoding="utf-8")
     assert scan_tree(tmp_path, tracked=[".env.example"]) == []
 
 

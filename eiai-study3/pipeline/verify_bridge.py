@@ -12,11 +12,19 @@ So this compares the two logs on structure, never on values:
 
   1. every event type one log contains, the other contains
   2. for each shared event type, the payload keys match exactly
-  3. each completed session shows the same per-item event pattern
+  3. for every envelope and payload field, the two logs agree on its *type*
+  4. each completed session shows the same per-item event pattern
 
 Values are deliberately out of scope. The bots move sliders differently from
 the simulated participants and should; what has to agree is the *shape* of what
 lands in the log.
+
+Type agreement is part of that shape, and it was missing until it cost
+something: the simulator wrote `client_ts` as an integer count of milliseconds
+while the browser wrote the ISO string the schema declares, and this file
+reported that the logs agreed. The pipeline had been written against the
+integer, so it raised on the first real session. Matching key names is not
+matching shape.
 
 Usage
 -----
@@ -82,6 +90,84 @@ def payload_keys(events: list[dict[str, Any]]) -> dict[str, set[str]]:
     return dict(keys)
 
 
+#: Envelope fields both logs must describe the same way. `type` is compared
+#: separately, as a set of names, and `payload` is descended into.
+ENVELOPE_FIELDS = ("event_id", "session_id", "seq", "client_ts", "run_mode")
+
+
+def _json_type(value: Any) -> str | None:
+    """The JSON type name, or None for null.
+
+    Null is not a type disagreement: an optional field left empty in one log is
+    the same shape as the same field filled in the other. Treating it as a
+    divergence would flag `register_state`, which is null in every neutral
+    condition, and a check that cries wolf gets deleted.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, (int, float)):
+        # One name for both. JSON has a single numeric type; the int/float
+        # distinction is invented by json.loads, so 50 and 47.3 would otherwise
+        # read as a divergence. Whether a number has to be whole is the
+        # schema's business -- scripts/validate-log.ts checks that -- not this
+        # file's.
+        return "number"
+    if isinstance(value, str):
+        return "str"
+    if isinstance(value, list):
+        return "list"
+    if isinstance(value, dict):
+        return "dict"
+    return type(value).__name__
+
+
+def envelope_types(events: list[dict[str, Any]]) -> dict[str, set[str]]:
+    """The types each envelope field takes across a log."""
+    out: dict[str, set[str]] = defaultdict(set)
+    for event in events:
+        for field in ENVELOPE_FIELDS:
+            if field not in event:
+                continue
+            name = _json_type(event[field])
+            if name is not None:
+                out[field].add(name)
+    return dict(out)
+
+
+def payload_types(events: list[dict[str, Any]]) -> dict[str, dict[str, set[str]]]:
+    """Per event type, the types each payload key takes across a log."""
+    out: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
+    for event in events:
+        for key, value in (event.get("payload") or {}).items():
+            name = _json_type(value)
+            if name is not None:
+                out[event["type"]][key].add(name)
+    return {kind: dict(keys) for kind, keys in out.items()}
+
+
+def _type_problems(
+    where: str, left: dict[str, set[str]], right: dict[str, set[str]]
+) -> list[str]:
+    """Fields whose types cannot be reconciled between two logs.
+
+    Disjoint, not unequal: a field that is a number in one log and a
+    number-or-string in the other still overlaps, and the overlap is enough to
+    say the pipeline will read both. Disjoint type sets mean the two logs are
+    describing different things.
+    """
+    problems: list[str] = []
+    for field in sorted(set(left) & set(right)):
+        if left[field] & right[field]:
+            continue
+        problems.append(
+            f"{where}{field}: the app writes {'/'.join(sorted(left[field]))} "
+            f"where the simulator writes {'/'.join(sorted(right[field]))}"
+        )
+    return problems
+
+
 def per_item_types(events: list[dict[str, Any]]) -> dict[tuple[str, str], set[str]]:
     out: dict[tuple[str, str], set[str]] = defaultdict(set)
     for event in events:
@@ -121,6 +207,19 @@ def compare(browser: list[dict[str, Any]], simulated: list[dict[str, Any]]) -> l
                 f"that the simulator lacks, simulator has {sorted(right - left) or '[]'} "
                 f"that the app lacks"
             )
+
+    problems.extend(_type_problems("", envelope_types(browser), envelope_types(simulated)))
+
+    browser_payload_types = payload_types(browser)
+    simulated_payload_types = payload_types(simulated)
+    for event_type in sorted(browser_types & simulated_types):
+        problems.extend(
+            _type_problems(
+                f"{event_type}.",
+                browser_payload_types.get(event_type, {}),
+                simulated_payload_types.get(event_type, {}),
+            )
+        )
 
     for label, events in (("browser", browser), ("simulated", simulated)):
         finalized = {

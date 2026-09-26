@@ -55,7 +55,13 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from strata import load_strata, stratum_for_cefr
-from _common import ALL_REVERSE_SCORED, LANGUAGES, REPO_ROOT, load_items
+from _common import (
+    ALL_REVERSE_SCORED,
+    LANGUAGES,
+    REPO_ROOT,
+    iso_from_epoch_ms,
+    load_items,
+)
 
 #: Levels the screening gate admits, taken from the stratum configuration so
 #: adding a stratum does not need an edit here.
@@ -173,7 +179,10 @@ class SessionWriter:
                 "event_id": str(uuid.uuid4()),
                 "session_id": self.session_id,
                 "seq": self.seq,
-                "client_ts": self.clock,
+                # The shape the browser sends, not the integer this clock
+                # counts in: the pipeline reads real logs, so the simulator
+                # has to hand it real-shaped ones.
+                "client_ts": iso_from_epoch_ms(self.clock),
                 # Synthetic participants stand in for the real study, so they
                 # are marked live. A simulator that produced 'test' rows would
                 # be filtered out by the very step it is meant to exercise.

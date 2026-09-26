@@ -32,6 +32,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Iterable
 
+from _common import epoch_ms
+
 # How long a reservation is held without a judgement before the slot returns to
 # the pool.
 #
@@ -141,13 +143,13 @@ def slot_usage(events: Iterable[dict[str, Any]], now_ms: int) -> SlotUsage:
                 session_id=session,
                 stratum=str(payload["stratum"]),
                 index=int(payload["allocation_seq"]),
-                reserved_at=int(event["client_ts"]),
+                reserved_at=epoch_ms(event["client_ts"]),
             )
             by_session[session] = reservation
             usage.reservations[reservation.stratum].append(reservation)
         elif event["type"] == "ESTIMATE_FINALIZED" and session in by_session:
             by_session[session].judged = True
         elif event["type"] == "SESSION_WITHDRAWN" and session in by_session:
-            by_session[session].withdrawn_at = int(event["client_ts"])
+            by_session[session].withdrawn_at = epoch_ms(event["client_ts"])
 
     return usage

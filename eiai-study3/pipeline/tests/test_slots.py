@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import pytest
 
+from _common import iso_from_epoch_ms
 from slots import (
     SLOT_TIMEOUT_MS,
     SlotState,
@@ -30,6 +31,9 @@ from slots import (
 )
 
 MINUTE = 60_000
+#: The fixture's origin. The slot rules are about elapsed time, so the date
+#: itself carries no meaning and `now_ms` is measured from the same zero.
+EPOCH = 0
 
 
 def _event(session, seq, kind, ts, **payload):
@@ -37,7 +41,9 @@ def _event(session, seq, kind, ts, **payload):
         "event_id": f"{session}-{seq}",
         "session_id": session,
         "seq": seq,
-        "client_ts": ts,
+        # The fixture counts milliseconds because the timeout rules do; the
+        # log itself carries the ISO string a browser writes.
+        "client_ts": iso_from_epoch_ms(EPOCH + ts),
         "type": kind,
         "payload": payload,
     }

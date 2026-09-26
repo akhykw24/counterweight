@@ -16,6 +16,7 @@ import os
 import re
 import sys
 import unicodedata
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -61,6 +62,54 @@ def load_dotenv() -> list[str]:
                 os.environ[key] = value
                 loaded.append(f"{key} <- {path.name}")
     return loaded
+
+
+def epoch_ms(client_ts: Any) -> int:
+    """Milliseconds since the epoch, from the timestamp the client writes.
+
+    `client_ts` is an ISO 8601 string: that is what packages/schema declares
+    (`ClientTimestamp`) and what packages/telemetry/src/recorder.ts sends. The
+    pipeline used to read it with `int()`, which held only because simulate.py
+    wrote an integer instead -- so every duration in the projection worked on
+    synthetic data and raised on the first real session.
+
+    An integer is refused rather than accepted. Tolerating both shapes is what
+    let the fixture drift away from the schema unnoticed, and a parser that
+    accepts the wrong one cannot report that it has been handed the wrong one.
+    Ordering still comes from `seq`; this is for durations and reporting only.
+    """
+    if not isinstance(client_ts, str):
+        raise ValueError(
+            f"client_ts must be an ISO 8601 string, got {type(client_ts).__name__} "
+            f"{client_ts!r}"
+        )
+    text = client_ts.strip()
+    # datetime.fromisoformat accepts "Z" only from Python 3.11, and accepts a
+    # date with no time at all -- which would silently read as midnight.
+    if "T" not in text:
+        raise ValueError(f"client_ts is not a date-time: {client_ts!r}")
+    try:
+        moment = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(f"client_ts is not an ISO 8601 date-time: {client_ts!r}") from error
+    if moment.tzinfo is None:
+        # A reading with no offset cannot be placed on a shared timeline, and
+        # guessing UTC would put it silently hours away from the truth.
+        raise ValueError(f"client_ts carries no UTC offset: {client_ts!r}")
+    return round(moment.timestamp() * 1000)
+
+
+def iso_from_epoch_ms(ms: int) -> str:
+    """The inverse: the exact shape JavaScript's `toISOString()` produces.
+
+    Used by the simulator so its logs are indistinguishable in shape from a
+    browser's. A simulator that writes a form the real client never sends
+    exercises a pipeline nobody will run.
+    """
+    moment = datetime.fromtimestamp(int(ms) / 1000, tz=timezone.utc)
+    return moment.strftime("%Y-%m-%dT%H:%M:%S.") + f"{moment.microsecond // 1000:03d}Z"
+
+
 # Materials root. Overridable so a test can exercise the generator against a
 # throwaway copy instead of the committed, frozen set.
 #

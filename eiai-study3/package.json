@@ -32,13 +32,16 @@
     "multiverse": "python pipeline/multiverse.py --tables data/tables --out data/multiverse",
     "e2e:bots": "playwright test e2e/bots.spec.ts",
     "bridge": "python pipeline/verify_bridge.py",
+    "log:check": "tsx scripts/validate-log.ts",
     "test:py": "python -m pytest pipeline/tests -q",
     "power": "python pipeline/power.py --tables data/tables",
     "stimuli:estimate": "python pipeline/generate.py --dry-run",
     "dev": "pnpm --dir apps/study dev",
     "ingest:check": "node scripts/verify-ingest.mjs",
     "e2e:ingest": "playwright test e2e/ingest.spec.ts",
-    "secrets:check": "python pipeline/check_secrets.py"
+    "secrets:check": "python pipeline/check_secrets.py",
+    "validate:pilot": "playwright test --config playwright.validation.config.ts",
+    "validate:render": "tsx scripts/render-pilot-validation.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

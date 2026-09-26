@@ -51,7 +51,7 @@ from _common import LANGUAGES as _LANGUAGES
 #: One study language in v2. Named rather than inlined so the constant has
 #: exactly one home.
 STUDY_LANGUAGE = _LANGUAGES[0]
-from _common import REPO_ROOT, load_items
+from _common import REPO_ROOT, epoch_ms, load_items
 
 # Trials whose advice sits closer than this to the initial estimate have an
 # unstable WOA denominator. Recorded per trial rather than filtered here, so the
@@ -215,7 +215,9 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
         # when a resume re-reveals the response.
         ms_present_to_reveal = None
         if reveal_event is not None:
-            ms_present_to_reveal = int(reveal_event["client_ts"]) - int(present_event["client_ts"])
+            ms_present_to_reveal = epoch_ms(reveal_event["client_ts"]) - epoch_ms(
+                present_event["client_ts"]
+            )
 
         selected = sorted(set(followups.get(item_id, [])))
         trials.append(
@@ -327,7 +329,7 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
         "funnel_belief": funnel.get("belief"),
     }
 
-    session_start_ts = int(events[0]["client_ts"]) if events else 0
+    session_start_ts = epoch_ms(events[0]["client_ts"]) if events else 0
     transitions = [
         {
             "session_id": session_id,
@@ -335,7 +337,7 @@ def reduce_session(session_id: str, events: list[dict[str, Any]], items: dict[st
             "type": e["type"],
             "item_id": e.get("payload", {}).get("item_id"),
             "client_ts": e["client_ts"],
-            "ms_since_session_start": int(e["client_ts"]) - session_start_ts,
+            "ms_since_session_start": epoch_ms(e["client_ts"]) - session_start_ts,
         }
         for e in events
     ]
