@@ -85,6 +85,13 @@ jobs:
         # hand, and in both cases the randomisation stops being auditable.
         run: python pipeline/allocation.py --check
 
+      - name: No credentials in the repository
+        # The service-role key bypasses row-level security and can read every
+        # participant's responses. A committed key stays compromised after it
+        # is deleted, because it remains in the history -- so this gates the
+        # commit rather than relying on anyone remembering.
+        run: python pipeline/check_secrets.py
+
       - name: Install browser
         run: pnpm exec playwright install --with-deps chromium
 
