@@ -43,3 +43,6 @@ materials/generation_cache.json
 services/*/src/*.js
 services/*/api/*.js
 packages/*/src/*.js
+
+# v3 exports and pilot summaries hold participants' answers: data, not source.
+results/

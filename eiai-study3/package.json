@@ -20,6 +20,7 @@
     "stimuli:v3": "python pipeline/stimuli_v3.py",
     "stimuli:v3:check": "python pipeline/stimuli_v3.py --check",
     "surface:v3": "python scripts/surface_check.py",
+    "export:v3": "python pipeline/v3_export.py",
     "coding:export": "python pipeline/verify_components.py export",
     "coding:score": "python pipeline/verify_components.py score",
     "verify": "pnpm typecheck && pnpm test && pnpm test:py && pnpm codegen:check && pnpm stimuli:check && pnpm stimuli:v3:check && pnpm allocation:check && pnpm secrets:check",
