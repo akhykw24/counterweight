@@ -20,7 +20,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { StudyEvent } from "@eiai/schema";
+import { IngestEvent } from "@eiai/schema";
 
 const DEFAULT_LOGS = ["data/sim-events.jsonl"];
 
@@ -60,7 +60,15 @@ for (const path of logs) {
       continue;
     }
 
-    const result = StudyEvent.safeParse(parsed);
+    // A stored row carries the table's columns, which include the v3 envelope
+    // fields; on a deep-sea row they are null and not part of its event. Strip
+    // them there and nowhere else, then validate against both families.
+    let candidate = parsed as Record<string, unknown>;
+    if (candidate["participant_id"] === null && candidate["cell"] === null && /^[A-Z_]+$/.test(String(candidate["type"]))) {
+      const { participant_id: _p, cell: _c, ...rest } = candidate;
+      candidate = rest;
+    }
+    const result = IngestEvent.safeParse(candidate);
     if (result.success) continue;
 
     const row = parsed as { type?: unknown; seq?: unknown };
@@ -80,7 +88,7 @@ for (const path of logs) {
 console.log(`${rows} rows from ${logs.length} log${logs.length === 1 ? "" : "s"}.`);
 
 if (failures.size === 0) {
-  console.log("Every row conforms to StudyEvent.");
+  console.log("Every row conforms to the event schema (deep-sea or v3).");
   process.exit(0);
 }
 

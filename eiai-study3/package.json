@@ -46,7 +46,9 @@
     "e2e:ingest": "playwright test e2e/ingest.spec.ts",
     "secrets:check": "python pipeline/check_secrets.py",
     "validate:pilot": "playwright test --config playwright.validation.config.ts",
-    "validate:render": "tsx scripts/render-pilot-validation.ts"
+    "validate:render": "tsx scripts/render-pilot-validation.ts",
+    "validate:v3": "playwright test --config playwright.v3.validation.config.ts",
+    "validate:v3:render": "tsx scripts/render-pilot-v3-validation.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
