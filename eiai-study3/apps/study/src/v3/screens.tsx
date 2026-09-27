@@ -288,22 +288,29 @@ function Typing() {
  * the message was on screen before Continue, which is the reading time.
  */
 export function useMessageTiming(key: string) {
-  const [phase, setPhase] = useState<"typing" | "shown" | "ready">("typing");
-  const shownAt = useRef<number | null>(null);
+  // The phase is stored with the message it belongs to. Resetting it in an
+  // effect instead left one rendered frame, after each Continue, in which the
+  // *next* message was drawn with the previous one's "ready" phase -- its
+  // Continue already on screen, clickable before a word of it was read.
+  const [state, setState] = useState<{ key: string; phase: "typing" | "shown" | "ready" }>({
+    key,
+    phase: "typing",
+  });
+  const shownAt = useRef<{ key: string; at: number } | null>(null);
   useEffect(() => {
-    setPhase("typing");
-    shownAt.current = null;
     const show = setTimeout(() => {
-      shownAt.current = performance.now();
-      setPhase("shown");
+      shownAt.current = { key, at: performance.now() };
+      setState({ key, phase: "shown" });
     }, TYPING_MS);
-    const ready = setTimeout(() => setPhase("ready"), TYPING_MS + CONTINUE_DELAY_MS);
+    const ready = setTimeout(() => setState({ key, phase: "ready" }), TYPING_MS + CONTINUE_DELAY_MS);
     return () => {
       clearTimeout(show);
       clearTimeout(ready);
     };
   }, [key]);
-  const dwell = () => (shownAt.current === null ? 0 : performance.now() - shownAt.current);
+  const phase = state.key === key ? state.phase : "typing";
+  const dwell = () =>
+    shownAt.current && shownAt.current.key === key ? performance.now() - shownAt.current.at : 0;
   return { phase, dwell };
 }
 

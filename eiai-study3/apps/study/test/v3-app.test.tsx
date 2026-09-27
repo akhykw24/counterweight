@@ -143,3 +143,28 @@ describe("lesson", () => {
     expect(document.body.textContent).not.toMatch(/strong|weak|list [AB]|EI-|Neutral-/i);
   });
 });
+
+describe("message timing", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("never renders a new message as ready, not even for one frame", async () => {
+    // The first version reset the phase in an effect, so the render right
+    // after Continue drew the next message with the previous one's "ready"
+    // phase: a Continue that could be clicked before the message was read.
+    const { useMessageTiming } = await import("../src/v3/screens");
+    const seen: string[] = [];
+    function Probe({ id }: { id: string }) {
+      const { phase } = useMessageTiming(id);
+      seen.push(`${id}:${phase}`);
+      return null;
+    }
+    const { rerender } = render(<Probe id="m1" />);
+    act(() => void vi.advanceTimersByTime(TYPING_MS + CONTINUE_DELAY_MS));
+    expect(seen.at(-1)).toBe("m1:ready");
+    seen.length = 0;
+    rerender(<Probe id="m2" />);
+    expect(seen[0]).toBe("m2:typing");
+    expect(seen).not.toContain("m2:ready");
+  });
+});
