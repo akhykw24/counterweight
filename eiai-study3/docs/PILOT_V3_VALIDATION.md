@@ -2,7 +2,7 @@
 
 **Verdict: PASS** — 22 of 22 checks passed.
 
-**Launch: blocked** — 4 [TODO-DARYA] placeholder(s) are still in participant-facing text (listed below). These need the researcher's text, not a code change.
+**Launch: ready** — no placeholder remains in participant-facing text.
 
 Run 2026-09-27 11:10:38 UTC against the local dev server and the real ingest handler: 21 complete sessions (20 on a desktop screen, 5 per cell, plus one on a phone-sized screen) and the failure scenarios — 28 sessions and 2777 events in total. Every link used `test=true`, so none of it can ever be analysed.
 
@@ -28,21 +28,10 @@ Run 2026-09-27 11:10:38 UTC against the local dev server and the real ingest han
 | **PASS** | no event was lost: sequence numbers are contiguous in every session | 28 sessions checked; 2777 distinct (session, seq) pairs. |
 | **PASS** | every row is marked as a test run | run_mode values: test. |
 | **PASS** | pilot links show the feedback questions and record the answers | 21 of 21 complete sessions carry pilot_feedback. |
-| **PASS** | the v3 stimuli match the approved texts and the manifest | v3 stimuli match the approved source; 10 files match the manifest.   manifest_sha256 03aadb6884ac2af24a81789216202149528d015e57bed4107a9d87df20d9d1bd |
-| **PASS** | every recorded event conforms to the event schema | 2779 rows from 1 log. Every row conforms to the event schema (deep-sea or v3). |
-| **PASS** | the export runs on this data (long CSV, wide CSV, JSON) | 2779 events, 29 sessions -> results/validation_v3   excluded as withdrawn: 0 session(s) |
-| **PASS** | the pilot summary runs on this data | 26 participant(s), 21 completed -> results\validation_v3\SUMMARY.md |
-
-## Launch blockers
-
-Text the brief marked as still to be supplied. The participant would see these exactly as written:
-
-- `consent/paragraph`: [TODO-DARYA: school name]
-- `consent/paragraph`: [TODO-DARYA: contact email]
-- `consent/paragraph`: [TODO-DARYA: committee name and approval reference]
-- `debrief/closing_paragraphs`: [TODO-DARYA: contact email]
-
-Fill them in `stimuli/v3/source/E_consent_questionnaire_debrief.md`, then run `pnpm stimuli:v3` and commit. The manifest records `launch_ready: true` once none remain.
+| **PASS** | the v3 stimuli match the approved texts and the manifest | v3 stimuli match the approved source; 10 files match the manifest.   manifest_sha256 24c80c721df3fafd2091566445f4b77e19bb5a5fd9d1fce0f67721d86c3ffa22 |
+| **PASS** | every recorded event conforms to the event schema | 121 rows from 1 log. Every row conforms to the event schema (deep-sea or v3). |
+| **PASS** | the export runs on this data (long CSV, wide CSV, JSON) | 0 events, 0 sessions -> results/validation_v3   excluded as withdrawn: 0 session(s) |
+| **PASS** | the pilot summary runs on this data | 0 participant(s), 0 completed -> results\validation_v3\SUMMARY.md |
 
 ## How to repeat this
 

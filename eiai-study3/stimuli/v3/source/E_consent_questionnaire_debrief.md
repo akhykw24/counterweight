@@ -2,7 +2,7 @@
 
 ## E1. Information and consent
 
-Welcome! This short study is part of a student research project at [TODO-DARYA: school name]. We are testing an AI tutor designed for a space-training learning game, and we want to understand how well people learn with it and use what they learn.
+Welcome! This short study is part of a student research project at Nazarbayev Intellectual School of Science and Mathematics, Kokshetau. We are testing an AI tutor designed for a space-training learning game, and we want to understand how well people learn with it and use what they learn.
 
 What you will do: complete a short training in three modules with an AI tutor called Nova, handle a few mission situations, and fill out a short questionnaire. It takes about 20 minutes.
 
@@ -14,7 +14,7 @@ Risks and benefits: there are no known risks beyond everyday computer use. At th
 
 Some details of the study will be explained only at the end, so that they don't influence your answers.
 
-Questions: [TODO-DARYA: contact email]. This study was reviewed by [TODO-DARYA: committee name and approval reference].
+Questions: dashaprokop24@gmail.com. This study was reviewed by the Local Research Ethics Committee of Nazarbayev Intellectual School of Science and Mathematics, Kokshetau (positive decision of 14 September 2026, valid until 14 September 2027).
 
 (Only when pilot=true:) This is a pilot version of the study. Your feedback at the end will help us improve it.
 
@@ -121,4 +121,4 @@ If you would rather not have your answers used now that you know the purpose of 
 
 Please don't share details of this study with anyone who might take part — it would affect their answers.
 
-Questions: [TODO-DARYA: contact email]. Thank you for your help!
+Questions: dashaprokop24@gmail.com. Thank you for your help!

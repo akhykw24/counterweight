@@ -2,34 +2,17 @@
   "version": "v3",
   "files": {
     "stimuli/v3/explanations.json": "574149b5cd4299f81be119ab01a7379daab6b15d2b9f8e4030a547e8b4bbdbbb",
-    "stimuli/v3/instruments.json": "b1caf436f1c9d62d0a6c3740def0e8684579c16d5fbd0ebc65521ee8934337d3",
+    "stimuli/v3/instruments.json": "17ec8ba625704cf55f2fafbdc303c94242b3215cd1bb657b039212d54e0f2e0b",
     "stimuli/v3/mission.json": "242647edece40dac63bf7dc7f0f0822f81f576860e0b0de3b85a7ce05a728446",
     "stimuli/v3/ncs6_items.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
     "stimuli/v3/quiz.json": "d7ca6b3fdda6b48dd6521269395f2d3a327768ae4d589acd26498fca24da2244",
     "stimuli/v3/source/B_explanations.md": "45d35f7ac71960832383ecb8e14e0cb2f9b32177faaa9ad9c8f12d4c0053f9ae",
     "stimuli/v3/source/C_tone_and_transitions.md": "bb3b71523a86500939acab976fa39fbc223084e36ed9bf87b27c09eab1935b58",
     "stimuli/v3/source/D_lesson_mission_quiz.md": "83e1efca246a210fcb2b9ce41a0fc20ecfa67e7a0ac8033261fe5f3afec0e4ec",
-    "stimuli/v3/source/E_consent_questionnaire_debrief.md": "3c5717a69f07fbcc3ae3df920fb985f438a29507c85ea44a0b6cd90bb6458649",
+    "stimuli/v3/source/E_consent_questionnaire_debrief.md": "a6401d24368209a31428fcfb8fefbfed919cc7b13f9cc5bf1c4210da23ccab78",
     "stimuli/v3/tone.json": "b67ed56ef29151f58423c5d96455d200ab46feebde9fd5725876e09e9d1a79f9"
   },
-  "manifest_sha256": "03aadb6884ac2af24a81789216202149528d015e57bed4107a9d87df20d9d1bd",
-  "open_placeholders": [
-    {
-      "where": "consent/paragraph",
-      "placeholder": "[TODO-DARYA: school name]"
-    },
-    {
-      "where": "consent/paragraph",
-      "placeholder": "[TODO-DARYA: contact email]"
-    },
-    {
-      "where": "consent/paragraph",
-      "placeholder": "[TODO-DARYA: committee name and approval reference]"
-    },
-    {
-      "where": "debrief/closing_paragraphs",
-      "placeholder": "[TODO-DARYA: contact email]"
-    }
-  ],
-  "launch_ready": false
+  "manifest_sha256": "24c80c721df3fafd2091566445f4b77e19bb5a5fd9d1fce0f67721d86c3ffa22",
+  "open_placeholders": [],
+  "launch_ready": true
 }
