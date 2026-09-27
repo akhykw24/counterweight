@@ -8,3 +8,4 @@
 
 export * from "./register.js";
 export * from "./session.js";
+export * as v3 from "./v3/index.js";

@@ -29,7 +29,16 @@ export interface TelemetryOptions {
 }
 
 export interface Telemetry {
-  record(type: string, payload: Record<string, unknown>): Promise<void>;
+  /**
+   * `envelope` adds fields beside event_id/session_id/seq/client_ts/run_mode:
+   * the v3 family carries participant_id and cell on every event. The caller
+   * passes them per event because the cell changes mid-session, at allocation.
+   */
+  record(
+    type: string,
+    payload: Record<string, unknown>,
+    envelope?: Record<string, unknown>,
+  ): Promise<void>;
   /** Attempts one delivery pass. Returns how many events were acknowledged. */
   flush(): Promise<number>;
   pending(): Promise<number>;
@@ -102,8 +111,11 @@ export async function createTelemetry(options: TelemetryOptions): Promise<Teleme
   }
 
   return {
-    async record(type, payload) {
+    async record(type, payload, envelope = {}) {
       await wal.append((seq) => ({
+        // Spread first, so nothing passed here can overwrite the identity,
+        // order or run mode this recorder is responsible for.
+        ...envelope,
         event_id: uuid(),
         session_id: sessionId,
         seq,

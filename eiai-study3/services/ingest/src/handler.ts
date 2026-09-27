@@ -13,7 +13,7 @@
 // Nothing else changes: same module, same types, and vite/vitest resolve it
 // identically. It is the only workspace import in this service, so the cost is
 // one path here rather than a build step or a compiled artefact to keep in sync.
-import { EventBatch, type StudyEvent } from "../../../packages/schema/src/index.js";
+import { IngestBatch, type IngestEvent } from "../../../packages/schema/src/index.js";
 
 /**
  * The single write endpoint (STUDY3_SPEC_v3.md section 3).
@@ -35,6 +35,9 @@ export interface EventRow {
   type: string;
   payload: unknown;
   run_mode: string;
+  /** v3 envelope. Null for deep-sea events, which predate both. */
+  participant_id: string | null;
+  cell: string | null;
 }
 
 export interface EventStore {
@@ -49,17 +52,31 @@ export interface IngestResult {
 
 export const MAX_BATCH_BYTES = 1_000_000;
 
-function toRow(event: StudyEvent): EventRow {
+function toRow(event: IngestEvent): EventRow {
   const { event_id, session_id, seq, client_ts, type, payload, run_mode } =
-    event as StudyEvent & { payload: unknown; run_mode: string };
-  return { event_id, session_id, seq, client_ts, type, payload, run_mode };
+    event as IngestEvent & { payload: unknown; run_mode: string };
+  // Always present, null when absent: PostgREST requires every row in one
+  // insert to carry the same keys, and a batch never mixes the two families
+  // anyway -- but nothing should depend on that for correctness.
+  const v3 = event as Partial<{ participant_id: string; cell: string | null }>;
+  return {
+    event_id,
+    session_id,
+    seq,
+    client_ts,
+    type,
+    payload,
+    run_mode,
+    participant_id: v3.participant_id ?? null,
+    cell: v3.cell ?? null,
+  };
 }
 
 export async function handleIngest(
   body: unknown,
   store: EventStore,
 ): Promise<IngestResult> {
-  const parsed = EventBatch.safeParse(body);
+  const parsed = IngestBatch.safeParse(body);
 
   if (!parsed.success) {
     // Echo the issues. A client that is sending malformed events needs to know

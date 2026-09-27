@@ -38,8 +38,10 @@ function row(over: Partial<EventRow> = {}): EventRow {
     run_mode: "live",
     type: "SESSION_STARTED",
     payload: { app_version: "0.1.0" },
+    participant_id: null,
+    cell: null,
     ...over,
-  };
+  } as EventRow;
 }
 
 describe("writing", () => {

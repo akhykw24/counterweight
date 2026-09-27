@@ -92,3 +92,87 @@ export function clearResume(): void {
   if (!store) return;
   for (const key of [SESSION_KEY, SNAPSHOT_KEY, COMPLETED_KEY]) store.removeItem(key);
 }
+
+/**
+ * The same resume mechanism under a separate key prefix.
+ *
+ * The v3 study must never restore a deep-sea snapshot: a browser that ran the
+ * v2 pilot still holds one, and feeding it to the v3 statechart would put the
+ * participant in a state that does not exist. Separate keys make the two
+ * studies' resume positions invisible to each other.
+ *
+ * Also holds the participant id, which -- unlike the session -- survives
+ * `start()`: it is what lets a second session in the same browser be seen as
+ * a repeat (v3 exclusion: repeat participation).
+ */
+export interface ResumeStore {
+  load(): ResumeState | null;
+  hadCompletedSession(): boolean;
+  start(sessionId: string): void;
+  save(snapshot: unknown): void;
+  markCompleted(): void;
+  clear(): void;
+  participantId(create: () => string): string;
+}
+
+export function resumeStore(prefix: string): ResumeStore {
+  const sessionKey = `${prefix}.session_id`;
+  const snapshotKey = `${prefix}.session_snapshot`;
+  const completedKey = `${prefix}.session_completed`;
+  const participantKey = `${prefix}.participant_id`;
+
+  return {
+    load() {
+      const store = storage();
+      if (!store) return null;
+      const sessionId = store.getItem(sessionKey);
+      if (!sessionId || store.getItem(completedKey) === "true") return null;
+      const raw = store.getItem(snapshotKey);
+      if (!raw) return { sessionId, snapshot: null };
+      try {
+        return { sessionId, snapshot: JSON.parse(raw) };
+      } catch {
+        return { sessionId, snapshot: null };
+      }
+    },
+    hadCompletedSession() {
+      const store = storage();
+      if (!store) return false;
+      return store.getItem(sessionKey) !== null && store.getItem(completedKey) === "true";
+    },
+    start(sessionId) {
+      const store = storage();
+      if (!store) return;
+      store.setItem(sessionKey, sessionId);
+      store.removeItem(snapshotKey);
+      store.removeItem(completedKey);
+    },
+    save(snapshot) {
+      try {
+        storage()?.setItem(snapshotKey, JSON.stringify(snapshot));
+      } catch {
+        // Quota exceeded: only the resume position is lost.
+      }
+    },
+    markCompleted() {
+      storage()?.setItem(completedKey, "true");
+    },
+    clear() {
+      const store = storage();
+      if (!store) return;
+      for (const key of [sessionKey, snapshotKey, completedKey]) store.removeItem(key);
+    },
+    participantId(create) {
+      const store = storage();
+      const existing = store?.getItem(participantKey);
+      if (existing) return existing;
+      const fresh = create();
+      try {
+        store?.setItem(participantKey, fresh);
+      } catch {
+        // Without storage every visit is a new participant; nothing better exists.
+      }
+      return fresh;
+    },
+  };
+}

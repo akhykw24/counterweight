@@ -22,16 +22,19 @@ export default defineConfig({
   timeout: 20 * 60 * 1000,
 
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://localhost:5174",
     trace: "retain-on-failure",
     video: "retain-on-failure",
   },
 
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 
+  // The deep-sea v2 flow, on its own port. v3 is the default build now, and a
+  // v2 suite that reused a running v3 server would test the wrong study.
   webServer: {
-    command: "pnpm --dir apps/study dev",
-    url: "http://localhost:5173",
+    command: "pnpm --dir apps/study dev --port 5174 --strictPort",
+    env: { VITE_STUDY_FLOW: "v2" },
+    url: "http://localhost:5174",
     reuseExistingServer: !process.env["CI"],
     timeout: 120_000,
   },

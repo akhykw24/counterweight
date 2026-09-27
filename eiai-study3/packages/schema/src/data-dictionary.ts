@@ -118,6 +118,8 @@ function collectFields(node: JsonSchemaNode, prefix = ""): FieldRow[] {
 }
 
 const ENVELOPE_KEYS = new Set(["event_id", "session_id", "seq", "client_ts"]);
+/** Envelope fields only the v3 family carries; suppressed in its tables too. */
+const V3_ENVELOPE_KEYS = new Set(["participant_id", "cell"]);
 
 /**
  * True when this schema is an event: envelope + discriminator + payload.
@@ -153,7 +155,7 @@ function renderEntry(entry: RegistryEntry): string {
 
   const fields = collectFields(node).filter((field) => {
     if (!isEvent) return true;
-    if (ENVELOPE_KEYS.has(field.path)) return false;
+    if (ENVELOPE_KEYS.has(field.path) || V3_ENVELOPE_KEYS.has(field.path)) return false;
     // The bare `payload` row carries no information the `payload.*` rows lack.
     return field.path !== "payload";
   });
@@ -214,6 +216,12 @@ export function buildDataDictionary(): string {
   out.push("| `session_id` | string(uuid) | The only participant identifier that exists. |");
   out.push("| `seq` | integer | Monotonic within a session. Establishes order independently of clock skew. |");
   out.push("| `client_ts` | string(date-time) | Client clock. Untrusted for ordering; used for wall-clock reporting only. |");
+  out.push("");
+  out.push("v3 events add two more:", "");
+  out.push("| Field | Type | Description |");
+  out.push("|---|---|---|");
+  out.push("| `participant_id` | string(uuid) | Per-browser identifier kept across sessions. Detects repeat participation; linked to no person. |");
+  out.push("| `cell` | string, nullable | EI-A, EI-B, Neutral-A or Neutral-B. Null before allocation. |");
   out.push("");
 
   for (const section of schemaRegistry) {

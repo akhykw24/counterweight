@@ -7,6 +7,7 @@ No field anywhere in this document holds personally identifying information. Age
 ## Contents
 
 - [Events](#events)
+- [Events (v3, Mars Mission Training)](#events-v3-mars-mission-training-)
 - [Transport](#transport)
 - [Item bank and stimuli](#item-bank-and-stimuli)
 - [Questionnaire](#questionnaire)
@@ -22,6 +23,13 @@ Every event carries the same four envelope fields in addition to its `type` and 
 | `session_id` | string(uuid) | The only participant identifier that exists. |
 | `seq` | integer | Monotonic within a session. Establishes order independently of clock skew. |
 | `client_ts` | string(date-time) | Client clock. Untrusted for ordering; used for wall-clock reporting only. |
+
+v3 events add two more:
+
+| Field | Type | Description |
+|---|---|---|
+| `participant_id` | string(uuid) | Per-browser identifier kept across sessions. Detects repeat participation; linked to no person. |
+| `cell` | string, nullable | EI-A, EI-B, Neutral-A or Neutral-B. Null before allocation. |
 
 ## Events
 
@@ -339,6 +347,313 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | `payload.reason` | string \| null | yes |  | Optional free-text reason. Null when the participant declined to give one. |
 | `payload.at_state` | string | yes | minLen 1 | Statechart state the participant withdrew from. |
 
+## Events (v3, Mars Mission Training)
+
+The v3 family (docs/spec/v3/SPEC.md). Lower-case type names keep it apart from the deep-sea events above. The envelope adds `participant_id` and `cell`; see [Event envelope](#event-envelope).
+
+#### `session_started`
+
+First load of a session, and again on every resume.
+
+*Emitted when:* first load, and on resume
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"session_started"` | yes |  |  |
+| `payload.study_version` | `"v3"` | yes |  |  |
+| `payload.app_version` | string | yes |  |  |
+| `payload.stimuli_manifest_hash` | string | yes | pattern `^[a-f0-9]{64}$` | Lowercase hex SHA-256 digest. |
+| `payload.viewport` | object | yes |  |  |
+| `payload.viewport.width` | integer | yes | > 0 |  |
+| `payload.viewport.height` | integer | yes | > 0 |  |
+| `payload.resumed` | boolean | yes |  |  |
+| `payload.repeat_session` | boolean | yes |  | This browser already completed a session. |
+| `payload.pilot_participant` | integer \| null | yes |  | `p=N` from a numbered pilot link. |
+| `payload.requested_cell` | `EI-A` \| `EI-B` \| `Neutral-A` \| `Neutral-B` \| null | yes |  | `cell=` on the link. Honoured only in test runs. |
+
+#### `consent_given`
+
+Both consent boxes ticked and Start pressed.
+
+*Emitted when:* consent screen (E1)
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"consent_given"` | yes |  |  |
+| `payload.pilot_notice_shown` | boolean | yes |  |  |
+
+#### `screening_answered`
+
+Screening S1-S3, for an admitted participant only. S1 asks for the age as a number, as the approved instrument words it; only its band is stored. The exact age decides eligibility in the browser and goes no further -- the project holds no exact ages (the privacy invariant in packages/schema/test/events.test.ts). Nothing about age is stored for anyone turned away.
+
+*Emitted when:* screening S1-S3 (E2)
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"screening_answered"` | yes |  |  |
+| `payload.age_band` | `18-24` \| `25-34` \| `35+` | yes |  | Coarsened age of an ADMITTED participant. Recorded as a band at source; an exact age is never collected. Bands below 18 do not appear because the study does not admit anyone under 18 and does not store an age for someone it turns away. |
+| `payload.english_level` | `A1-A2` \| `B1` \| `B2` \| `C1` \| `C2-native` | yes |  | Self-reported English reading level (screening S2). A1-A2 is screened out. |
+| `payload.study_language` | `English` \| `Russian` \| `Kazakh` \| `Other` | yes |  | Main language of the participant's studies or work (screening S3). Covariate only. |
+
+#### `screened_out`
+
+Visitor turned away at screening. Nothing is allocated for them.
+
+*Emitted when:* under 18, or English A1-A2
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"screened_out"` | yes |  |  |
+| `payload.reason` | `age` \| `language` | yes |  | Why a visitor was turned away. |
+
+#### `allocation`
+
+Cell assigned, after screening and the pre-measures.
+
+*Emitted when:* after the pre-measures
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"allocation"` | yes |  |  |
+| `payload.cell` | `EI-A` \| `EI-B` \| `Neutral-A` \| `Neutral-B` | yes |  | Between-participants cell: tone x counterbalancing list. |
+| `payload.tone` | `EI` \| `Neutral` | yes |  | Tutor tone, between participants. |
+| `payload.list` | `A` \| `B` | yes |  | Counterbalancing list. A: odd claims strong, even weak. B: the reverse. |
+| `payload.method` | `pilot_rotation` \| `forced_test` | yes |  | pilot_rotation: position in the pilot sequence. forced_test: `cell=` on a test link. |
+| `payload.pilot_position` | integer \| null | yes |  | 1-based position in the pilot sequence. |
+| `payload.english_band` | `B1-B2` \| `C1-C2-native` | yes |  | English level grouped for the main study's strata. Recorded in the pilot, not stratified on. |
+
+#### `plan_generated`
+
+Every per-participant random order, drawn once from a seed and logged in full.
+
+*Emitted when:* immediately after allocation
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"plan_generated"` | yes |  |  |
+| `payload.seed` | integer | yes | >= 0 |  |
+| `payload.lesson_order` | string[][] | yes | minItems 3, maxItems 3 |  |
+| `payload.task_order` | string[][] | yes | minItems 3, maxItems 3 |  |
+| `payload.attention_position` | integer | yes | >= 1, <= 5 | Position of the attention check among module 2's five mission screens. |
+| `payload.option_order` | object | yes |  |  |
+| `payload.quiz_order` | string[] | yes | minItems 16, maxItems 16 |  |
+| `payload.quality_items` | string[] | yes | minItems 4, maxItems 4 |  |
+
+#### `screen_viewed`
+
+A screen was shown. Times modules and the session.
+
+*Emitted when:* every screen
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"screen_viewed"` | yes |  |  |
+| `payload.screen` | string | yes |  |  |
+| `payload.module` | integer \| null | yes |  |  |
+
+#### `lesson_item`
+
+One lesson message read; logged on Continue.
+
+*Emitted when:* Continue under a lesson message
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"lesson_item"` | yes |  |  |
+| `payload.module` | integer | yes | >= 1, <= 3 | Training module, 1 to 3. |
+| `payload.claim_id` | string | yes | pattern `^claim_(0[1-9]\|1[0-2])$` | claim_01 to claim_12. |
+| `payload.version` | `strong` \| `weak` | yes |  | Within-participant explanation quality. |
+| `payload.order_position` | integer | yes | >= 1, <= 4 |  |
+| `payload.dwell_ms` | integer | yes | >= 0 | From the message appearing to Continue. |
+
+#### `mission_answer`
+
+A mission task answered; logged on Next.
+
+*Emitted when:* Next on a mission task
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"mission_answer"` | yes |  |  |
+| `payload.module` | integer | yes | >= 1, <= 3 | Training module, 1 to 3. |
+| `payload.task_id` | string | yes |  |  |
+| `payload.claim_id` | string | yes | pattern `^claim_(0[1-9]\|1[0-2])$` | claim_01 to claim_12. |
+| `payload.version` | `strong` \| `weak` | yes |  | How this claim was explained in the lesson. |
+| `payload.choice_role` | `lesson` \| `intuitive` \| `distractor` | yes |  | What a mission option represents. Never shown to participants. |
+| `payload.option_order` | `lesson` \| `intuitive` \| `distractor`[] | yes | minItems 3, maxItems 3 | Roles in the order the options were shown. |
+| `payload.order_position` | integer | yes | >= 1, <= 4 |  |
+| `payload.confidence` | integer | yes | >= 1, <= 4 | How sure are you? 1 Guessing, 2 Somewhat sure, 3 Sure, 4 Very sure. |
+| `payload.rt_ms` | integer | yes | >= 0 | From the task appearing to Next. |
+
+#### `attention_check`
+
+The systems check in module 2.
+
+*Emitted when:* systems check, module 2
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"attention_check"` | yes |  |  |
+| `payload.passed` | boolean | yes |  |  |
+| `payload.choice` | string | yes |  |  |
+| `payload.position` | integer | yes | >= 1, <= 5 |  |
+| `payload.rt_ms` | integer | yes | >= 0 | Milliseconds, measured on the client. |
+
+#### `quiz_rating`
+
+One final-quiz statement rated.
+
+*Emitted when:* final quiz (D3)
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"quiz_rating"` | yes |  |  |
+| `payload.item_id` | string | yes |  |  |
+| `payload.claim_id` | string \| null | yes |  |  |
+| `payload.version` | `strong` \| `weak` \| null | yes |  | How the claim was explained; null for fillers. |
+| `payload.is_filler` | boolean | yes |  |  |
+| `payload.rating` | integer | yes | >= 1, <= 7 | A 1-7 rating. |
+| `payload.position` | integer | yes | >= 1, <= 16 |  |
+
+#### `questionnaire_item`
+
+One questionnaire answer.
+
+*Emitted when:* P1-P6, E4, NCS-6, D1-D4
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"questionnaire_item"` | yes |  |  |
+| `payload.instrument` | `pre` \| `tutor` \| `ncs6` \| `demographics` | yes |  | Which questionnaire an item belongs to: P1-P6, T/R/E, NCS-6, D1-D4. |
+| `payload.item_id` | string | yes |  |  |
+| `payload.value` | integer \| string | yes |  |  |
+
+#### `funnel_answer`
+
+One awareness-funnel answer. Empty text is recorded as empty.
+
+*Emitted when:* awareness funnel F1-F4 (E5)
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"funnel_answer"` | yes |  |  |
+| `payload.item_id` | `F1` \| `F2` \| `F3` \| `F4` | yes |  |  |
+| `payload.text` | string | yes | maxLen 5000 |  |
+
+#### `arg_quality_rating`
+
+Explanation-quality check (E6).
+
+*Emitted when:* explanation-quality check (E6)
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"arg_quality_rating"` | yes |  |  |
+| `payload.claim_id` | string | yes | pattern `^claim_(0[1-9]\|1[0-2])$` | claim_01 to claim_12. |
+| `payload.version` | `strong` \| `weak` | yes |  | Within-participant explanation quality. |
+| `payload.rating` | integer | yes | >= 1, <= 7 | A 1-7 rating. |
+| `payload.position` | integer | yes | >= 1, <= 4 |  |
+
+#### `pilot_feedback`
+
+Pilot runs only. Blank answers record nothing.
+
+*Emitted when:* pilot runs only (E9)
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"pilot_feedback"` | yes |  |  |
+| `payload.item_id` | `PF1` \| `PF2` \| `PF3` | yes |  |  |
+| `payload.text` | string | yes | minLen 1, maxLen 5000 |  |
+
+#### `session_completed`
+
+Everything is answered; the debrief follows.
+
+*Emitted when:* before the debrief
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"session_completed"` | yes |  |  |
+| `payload.total_duration_ms` | integer | yes | >= 0 | Milliseconds, measured on the client. |
+| `payload.score` | integer | yes | >= 0, <= 12 | Mission tasks answered with the lesson option. |
+
+#### `debrief_viewed`
+
+The debrief was shown.
+
+*Emitted when:* debrief shown (E10)
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"debrief_viewed"` | yes |  |  |
+| `payload.score` | integer | yes | >= 0, <= 12 |  |
+
+#### `withdrawal_requested`
+
+Remove my data. Every export and script drops the participant entirely.
+
+*Emitted when:* Remove my data
+
+Envelope fields are omitted; see [Event envelope](#event-envelope).
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
+| `type` | `"withdrawal_requested"` | yes |  |  |
+| `payload.at_screen` | string | yes |  |  |
+
 ## Transport
 
 What the client sends to the ingest service.
@@ -346,6 +661,14 @@ What the client sends to the ingest service.
 #### `EventBatch`
 
 A batch of events flushed from the client write-ahead log. Idempotent on event_id, so retries are safe.
+
+| Field | Type | Req. | Constraints | Description |
+|---|---|---|---|---|
+| `events` | any[] | yes | minItems 1, maxItems 500 |  |
+
+#### `IngestBatch`
+
+A batch of events flushed from the client write-ahead log, from either study family. Idempotent on event_id.
 
 | Field | Type | Req. | Constraints | Description |
 |---|---|---|---|---|
@@ -629,3 +952,14 @@ Funnelled suspicion probe, administered in order without backtracking.
 | `GeneratorMode` | `live_api`, `offline_placeholder` | How a stimulus set was produced. Placeholder sets are structurally valid but must never be fielded. Was 'anthropic_api', which named the wrong thing: generation runs against whichever OpenAI-compatible provider is configured, and the provider is recorded separately. |
 | `ItemRole` | `analysed`, `filler` | Whether an item enters the justification-quality contrast, or exists only to keep planted errors at 33% of twelve rather than 50% of eight. |
 | `ItemTopic` | `bathymetry`, `diving_physiology`, `optics`, `hydrothermal`, `taxonomy`, `life_history`, `physical_oceanography` | Sub-domain of deep-sea biology the item asks about. A classification of the question stems, not a property carried by the cited sources. Exists so that topic diversity within each justification-quality cell is machine-checkable: a cell drawn entirely from one sub-domain would confound justification quality with subject-matter familiarity. |
+| `Tone (v3)` | `EI`, `Neutral` | Tutor tone, between participants. |
+| `ExplanationList (v3)` | `A`, `B` | Counterbalancing list. A: odd claims strong, even weak. B: the reverse. |
+| `Cell (v3)` | `EI-A`, `EI-B`, `Neutral-A`, `Neutral-B` | Between-participants cell: tone x counterbalancing list. |
+| `ExplanationVersion (v3)` | `strong`, `weak` | Within-participant explanation quality. |
+| `ChoiceRole (v3)` | `lesson`, `intuitive`, `distractor` | What a mission option represents. Never shown to participants. |
+| `EnglishLevel (v3)` | `A1-A2`, `B1`, `B2`, `C1`, `C2-native` | Self-reported English reading level (screening S2). A1-A2 is screened out. |
+| `EnglishBand (v3)` | `B1-B2`, `C1-C2-native` | English level grouped for the main study's strata. Recorded in the pilot, not stratified on. |
+| `StudyLanguage (v3)` | `English`, `Russian`, `Kazakh`, `Other` | Main language of the participant's studies or work (screening S3). Covariate only. |
+| `ScreenedOutReason (v3)` | `age`, `language` | Why a visitor was turned away. |
+| `AllocationMethod (v3)` | `pilot_rotation`, `forced_test` | pilot_rotation: position in the pilot sequence. forced_test: `cell=` on a test link. |
+| `QuestionnaireInstrument (v3)` | `pre`, `tutor`, `ncs6`, `demographics` | Which questionnaire an item belongs to: P1-P6, T/R/E, NCS-6, D1-D4. |

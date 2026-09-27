@@ -1,28 +1,17 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { App } from "./App";
-import { bootstrap } from "./telemetry";
-import "./styles.css";
+/**
+ * Entry point: picks the participant flow at build time.
+ *
+ * v3 (Mars Mission Training) is the active study. The deep-sea v2 flow stays
+ * in the tree, whole and tested, behind `VITE_STUDY_FLOW=v2` -- the build the
+ * v2 pilot ran is also tagged `pilot-v2-deepsea`. Only the chosen flow's code
+ * is loaded: the other is a separate chunk the browser never fetches.
+ */
+const flow = (import.meta.env["VITE_STUDY_FLOW"] as string | undefined) ?? "v3";
 
-const root = document.getElementById("root");
-if (!root) throw new Error("#root missing from index.html");
+if (flow === "v2") {
+  await import("./main-v2");
+} else {
+  await import("./v3/main");
+}
 
-// Telemetry is resolved before first paint so a resumed participant never sees
-// the eligibility screen flash before being returned to item nine.
-const session = await bootstrap();
-
-createRoot(root).render(
-  <StrictMode>
-    <App
-      recorder={session.recorder}
-      sessionId={session.sessionId}
-      resumed={session.resumed}
-      repeatSession={session.repeatSession}
-      pilot={session.runMode !== "live"}
-      pilotParticipant={session.pilotParticipant}
-      snapshot={session.snapshot}
-      onSnapshot={session.persist}
-      onComplete={session.complete}
-    />
-  </StrictMode>,
-);
+export {};
