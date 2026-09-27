@@ -1,0 +1,296 @@
+{
+  "lesson_headings": {
+    "1": "LESSON — Module 1: Your body in space",
+    "2": "LESSON — Module 2: Life aboard the orbital station",
+    "3": "LESSON — Module 3: On Mars"
+  },
+  "mission_heading_template": "MISSION — Module {N}. Use your training to handle each situation. There is no time limit.",
+  "confidence": {
+    "prompt": "How sure are you?",
+    "labels": [
+      "Guessing",
+      "Somewhat sure",
+      "Sure",
+      "Very sure"
+    ],
+    "codes": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "tasks": [
+    {
+      "task_id": "T1",
+      "claim_id": "claim_01",
+      "module": 1,
+      "title": "Pre-flight briefing",
+      "situation": "Your spacesuit will be fitted on Earth, but you'll wear it for the first time after three months in orbit. What should the suit technicians plan for?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "Extra length in the torso — you'll probably be a few centimeters taller by then."
+        },
+        {
+          "role": "intuitive",
+          "text": "The same size — an adult's height doesn't change."
+        },
+        {
+          "role": "distractor",
+          "text": "A larger size overall — muscles grow faster in weightlessness."
+        }
+      ]
+    },
+    {
+      "task_id": "T2",
+      "claim_id": "claim_02",
+      "module": 1,
+      "title": "Day 12 in orbit",
+      "situation": "You're choosing food for your personal supply on the next cargo ship. Based on your training, what's the smartest choice?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "Strongly seasoned foods — flavors will seem weaker up here."
+        },
+        {
+          "role": "intuitive",
+          "text": "Your usual favorite foods — they'll taste the same as at home."
+        },
+        {
+          "role": "distractor",
+          "text": "Mostly sweets — sugar is the one taste that gets stronger in orbit."
+        }
+      ]
+    },
+    {
+      "task_id": "T3",
+      "claim_id": "claim_03",
+      "module": 1,
+      "title": "Day 3 in orbit",
+      "situation": "During a video call, your family says: \"You look different!\" What change are they most likely noticing?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "A rounder, puffier face — and thinner legs, if they could see them."
+        },
+        {
+          "role": "intuitive",
+          "text": "Nothing much — the body looks the same in orbit; you're just floating."
+        },
+        {
+          "role": "distractor",
+          "text": "Much darker skin from the strong sunlight through the station's windows."
+        }
+      ]
+    },
+    {
+      "task_id": "T4",
+      "claim_id": "claim_04",
+      "module": 1,
+      "title": "Month 6 in orbit",
+      "situation": "The flight doctor reviews your latest bone scans. What result should you expect?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "A noticeable loss of bone mass in the hips and spine."
+        },
+        {
+          "role": "intuitive",
+          "text": "No real change — six months is too short for bones to change."
+        },
+        {
+          "role": "distractor",
+          "text": "Denser bones than before launch — floating protects them from wear."
+        }
+      ]
+    },
+    {
+      "task_id": "T5",
+      "claim_id": "claim_05",
+      "module": 2,
+      "title": "Day 20 aboard the station",
+      "situation": "In the science lab, you light a small candle inside a sealed experiment box. What will you most likely see?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "A round, bluish flame."
+        },
+        {
+          "role": "intuitive",
+          "text": "A normal tall, yellow flame, just like on Earth."
+        },
+        {
+          "role": "distractor",
+          "text": "A green flame, because of the station's air filters."
+        }
+      ]
+    },
+    {
+      "task_id": "T6",
+      "claim_id": "claim_06",
+      "module": 2,
+      "title": "Day 34 aboard the station",
+      "situation": "A crewmate gets emotional watching a video message from home. What happens to their tears?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "They collect into a ball of water on the eye."
+        },
+        {
+          "role": "intuitive",
+          "text": "They roll down the cheeks, the same as on Earth."
+        },
+        {
+          "role": "distractor",
+          "text": "They freeze instantly into tiny ice crystals."
+        }
+      ]
+    },
+    {
+      "task_id": "T7",
+      "claim_id": "claim_07",
+      "module": 2,
+      "title": "Day 41 aboard the station",
+      "situation": "You want to photograph every sunrise you can see from the station during one 24-hour period. About how many photos will you take?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "About 16"
+        },
+        {
+          "role": "intuitive",
+          "text": "1 — one sunrise a day, like on Earth"
+        },
+        {
+          "role": "distractor",
+          "text": "About 100"
+        }
+      ]
+    },
+    {
+      "task_id": "T8",
+      "claim_id": "claim_08",
+      "module": 2,
+      "title": "Day 55 aboard the station",
+      "situation": "Mission control asks you to explain the station's water supply to a group of students. What's the most accurate description?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "Almost all of it — about 98% — is recovered and reused, including water from urine and sweat."
+        },
+        {
+          "role": "intuitive",
+          "text": "Most of it arrives fresh from Earth on cargo ships; only a small part is recycled."
+        },
+        {
+          "role": "distractor",
+          "text": "It is made by melting ice collected outside the station."
+        }
+      ]
+    },
+    {
+      "task_id": "T9",
+      "claim_id": "claim_09",
+      "module": 3,
+      "title": "Sol 47",
+      "situation": "You want to photograph tonight's sunset for mission control. What colors should you expect?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "Blue tones."
+        },
+        {
+          "role": "intuitive",
+          "text": "Deep red and orange, like a sunset on Earth."
+        },
+        {
+          "role": "distractor",
+          "text": "Bright green across the whole sky."
+        }
+      ]
+    },
+    {
+      "task_id": "T10",
+      "claim_id": "claim_10",
+      "module": 3,
+      "title": "Sol 214",
+      "situation": "A regional dust storm with winds of about 100 km/h is heading toward your base. What should your crew prioritize?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "Plan to protect and clean the solar panels from dust."
+        },
+        {
+          "role": "intuitive",
+          "text": "Anchor the habitat and rover — winds this strong could tip them over."
+        },
+        {
+          "role": "distractor",
+          "text": "Evacuate to the rover — the storm will make the habitat lose air pressure."
+        }
+      ]
+    },
+    {
+      "task_id": "T11",
+      "claim_id": "claim_11",
+      "module": 3,
+      "title": "Sol 120",
+      "situation": "An outside microphone on your rover records a drill running a few meters away. Compared with the same drill on Earth, what will the recording sound like?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "Quieter — sound travels on Mars, but more weakly and more slowly."
+        },
+        {
+          "role": "intuitive",
+          "text": "Completely silent — there's no air on Mars for sound to travel through."
+        },
+        {
+          "role": "distractor",
+          "text": "Louder — Mars's air carries sound better than Earth's."
+        }
+      ]
+    },
+    {
+      "task_id": "T12",
+      "claim_id": "claim_12",
+      "module": 3,
+      "title": "Sol 305",
+      "situation": "A crewmate is injured, and you need advice from a doctor at mission control. What should you plan for?",
+      "options": [
+        {
+          "role": "lesson",
+          "text": "A wait of several minutes — possibly more than 20 — for your message to reach Earth, and as long again for the reply."
+        },
+        {
+          "role": "intuitive",
+          "text": "A live conversation — radio signals reach Earth within seconds."
+        },
+        {
+          "role": "distractor",
+          "text": "No contact at all until the next cargo ship arrives."
+        }
+      ]
+    }
+  ],
+  "attention_check": {
+    "module": 2,
+    "title": "SYSTEMS CHECK",
+    "instruction": "To confirm your console is responding, select \"Olympus\" below.",
+    "options": [
+      {
+        "text": "Gale",
+        "correct": false
+      },
+      {
+        "text": "Olympus",
+        "correct": true
+      },
+      {
+        "text": "Jezero",
+        "correct": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "lines": [
+    {
+      "claim_id": "claim_01",
+      "ei_line": "If that sounded strange, it's understandable — on Earth, adult height feels like one of the few things that never changes.",
+      "ei_codes": [
+        "E3"
+      ],
+      "neutral_line": "This point belongs to the training section on how the human body adapts to long missions."
+    },
+    {
+      "claim_id": "claim_02",
+      "ei_line": "Food is one of the comforts people miss most far from home, so this one can feel a little disappointing.",
+      "ei_codes": [
+        "E1",
+        "E5"
+      ],
+      "neutral_line": "This point belongs to the nutrition section of the crew training program for long missions."
+    },
+    {
+      "claim_id": "claim_03",
+      "ei_line": "Reading about your body changing shape can feel a bit unsettling, and that's a very normal reaction.",
+      "ei_codes": [
+        "E1",
+        "E3"
+      ],
+      "neutral_line": "This point belongs to the training section on the cardiovascular system and body fluids."
+    },
+    {
+      "claim_id": "claim_04",
+      "ei_line": "This one can sound alarming, so it's okay to take a moment with it before moving on.",
+      "ei_codes": [
+        "E4"
+      ],
+      "neutral_line": "This point belongs to the training section on the musculoskeletal system and daily exercise."
+    },
+    {
+      "claim_id": "claim_05",
+      "ei_line": "If you feel a spark of curiosity here, hold on to it — flames in orbit are one of the strangest sights in space.",
+      "ei_codes": [
+        "E2"
+      ],
+      "neutral_line": "This point belongs to the training section on combustion science in microgravity conditions."
+    },
+    {
+      "claim_id": "claim_06",
+      "ei_line": "Crying far from home is something many people can relate to, so this detail may feel more personal than the others.",
+      "ei_codes": [
+        "E1",
+        "E3"
+      ],
+      "neutral_line": "This point belongs to the training section on the eyes and vision during spaceflight."
+    },
+    {
+      "claim_id": "claim_07",
+      "ei_line": "This is one of my favorite facts, and I hope it gives you a small moment of wonder too.",
+      "ei_codes": [
+        "E5"
+      ],
+      "neutral_line": "This point belongs to the training section on orbital mechanics and the station's flight path."
+    },
+    {
+      "claim_id": "claim_08",
+      "ei_line": "If your first reaction was \"ew,\" you're not alone — that's a completely natural response.",
+      "ei_codes": [
+        "E3"
+      ],
+      "neutral_line": "This point belongs to the training section on life-support systems and water management."
+    },
+    {
+      "claim_id": "claim_09",
+      "ei_line": "There's something quietly beautiful about this one, and it's fine to simply enjoy it.",
+      "ei_codes": [
+        "E1"
+      ],
+      "neutral_line": "This point belongs to the training section on the Martian atmosphere and sky."
+    },
+    {
+      "claim_id": "claim_10",
+      "ei_line": "If movie scenes of Martian storms made this feel scary, that's okay — we're going through it together.",
+      "ei_codes": [
+        "E4",
+        "E5"
+      ],
+      "neutral_line": "This point belongs to the training section on Martian weather and surface operations."
+    },
+    {
+      "claim_id": "claim_11",
+      "ei_line": "It can feel eerie to imagine a world this quiet, and that feeling is completely natural.",
+      "ei_codes": [
+        "E1"
+      ],
+      "neutral_line": "This point belongs to the training section on the Martian environment and acoustics."
+    },
+    {
+      "claim_id": "claim_12",
+      "ei_line": "Being far from the people you love is hard, and this delay is part of why crews can feel so isolated.",
+      "ei_codes": [
+        "E3",
+        "E5"
+      ],
+      "neutral_line": "This point belongs to the training section on communications between Mars and mission control."
+    }
+  ],
+  "transitions": {
+    "start": {
+      "ei": "Hi, I'm Nova. Starting something new can feel exciting and a little nerve-wracking at the same time, and both are completely normal. I'll be with you the whole way.",
+      "neutral": "Hi, I'm Nova. This training has three modules. Each module has a short lesson followed by mission tasks."
+    },
+    "after_m1": {
+      "ei": "You've just taken in a lot of new information, so it's natural if your head feels a bit full. Take a breath before the next part.",
+      "neutral": "Module 1 is complete. Module 2 covers life aboard the orbital station."
+    },
+    "after_m2": {
+      "ei": "If some of these facts surprised you, that surprise can actually help you remember them. Thanks for your focus.",
+      "neutral": "Module 2 is complete. Module 3 covers conditions on the Martian surface."
+    },
+    "end": {
+      "ei": "Thank you for staying with me through all three modules. I really enjoyed guiding you.",
+      "neutral": "All three modules are complete. The final assessment follows."
+    }
+  }
+}

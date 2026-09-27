@@ -1,0 +1,123 @@
+{
+  "heading": "Final certification quiz. Rate how true you think each statement is.",
+  "scale": {
+    "min": 1,
+    "low": "Definitely false",
+    "max": 7,
+    "high": "Definitely true"
+  },
+  "items": [
+    {
+      "item_id": "Q1",
+      "claim_id": "claim_01",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "Astronauts get taller in weightlessness."
+    },
+    {
+      "item_id": "Q2",
+      "claim_id": "claim_02",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "Food tastes blander in space than on Earth."
+    },
+    {
+      "item_id": "Q3",
+      "claim_id": "claim_03",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "In weightlessness, astronauts' faces get puffy and their legs get thinner."
+    },
+    {
+      "item_id": "Q4",
+      "claim_id": "claim_04",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "In weightlessness, astronauts lose bone mass in their hips and spine every month."
+    },
+    {
+      "item_id": "Q5",
+      "claim_id": "claim_05",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "In weightlessness, a candle flame becomes round and blue."
+    },
+    {
+      "item_id": "Q6",
+      "claim_id": "claim_06",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "In weightlessness, tears collect into a ball on the eye instead of rolling down."
+    },
+    {
+      "item_id": "Q7",
+      "claim_id": "claim_07",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "Astronauts on the ISS see about 16 sunrises a day."
+    },
+    {
+      "item_id": "Q8",
+      "claim_id": "claim_08",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "About 98% of the water on the ISS is recycled."
+    },
+    {
+      "item_id": "Q9",
+      "claim_id": "claim_09",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "Sunsets on Mars look blue."
+    },
+    {
+      "item_id": "Q10",
+      "claim_id": "claim_10",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "Martian dust storms are too weak to knock over equipment."
+    },
+    {
+      "item_id": "Q11",
+      "claim_id": "claim_11",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "Sound travels more slowly on Mars than on Earth."
+    },
+    {
+      "item_id": "Q12",
+      "claim_id": "claim_12",
+      "is_filler": false,
+      "filler_truth": null,
+      "statement": "A radio message from Mars can take more than 20 minutes to reach Earth."
+    },
+    {
+      "item_id": "F1",
+      "claim_id": null,
+      "is_filler": true,
+      "filler_truth": true,
+      "statement": "Mars has two small moons."
+    },
+    {
+      "item_id": "F2",
+      "claim_id": null,
+      "is_filler": true,
+      "filler_truth": true,
+      "statement": "A year on Mars is longer than a year on Earth."
+    },
+    {
+      "item_id": "F3",
+      "claim_id": null,
+      "is_filler": true,
+      "filler_truth": false,
+      "statement": "Mars is closer to the Sun than Earth is."
+    },
+    {
+      "item_id": "F4",
+      "claim_id": null,
+      "is_filler": true,
+      "filler_truth": false,
+      "statement": "The Moon has a thicker atmosphere than Mars."
+    }
+  ]
+}
