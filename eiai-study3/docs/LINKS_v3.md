@@ -13,9 +13,25 @@ session keeps the values it started with, whatever the link says later.
 Only the exact string `true` counts: `pilot=1`, `pilot=yes` or a bare `pilot`
 are treated as absent.
 
-A link with neither `pilot=true` nor `test=true` is a live link, and v3 has no
-live study yet: it shows "This study is not open yet." and records nothing.
-The main allocation is defined after the pilot.
+## The main study: one link
+
+```
+https://counterweight-pearl.vercel.app/
+```
+
+A link with neither `pilot=true` nor `test=true` is the main study
+(`run_mode = live`). After screening and the pre-measures the browser asks
+`/api/allocate` for the next slot of the committed sequence
+(docs/allocation-v3-precommit.txt): permuted blocks of four within the two
+English-level strata, handed out one at a time by the database, the same slot
+again for a session that asks twice. `cell=` and `p=` are ignored on it.
+
+`?test=true` without `cell=` rehearses exactly that link, from a separate test
+sequence, so it never uses a participant's slot. `GET /api/allocate` reports
+how many slots each stratum has used.
+
+`VITE_V3_LIVE=closed` at build time shuts the main link ("This study is not
+open yet.") without affecting pilot or test links.
 
 ## Pilot links (one per participant)
 
