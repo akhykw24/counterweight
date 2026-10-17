@@ -58,7 +58,14 @@ describe("allocate", () => {
 
   it("uses the numbered link's position in a pilot run", () => {
     const result = v3.allocate({ runMode: "pilot", pilotParticipant: 3, requestedCell: null, sessionId: session });
-    expect(result).toEqual({ cell: "EI-B", tone: "EI", list: "B", method: "pilot_rotation", pilotPosition: 3 });
+    expect(result).toEqual({
+      cell: "EI-B",
+      tone: "EI",
+      list: "B",
+      method: "pilot_rotation",
+      pilotPosition: 3,
+      sequenceIndex: null,
+    });
   });
 
   it("honours cell= in a test run", () => {
@@ -73,10 +80,72 @@ describe("allocate", () => {
     expect(result.method).toBe("pilot_rotation");
   });
 
-  it("refuses to allocate a live session: the main allocation does not exist yet", () => {
-    expect(() => v3.allocate({ runMode: "live", pilotParticipant: 1, requestedCell: null, sessionId: session })).toThrow(
-      /main allocation/,
+  it("never invents a cell for a live session: without the server's slot it refuses", () => {
+    // The protection the earlier "no main allocation yet" test stood for: a
+    // live session must not be allocated by anything but the committed
+    // sequence. Now that the sequence is served, the slot is required.
+    expect(() => v3.allocate({ runMode: "live", pilotParticipant: null, requestedCell: null, sessionId: session })).toThrow(
+      /no slot was supplied/,
     );
+    expect(() =>
+      v3.allocate({
+        runMode: "live",
+        pilotParticipant: null,
+        requestedCell: null,
+        sessionId: session,
+        slot: { cell: "warm" as never, index: 0 },
+      }),
+    ).toThrow(/no slot was supplied/);
+  });
+
+  it("uses the server's slot on the single public link", () => {
+    const result = v3.allocate({
+      runMode: "live",
+      pilotParticipant: null,
+      requestedCell: null,
+      sessionId: session,
+      slot: { cell: "Neutral-B", index: 17 },
+    });
+    expect(result).toEqual({
+      cell: "Neutral-B",
+      tone: "Neutral",
+      list: "B",
+      method: "main_sequence",
+      pilotPosition: null,
+      sequenceIndex: 17,
+    });
+  });
+
+  it("ignores a requested cell and a pilot number on a live link", () => {
+    const result = v3.allocate({
+      runMode: "live",
+      pilotParticipant: 3,
+      requestedCell: "EI-A",
+      sessionId: session,
+      slot: { cell: "Neutral-A", index: 0 },
+    });
+    expect(result.cell).toBe("Neutral-A");
+  });
+
+  it("knows which runs take a slot from the server", () => {
+    const base = { pilotParticipant: null, requestedCell: null, pilotFlow: false } as const;
+    expect(v3.needsServerSlot({ ...base, runMode: "live" })).toBe(true);
+    expect(v3.needsServerSlot({ ...base, runMode: "test" })).toBe(true);
+    expect(v3.needsServerSlot({ ...base, runMode: "pilot" })).toBe(false);
+    expect(v3.needsServerSlot({ ...base, runMode: "test", requestedCell: "EI-A" })).toBe(false);
+    expect(v3.needsServerSlot({ ...base, runMode: "test", pilotFlow: true, pilotParticipant: 2 })).toBe(false);
+    expect(v3.needsServerSlot({ ...base, runMode: "live", pilotFlow: true, pilotParticipant: 2 })).toBe(true);
+  });
+
+  it("labels a test run's server slot as the test sequence", () => {
+    const result = v3.allocate({
+      runMode: "test",
+      pilotParticipant: null,
+      requestedCell: null,
+      sessionId: session,
+      slot: { cell: "EI-B", index: 0 },
+    });
+    expect(result.method).toBe("test_sequence");
   });
 
   it("falls back to a position fixed by the session, stable across calls", () => {

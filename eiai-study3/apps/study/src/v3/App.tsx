@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMachine } from "@xstate/react";
 import { v3 } from "@eiai/fsm";
 import type { CellName } from "@eiai/schema";
@@ -34,7 +34,14 @@ import {
   ScreeningScreen,
   TutorScreen,
 } from "./screens";
-import { noopV3Recorder, type V3Recorder } from "./telemetry";
+import {
+  SlotsExhaustedError,
+  claimSlot,
+  httpAllocate,
+  noopV3Recorder,
+  type AllocateSlot,
+  type V3Recorder,
+} from "./telemetry";
 
 export const APP_VERSION = "0.3.0";
 
@@ -51,6 +58,8 @@ export interface V3AppProps {
   snapshot?: unknown;
   onSnapshot?: (snapshot: unknown) => void;
   onComplete?: () => void;
+  /** Where a run that takes its cell from the server gets its slot. */
+  allocateSlot?: AllocateSlot;
 }
 
 const TRANSITION_AFTER: Record<number, "after_m1" | "after_m2" | "end"> = { 1: "after_m1", 2: "after_m2", 3: "end" };
@@ -88,6 +97,7 @@ export function V3App({
   snapshot,
   onSnapshot,
   onComplete,
+  allocateSlot,
 }: V3AppProps) {
   const machine = useMemo(
     () =>
@@ -176,6 +186,38 @@ export function V3App({
     return () => globalThis.removeEventListener?.("popstate", pin);
   }, []);
 
+  // --- the server's slot, for the single public link and plain test runs ----
+  const [allocating, setAllocating] = useState<"idle" | "waiting" | "full">("idle");
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const allocator = useMemo(() => allocateSlot ?? httpAllocate(), [allocateSlot]);
+
+  async function submitPre(answers: Record<string, number | string>) {
+    if (!v3.needsServerSlot(c)) {
+      send({ type: "SUBMIT_PRE", answers });
+      return;
+    }
+    if (!c.englishBand) throw new Error("no English band after screening");
+    setAllocating("waiting");
+    try {
+      const slot = await claimSlot(
+        allocator,
+        { sessionId: c.sessionId, englishBand: c.englishBand, runMode: c.runMode === "live" ? "live" : "test" },
+        { stillWanted: () => mounted.current },
+      );
+      if (!mounted.current) return;
+      send({ type: "SUBMIT_PRE", answers, slot });
+      setAllocating("idle");
+    } catch (error) {
+      if (mounted.current && error instanceof SlotsExhaustedError) setAllocating("full");
+    }
+  }
+
   const toneName = c.tone ?? "Neutral";
   const key3 = toneKey(toneName);
 
@@ -191,7 +233,23 @@ export function V3App({
       screen = <IneligibleScreen />;
       break;
     case "pre":
-      screen = <PreScreen onSubmit={(answers) => send({ type: "SUBMIT_PRE", answers })} />;
+      screen =
+        allocating === "waiting" ? (
+          <section className="waiting" data-testid="screen-allocating">
+            <div className="bubble typing" aria-label="Connecting">
+              <span />
+              <span />
+              <span />
+            </div>
+            <p className="hint">Connecting…</p>
+          </section>
+        ) : allocating === "full" ? (
+          <section data-testid="screen-full">
+            <p>This study is currently full. Thank you for your interest.</p>
+          </section>
+        ) : (
+          <PreScreen onSubmit={(answers) => void submitPre(answers)} />
+        );
       break;
     case "intro":
       screen = (

@@ -11,8 +11,10 @@ import type { CellName, ListName, ToneName, VersionName } from "@eiai/schema";
  * they were given is simply reused for the next person; the rotation counts
  * only people who get through screening, as the brief requires.
  *
- * Nothing here touches the main study's pre-committed sequence. The main
- * allocation is defined after the pilot.
+ * The main study (the single public link) does not use this rotation: it
+ * takes the next slot of the committed sequence from the server
+ * (pipeline/allocation_v3.py, services/ingest/src/allocate.ts). This module
+ * only turns that slot into a cell, tone and list.
  */
 
 export const PILOT_ROTATION: readonly CellName[] = ["EI-A", "Neutral-B", "EI-B", "Neutral-A"];
@@ -56,20 +58,46 @@ export function isCell(value: unknown): value is CellName {
   return typeof value === "string" && (CELLS as readonly string[]).includes(value);
 }
 
+export interface ServerSlot {
+  cell: CellName;
+  /** 0-based position in the committed sequence of the participant's stratum. */
+  index: number;
+}
+
 export interface AllocationRequest {
   /** `test` honours a requested cell; nothing else does. */
   runMode: "live" | "pilot" | "test";
   pilotParticipant: number | null;
   requestedCell: CellName | null;
   sessionId: string;
+  /** `pilot=true` on the link. With a number, a test run rehearses the rotation. */
+  pilotFlow?: boolean;
+  /** The slot the server handed out, for the runs that take one. */
+  slot?: ServerSlot | null;
 }
 
 export interface AllocationResult {
   cell: CellName;
   tone: ToneName;
   list: ListName;
-  method: "pilot_rotation" | "forced_test";
+  method: "pilot_rotation" | "forced_test" | "main_sequence" | "test_sequence";
   pilotPosition: number | null;
+  sequenceIndex: number | null;
+}
+
+/**
+ * Whether this run takes its cell from the server's committed sequence.
+ *
+ * Yes for the single public link (live), and for a test run that names no
+ * cell and no pilot number -- the rehearsal of exactly that link, drawing from
+ * the separate test sequence. No for pilot links, which keep their numbered
+ * rotation, and for test links that force a cell or rehearse a pilot number.
+ */
+export function needsServerSlot(request: Pick<AllocationRequest, "runMode" | "requestedCell" | "pilotParticipant" | "pilotFlow">): boolean {
+  if (request.runMode === "live") return true;
+  if (request.runMode === "pilot") return false;
+  if (request.requestedCell) return false;
+  return !(request.pilotFlow && request.pilotParticipant !== null);
 }
 
 /**
@@ -82,15 +110,25 @@ export function fallbackPosition(sessionId: string): number {
 }
 
 export function allocate(request: AllocationRequest): AllocationResult {
-  if (request.runMode === "live") {
-    // The main allocation does not exist yet: it is defined after the pilot.
-    // A live session reaching this point is a routing bug, and allocating it
-    // anyway would put unregistered data into the analysed sample.
-    throw new Error("v3 has no main allocation yet; live sessions must not be allocated");
-  }
   if (request.runMode === "test" && request.requestedCell) {
     const cell = request.requestedCell;
-    return { cell, tone: toneOf(cell), list: listOf(cell), method: "forced_test", pilotPosition: null };
+    return { cell, tone: toneOf(cell), list: listOf(cell), method: "forced_test", pilotPosition: null, sequenceIndex: null };
+  }
+  if (needsServerSlot(request)) {
+    const slot = request.slot;
+    if (!slot || !isCell(slot.cell) || !Number.isInteger(slot.index) || slot.index < 0) {
+      // The browser must have the server's slot before it can allocate. Making
+      // one up here would put an unregistered assignment into the sample.
+      throw new Error("this run takes its cell from the server's sequence, and no slot was supplied");
+    }
+    return {
+      cell: slot.cell,
+      tone: toneOf(slot.cell),
+      list: listOf(slot.cell),
+      method: request.runMode === "live" ? "main_sequence" : "test_sequence",
+      pilotPosition: null,
+      sequenceIndex: slot.index,
+    };
   }
   const position = request.pilotParticipant ?? fallbackPosition(request.sessionId);
   const cell = pilotCell(position);
@@ -100,6 +138,7 @@ export function allocate(request: AllocationRequest): AllocationResult {
     list: listOf(cell),
     method: "pilot_rotation",
     pilotPosition: request.pilotParticipant,
+    sequenceIndex: null,
   };
 }
 

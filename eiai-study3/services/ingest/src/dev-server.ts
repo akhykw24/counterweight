@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import type { EventStore } from "./handler.js";
 import { createFileStore } from "./file-store.js";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 /**
  * The ingest endpoint, mounted on the Vite dev server.
@@ -30,6 +31,12 @@ export const DEV_INGEST_PATH = "/api/events";
 /** Where the dev server keeps what it received. Git-ignored with the rest of data/. */
 export const DEV_EVENT_LOG = "data/dev-events.jsonl";
 
+/** v3 allocation in development: the committed sequence, claims kept in a file. */
+export const DEV_ALLOCATE_PATH = "/api/allocate";
+export const DEV_SLOTS_FILE = "data/dev-slots.json";
+const ALLOCATION_V3 = fileURLToPath(new URL("../../../materials/allocation-v3.json", import.meta.url));
+const ALLOCATE_MODULE = fileURLToPath(new URL("./allocate.ts", import.meta.url));
+
 function readBody(request: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let raw = "";
@@ -45,6 +52,8 @@ function readBody(request: IncomingMessage): Promise<string> {
 export interface DevIngestOptions {
   /** Path to the JSONL log. Relative paths resolve against the process CWD. */
   logPath?: string;
+  /** Where v3 slot claims are kept. Defaults to dev-slots.json beside the log. */
+  slotsPath?: string;
 }
 
 const HANDLER_MODULE = fileURLToPath(new URL("./handler.ts", import.meta.url));
@@ -125,6 +134,50 @@ export function devIngestPlugin(options: DevIngestOptions = {}) {
             response.statusCode = 500;
             response.setHeader("content-type", "application/json");
             response.end(JSON.stringify({ error: "dev_ingest_failed", detail: String(error) }));
+          }
+        })();
+      });
+
+      // The production allocation endpoint's handler over an in-file store,
+      // so a local run takes exactly the path a participant's browser takes.
+      const slotsPath = options.slotsPath ?? logPath.replace(/dev-events\.jsonl$/, "dev-slots.json");
+      server.middlewares.use(DEV_ALLOCATE_PATH, (request, response) => {
+        void (async () => {
+          try {
+            const raw = await readBody(request);
+            const module = await server.ssrLoadModule(ALLOCATE_MODULE);
+            const document = JSON.parse(readFileSync(ALLOCATION_V3, "utf8")) as {
+              sequence: Record<string, string[]>;
+              test_sequence: Record<string, string[]>;
+            };
+            type Claims = Record<string, { stratum: string; index: number }>;
+            const memorySlots = module["memorySlots"] as (
+              s: Record<string, readonly string[]>,
+              p: { load(): Claims; save(c: Claims): void },
+            ) => unknown;
+            const allocateRequest = module["allocateRequest"] as (r: Request, s: unknown) => Promise<Response>;
+            const store = memorySlots(
+              { ...document.sequence, ...document.test_sequence },
+              {
+                load: () => (existsSync(slotsPath) ? (JSON.parse(readFileSync(slotsPath, "utf8")) as Claims) : {}),
+                save: (claims) => writeFileSync(slotsPath, JSON.stringify(claims, null, 2)),
+              },
+            );
+            const result = await allocateRequest(
+              new Request(`http://localhost${DEV_ALLOCATE_PATH}`, {
+                method: request.method ?? "GET",
+                headers: { "content-type": "application/json" },
+                ...(request.method === "POST" ? { body: raw } : {}),
+              }),
+              store,
+            );
+            response.statusCode = result.status;
+            response.setHeader("content-type", "application/json");
+            response.end(await result.text());
+          } catch (error) {
+            response.statusCode = 500;
+            response.setHeader("content-type", "application/json");
+            response.end(JSON.stringify({ error: "dev_allocate_failed", detail: String(error) }));
           }
         })();
       });

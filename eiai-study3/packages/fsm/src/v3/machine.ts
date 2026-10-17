@@ -1,6 +1,6 @@
 import { assign, enqueueActions, setup } from "xstate";
 import type { CellName, ListName, RoleName, ToneName, VersionName } from "@eiai/schema";
-import { allocate, versionFor } from "./allocation.js";
+import { allocate, isCell, needsServerSlot, versionFor, type ServerSlot } from "./allocation.js";
 import { ATTENTION, makePlan, missionScreens, seedFor, type Design, type Plan } from "./plan.js";
 
 /**
@@ -62,7 +62,12 @@ export interface V3Context extends Omit<V3Input, "now"> {
 export type V3MachineEvent =
   | { type: "CONSENT" }
   | { type: "SCREEN"; age: number; englishLevel: string; studyLanguage: string }
-  | { type: "SUBMIT_PRE"; answers: Record<string, number | string> }
+  | {
+      type: "SUBMIT_PRE";
+      answers: Record<string, number | string>;
+      /** The server's slot, for runs that take one (see needsServerSlot). */
+      slot?: ServerSlot | null;
+    }
   | { type: "CONTINUE" }
   | { type: "LESSON_CONTINUE"; dwellMs: number }
   | { type: "ANSWER_TASK"; taskId: string; role: RoleName; confidence: number; rtMs: number }
@@ -209,7 +214,10 @@ export const v3Machine = setup({
       STUDY_LANGUAGES.has(event.studyLanguage),
     preComplete: ({ context, event }) =>
       event.type === "SUBMIT_PRE" &&
-      context.preItemIds.every((id) => event.answers[id] !== undefined && event.answers[id] !== ""),
+      context.preItemIds.every((id) => event.answers[id] !== undefined && event.answers[id] !== "") &&
+      // A run that takes its cell from the server cannot move on without it.
+      (!needsServerSlot(context) ||
+        (event.slot != null && isCell(event.slot.cell) && Number.isInteger(event.slot.index) && event.slot.index >= 0)),
     lastLessonMessage: ({ context }) => context.lessonIndex >= 3,
     taskMatches: ({ context, event }) =>
       event.type === "ANSWER_TASK" &&
@@ -347,12 +355,15 @@ export const v3Machine = setup({
             }),
             // Allocation happens here, after screening and the pre-measures,
             // and only here: nobody who is screened out is ever allocated.
-            enqueueActions(({ context, enqueue }) => {
+            enqueueActions(({ context, event, enqueue }) => {
+              const e = event as Extract<V3MachineEvent, { type: "SUBMIT_PRE" }>;
               const result = allocate({
                 runMode: context.runMode,
                 pilotParticipant: context.pilotParticipant,
                 requestedCell: context.requestedCell,
                 sessionId: context.sessionId,
+                pilotFlow: context.pilotFlow,
+                slot: e.slot ?? null,
               });
               const seed = seedFor(context.sessionId);
               const plan = makePlan(context.design, result.list, seed);
@@ -369,6 +380,7 @@ export const v3Machine = setup({
                     method: result.method,
                     pilot_position: result.pilotPosition,
                     english_band: context.englishBand,
+                    sequence_index: result.sequenceIndex,
                   },
                 },
               });

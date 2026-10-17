@@ -94,3 +94,70 @@ export async function bootstrapV3(): Promise<V3Bootstrap> {
     flush: () => telemetry.flush(),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Allocation: the next slot of the committed sequence, from the server
+// ---------------------------------------------------------------------------
+
+export interface SlotRequest {
+  sessionId: string;
+  englishBand: "B1-B2" | "C1-C2-native";
+  runMode: "live" | "test";
+}
+
+export interface ServerSlot {
+  cell: CellName;
+  index: number;
+}
+
+export type AllocateSlot = (request: SlotRequest) => Promise<ServerSlot>;
+
+/** The sequence for this stratum is used up. Retrying cannot help. */
+export class SlotsExhaustedError extends Error {
+  constructor() {
+    super("allocation sequence exhausted");
+    this.name = "SlotsExhaustedError";
+  }
+}
+
+const ALLOCATE_ENDPOINT =
+  (import.meta.env["VITE_ALLOCATE_ENDPOINT"] as string | undefined) ?? "/api/allocate";
+
+export function httpAllocate(endpoint = ALLOCATE_ENDPOINT, fetchImpl: typeof fetch = fetch): AllocateSlot {
+  return async ({ sessionId, englishBand, runMode }) => {
+    const response = await fetchImpl(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId, english_band: englishBand, run_mode: runMode }),
+    });
+    if (response.status === 409) throw new SlotsExhaustedError();
+    if (!response.ok) throw new Error(`allocate responded ${response.status}`);
+    const body = (await response.json()) as { cell: unknown; sequence_index: unknown };
+    if (!v3.isCell(body.cell) || typeof body.sequence_index !== "number") {
+      throw new Error(`allocate returned an unusable slot: ${JSON.stringify(body)}`);
+    }
+    return { cell: body.cell, index: body.sequence_index };
+  };
+}
+
+/**
+ * Asks until it gets an answer. A dropped connection must not cost a
+ * participant their place: the request is idempotent per session, so asking
+ * again returns the same slot, never a second one.
+ */
+export async function claimSlot(
+  allocateSlot: AllocateSlot,
+  request: SlotRequest,
+  options: { stillWanted?: () => boolean; wait?: (ms: number) => Promise<void> } = {},
+): Promise<ServerSlot> {
+  const wait = options.wait ?? ((ms: number) => new Promise<void>((done) => setTimeout(done, ms)));
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await allocateSlot(request);
+    } catch (error) {
+      if (error instanceof SlotsExhaustedError) throw error;
+      if (options.stillWanted && !options.stillWanted()) throw error;
+      await wait(Math.min(15_000, 1000 * 2 ** attempt));
+    }
+  }
+}

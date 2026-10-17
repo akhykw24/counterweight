@@ -433,9 +433,10 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 | `payload.cell` | `EI-A` \| `EI-B` \| `Neutral-A` \| `Neutral-B` | yes |  | Between-participants cell: tone x counterbalancing list. |
 | `payload.tone` | `EI` \| `Neutral` | yes |  | Tutor tone, between participants. |
 | `payload.list` | `A` \| `B` | yes |  | Counterbalancing list. A: odd claims strong, even weak. B: the reverse. |
-| `payload.method` | `pilot_rotation` \| `forced_test` | yes |  | pilot_rotation: position in the pilot sequence. forced_test: `cell=` on a test link. |
+| `payload.method` | `pilot_rotation` \| `forced_test` \| `main_sequence` \| `test_sequence` | yes |  | pilot_rotation: position in the pilot rotation. forced_test: `cell=` on a test link. main_sequence: the next slot of the committed main-study sequence, handed out by the server (the single public link). test_sequence: the same, from the separate test sequence. |
 | `payload.pilot_position` | integer \| null | yes |  | 1-based position in the pilot sequence. |
 | `payload.english_band` | `B1-B2` \| `C1-C2-native` | yes |  | English level grouped for the main study's strata. Recorded in the pilot, not stratified on. |
+| `payload.sequence_index` | integer \| null | no |  | 0-based slot in the committed sequence of the participant's stratum, for main_sequence and test_sequence; null otherwise. Absent on pilot events recorded before it existed. |
 
 #### `plan_generated`
 
@@ -961,5 +962,5 @@ Funnelled suspicion probe, administered in order without backtracking.
 | `EnglishBand (v3)` | `B1-B2`, `C1-C2-native` | English level grouped for the main study's strata. Recorded in the pilot, not stratified on. |
 | `StudyLanguage (v3)` | `English`, `Russian`, `Kazakh`, `Other` | Main language of the participant's studies or work (screening S3). Covariate only. |
 | `ScreenedOutReason (v3)` | `age`, `language` | Why a visitor was turned away. |
-| `AllocationMethod (v3)` | `pilot_rotation`, `forced_test` | pilot_rotation: position in the pilot sequence. forced_test: `cell=` on a test link. |
+| `AllocationMethod (v3)` | `pilot_rotation`, `forced_test`, `main_sequence`, `test_sequence` | pilot_rotation: position in the pilot rotation. forced_test: `cell=` on a test link. main_sequence: the next slot of the committed main-study sequence, handed out by the server (the single public link). test_sequence: the same, from the separate test sequence. |
 | `QuestionnaireInstrument (v3)` | `pre`, `tutor`, `ncs6`, `demographics` | Which questionnaire an item belongs to: P1-P6, T/R/E, NCS-6, D1-D4. |

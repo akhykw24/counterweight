@@ -1,0 +1,25 @@
+Allocation pre-commitment -- v3 main study
+==========================================
+
+Recorded BEFORE main-study data collection opens. The sequence itself is
+in materials/allocation-v3.json and is served by
+services/ingest/sql/004_v3_allocation.sql; this file records its digest so
+a reader can verify afterwards that the randomisation was not adjusted.
+
+design            permuted blocks of four within English-level strata
+seed              20261017
+sequence_sha256   1e1dc509508920379be633fee4d253623647bc494270ee501606e46402a07ef1
+
+Per stratum:
+  B1-B2          400 slots  (100 EI-A / 100 EI-B / 100 Neutral-A / 100 Neutral-B)
+  C1-C2-native   400 slots  (100 EI-A / 100 EI-B / 100 Neutral-A / 100 Neutral-B)
+
+Test runs draw from a separate sequence (strata prefixed 'test:',
+seed 20261018, sha256 bd572a7fc8653a89aac2b4a8ca81f16d1695be7a998e3b40bfbd2783efe8e801),
+so rehearsals never consume a participant's slot.
+
+The pilot used its own rotation (docs/LINKS_v3.md) and none of this.
+
+Verify with:
+
+    python pipeline/allocation_v3.py --check

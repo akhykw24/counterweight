@@ -168,3 +168,59 @@ describe("message timing", () => {
     expect(seen).not.toContain("m2:ready");
   });
 });
+
+describe("allocation on the single public link", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  async function toAllocation(allocateSlot: import("../src/v3/telemetry").AllocateSlot) {
+    const { events, recorder } = capturing();
+    render(<V3App recorder={recorder} runMode="live" allocateSlot={allocateSlot} />);
+    fireEvent.click(screen.getByTestId("consent-adult"));
+    fireEvent.click(screen.getByTestId("consent-agree"));
+    click("consent-start");
+    fireEvent.change(screen.getByTestId("screening-age"), { target: { value: "40" } });
+    click("english-C1");
+    click("study-language-Kazakh");
+    click("screening-submit");
+    for (const id of ["P1", "P2", "P4", "P5", "P6"]) click(`${id}-4`);
+    click("P3-2");
+    click("pre-submit");
+    return events;
+  }
+
+  it("asks the server for this participant's stratum, waits, retries, and then goes on", async () => {
+    const requests: unknown[] = [];
+    let calls = 0;
+    const events = await toAllocation(async (request) => {
+      requests.push(request);
+      calls += 1;
+      if (calls < 3) throw new Error("offline");
+      return { cell: "Neutral-A", index: 9 };
+    });
+    expect(screen.getByTestId("screen-allocating")).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000 + 2000 + 10);
+    });
+    expect(calls).toBe(3);
+    expect(requests[0]).toMatchObject({ englishBand: "C1-C2-native", runMode: "live" });
+    // Every attempt asks for the same session, which is what makes a retry safe.
+    expect(new Set(requests.map((r) => (r as { sessionId: string }).sessionId)).size).toBe(1);
+    expect(screen.queryByTestId("screen-allocating")).toBeNull();
+    const allocation = events.find((e) => e.type === "allocation")!;
+    expect(allocation.payload).toMatchObject({ cell: "Neutral-A", method: "main_sequence", sequence_index: 9 });
+    expect(allocation.envelope["cell"]).toBe("Neutral-A");
+  });
+
+  it("says the study is full when the sequence has run out, and records no allocation", async () => {
+    const { SlotsExhaustedError } = await import("../src/v3/telemetry");
+    const events = await toAllocation(async () => {
+      throw new SlotsExhaustedError();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(screen.getByTestId("screen-full")).toBeInTheDocument();
+    expect(events.some((e) => e.type === "allocation")).toBe(false);
+  });
+});

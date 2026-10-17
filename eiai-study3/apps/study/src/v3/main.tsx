@@ -17,11 +17,14 @@ const session = await bootstrapV3();
 const saved = (session.snapshot as { context?: Partial<Record<string, unknown>> } | null)?.context;
 const runMode = (saved?.["runMode"] as typeof session.runMode | undefined) ?? session.runMode;
 
+// The single public link is the main study. VITE_V3_LIVE=closed at build time
+// shuts it -- for when recruitment is over -- without touching pilot or test
+// links.
+const liveClosed = (import.meta.env["VITE_V3_LIVE"] as string | undefined) === "closed";
+
 createRoot(root).render(
   <StrictMode>
-    {runMode === "live" ? (
-      // The main study has no allocation yet (it is defined after the pilot),
-      // so a plain link must not start a session that would read as live data.
+    {runMode === "live" && liveClosed ? (
       <div className="app v3" data-state="closed">
         <main>
           <section data-testid="screen-closed">

@@ -40,6 +40,10 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const EVENT_LOG = resolve(ROOT, "data", "dev-events.jsonl");
+const DEV_SLOTS = resolve(ROOT, "data", "dev-slots.json");
+const ALLOCATION = JSON.parse(readFileSync(resolve(ROOT, "materials", "allocation-v3.json"), "utf8")) as {
+  test_sequence: Record<string, string[]>;
+};
 const RESULTS = resolve(ROOT, "data", "pilot-v3-validation.json");
 
 const CELLS = ["EI-A", "Neutral-B", "EI-B", "Neutral-A"] as const;
@@ -97,6 +101,9 @@ test.describe.configure({ mode: "serial" });
 
 test.beforeAll(() => {
   rmSync(EVENT_LOG, { force: true });
+  // The dev server re-reads its slot claims on every request, so removing the
+  // file starts the test sequence from slot 0 for this run.
+  rmSync(DEV_SLOTS, { force: true });
   checks.length = 0;
 });
 
@@ -361,16 +368,88 @@ test("a complete session on a phone-sized screen", async ({ browser }) => {
   await context.close();
 });
 
-test("a plain link without pilot or test starts nothing", async ({ browser }) => {
-  const { context, page } = await open(browser, "");
-  await expect(page.locator(tid("screen-closed"))).toBeVisible();
-  const id = await page.evaluate(() => localStorage.getItem("eiai.v3.session_id"));
-  await page.waitForTimeout(3000);
-  const written = id ? rowsFor(id).length : 0;
+test("one link: four people at once get four different cells, in sequence order", async ({ browser }) => {
+  test.setTimeout(5 * 60 * 1000);
+  // ?test=true with no cell= and no number is the rehearsal of the single
+  // public link: the same code path, the same endpoint, the separate test
+  // sequence. All four report English B2, so all four share one stratum.
+  const results = await Promise.all(
+    [0, 1, 2, 3].map(async () => {
+      const { context, page } = await open(browser, "test=true");
+      await consentAndScreen(page);
+      const id = await sessionIdOf(page);
+      await preMeasures(page);
+      await expect(page.locator(tid("screen-intro"))).toBeVisible({ timeout: 30_000 });
+      await drained(page);
+      await context.close();
+      return id;
+    }),
+  );
+  const allocations = results.map((id) => rowsFor(id).find((r) => r.type === "allocation")!);
+  const cells = allocations.map((a) => String(a.payload["cell"]));
+  const indices = allocations.map((a) => Number(a.payload["sequence_index"])).sort((a, b) => a - b);
+  const methods = new Set(allocations.map((a) => a.payload["method"]));
+  const expected = ALLOCATION.test_sequence["test:B1-B2"]!;
+  const matches = allocations.every((a) => expected[Number(a.payload["sequence_index"])] === a.payload["cell"]);
   record(
-    "a plain link shows 'not open yet' and records nothing",
-    written === 0,
-    `Rows written for this browser: ${written}.`,
+    "one link: four people starting together get four different cells, from the sequence",
+    new Set(cells).size === 4 && JSON.stringify(indices) === "[0,1,2,3]" && matches && methods.size === 1 && methods.has("test_sequence"),
+    `Cells: ${cells.join(", ")}; slots ${indices.join(", ")}; each cell matches its slot in the committed test sequence: ${matches}.`,
+  );
+});
+
+test("a lost connection while a slot is being handed out costs nothing", async ({ browser }) => {
+  test.setTimeout(5 * 60 * 1000);
+  const { context, page } = await open(browser, "test=true");
+  await consentAndScreen(page);
+  const id = await sessionIdOf(page);
+  await context.route("**/api/allocate", (route) => route.abort("internetdisconnected"));
+  await preMeasures(page);
+  await expect(page.locator(tid("screen-allocating"))).toBeVisible();
+  await page.waitForTimeout(10_000);
+  const stillWaiting = await page.locator(tid("screen-allocating")).isVisible();
+  await context.unroute("**/api/allocate");
+  await expect(page.locator(tid("screen-intro"))).toBeVisible({ timeout: 30_000 });
+  await drained(page);
+  const allocations = rowsFor(id).filter((r) => r.type === "allocation");
+  record(
+    "a lost connection while the slot is handed out: the participant waits, then gets exactly one slot",
+    stillWaiting && allocations.length === 1,
+    `Waiting screen shown during 10 s offline: ${stillWaiting}; allocation events afterwards: ${allocations.length}.`,
+  );
+  await context.close();
+});
+
+test("a reload while waiting for a slot does not take a second one", async ({ browser }) => {
+  test.setTimeout(5 * 60 * 1000);
+  const { context, page } = await open(browser, "test=true");
+  await consentAndScreen(page, "29", "C1");
+  const id = await sessionIdOf(page);
+  // The first request reaches the server and claims the slot, but its answer
+  // is lost: exactly the case where a careless retry would take a second slot.
+  let first = true;
+  await context.route("**/api/allocate", async (route) => {
+    if (first) {
+      first = false;
+      await route.fetch();
+      await route.abort("internetdisconnected");
+      return;
+    }
+    await route.continue();
+  });
+  await preMeasures(page);
+  await expect(page.locator(tid("screen-allocating"))).toBeVisible();
+  await page.reload();
+  await preMeasures(page);
+  await expect(page.locator(tid("screen-intro"))).toBeVisible({ timeout: 30_000 });
+  await drained(page);
+  const slots = JSON.parse(readFileSync(DEV_SLOTS, "utf8")) as Record<string, { stratum: string; index: number }>;
+  const held = Object.entries(slots).filter(([session]) => session === id);
+  const allocation = rowsFor(id).filter((r) => r.type === "allocation");
+  record(
+    "a reload while waiting for a slot: one session, one slot, one allocation",
+    held.length === 1 && allocation.length === 1 && allocation[0]!.payload["sequence_index"] === held[0]![1].index,
+    `Slots held by this session: ${held.length} (${held.map(([, s]) => `${s.stratum} #${s.index}`).join(", ")}); allocation events: ${allocation.length}.`,
   );
   await context.close();
 });

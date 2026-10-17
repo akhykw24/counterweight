@@ -46,8 +46,10 @@ export const StudyLanguageV3 = z
   .describe("Main language of the participant's studies or work (screening S3). Covariate only.");
 export const V3ScreenedOutReason = z.enum(["age", "language"]).describe("Why a visitor was turned away.");
 export const AllocationMethod = z
-  .enum(["pilot_rotation", "forced_test"])
-  .describe("pilot_rotation: position in the pilot sequence. forced_test: `cell=` on a test link.");
+  .enum(["pilot_rotation", "forced_test", "main_sequence", "test_sequence"])
+  .describe(
+    "pilot_rotation: position in the pilot rotation. forced_test: `cell=` on a test link. main_sequence: the next slot of the committed main-study sequence, handed out by the server (the single public link). test_sequence: the same, from the separate test sequence.",
+  );
 export const QuestionnaireInstrument = z
   .enum(["pre", "tutor", "ncs6", "demographics"])
   .describe("Which questionnaire an item belongs to: P1-P6, T/R/E, NCS-6, D1-D4.");
@@ -131,6 +133,14 @@ export const V3Allocation = defineV3("allocation", "Cell assigned, after screeni
   method: AllocationMethod,
   pilot_position: z.int().positive().nullable().describe("1-based position in the pilot sequence."),
   english_band: EnglishBand,
+  sequence_index: z
+    .int()
+    .nonnegative()
+    .nullable()
+    .optional()
+    .describe(
+      "0-based slot in the committed sequence of the participant's stratum, for main_sequence and test_sequence; null otherwise. Absent on pilot events recorded before it existed.",
+    ),
 });
 
 export const V3PlanGenerated = defineV3(

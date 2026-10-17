@@ -249,6 +249,7 @@ def wide_row(session_id: str, events: list[dict[str, Any]]) -> dict[str, Any]:
         "allocation_method": (allocation or {}).get("payload", {}).get("method"),
         "pilot_position": (allocation or {}).get("payload", {}).get("pilot_position"),
         "english_band": (allocation or {}).get("payload", {}).get("english_band"),
+        "sequence_index": (allocation or {}).get("payload", {}).get("sequence_index"),
         "age_band": (screening or {}).get("payload", {}).get("age_band"),
         "english_level": (screening or {}).get("payload", {}).get("english_level"),
         "study_language": (screening or {}).get("payload", {}).get("study_language"),

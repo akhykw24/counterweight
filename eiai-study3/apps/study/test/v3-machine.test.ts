@@ -334,3 +334,65 @@ describe("resume", () => {
     expect(restored.getSnapshot().context.plan).toEqual(ctx(actor).plan);
   });
 });
+
+describe("the single public link (live) and plain test runs", () => {
+  it("cannot leave the pre-measures without the server's slot", () => {
+    const { actor, log } = start({ runMode: "live", requestedCell: null });
+    throughScreening(actor);
+    actor.send({ type: "SUBMIT_PRE", answers: pre() });
+    expect(state(actor)).toBe("pre");
+    expect(types(log)).not.toContain("allocation");
+  });
+
+  it("allocates the server's slot and records where in the sequence it came from", () => {
+    const { actor, log } = start({ runMode: "live", requestedCell: null });
+    throughScreening(actor);
+    actor.send({ type: "SUBMIT_PRE", answers: pre(), slot: { cell: "Neutral-B", index: 5 } });
+    expect(state(actor)).toBe("intro");
+    expect(log.find((e) => e.type === "allocation")!.payload).toEqual({
+      cell: "Neutral-B",
+      tone: "Neutral",
+      list: "B",
+      method: "main_sequence",
+      pilot_position: null,
+      english_band: "B1-B2",
+      sequence_index: 5,
+    });
+    expect(log.at(-1)!.cell).toBe("Neutral-B");
+  });
+
+  it("ignores cell= on a live link", () => {
+    const { actor, log } = start({ runMode: "live", requestedCell: "EI-A" });
+    throughScreening(actor);
+    actor.send({ type: "SUBMIT_PRE", answers: pre(), slot: { cell: "EI-B", index: 0 } });
+    expect(log.find((e) => e.type === "allocation")!.payload["cell"]).toBe("EI-B");
+  });
+
+  it("a test run without cell= rehearses the same path, on the test sequence", () => {
+    const { actor, log } = start({ runMode: "test", requestedCell: null });
+    throughScreening(actor);
+    actor.send({ type: "SUBMIT_PRE", answers: pre() });
+    expect(state(actor)).toBe("pre");
+    actor.send({ type: "SUBMIT_PRE", answers: pre(), slot: { cell: "EI-A", index: 0 } });
+    expect(log.find((e) => e.type === "allocation")!.payload["method"]).toBe("test_sequence");
+  });
+
+  it("a full live session is complete and schema-valid end to end", () => {
+    const { actor, log } = start({ runMode: "live", requestedCell: null });
+    throughScreening(actor);
+    actor.send({ type: "SUBMIT_PRE", answers: pre(), slot: { cell: "EI-A", index: 0 } });
+    actor.send({ type: "CONTINUE" });
+    for (let module = 1; module <= 3; module += 1) {
+      for (let i = 0; i < 4; i += 1) actor.send({ type: "LESSON_CONTINUE", dwellMs: 3000 });
+      while (state(actor) === "mission") {
+        const screen = v3.currentMissionScreen(ctx(actor))!;
+        if (screen === v3.ATTENTION) actor.send({ type: "ANSWER_ATTENTION", choice: "Olympus", correct: true, rtMs: 900 });
+        else actor.send({ type: "ANSWER_TASK", taskId: screen, role: "lesson", confidence: 3, rtMs: 1200 });
+      }
+      actor.send({ type: "CONTINUE" });
+    }
+    expect(state(actor)).toBe("quiz");
+    expect(count(log, "lesson_item")).toBe(12);
+    expect(count(log, "mission_answer")).toBe(12);
+  });
+});

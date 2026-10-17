@@ -112,6 +112,7 @@ def test_wide_has_one_row_per_session_with_the_measures(tmp_path: Path) -> None:
     assert row["n_attention_check"] == "1" and row["n_quiz_rating"] == "16"
     assert row["version_claim_01"] == "weak" and row["version_claim_02"] == "strong"
     assert row["P1"] == "4" and row["attention_passed"] == "True"
+    assert row["sequence_index"] == ""  # a pilot rotation has no slot in the main sequence
     assert int(row["module1_ms"]) > 0
 
 
