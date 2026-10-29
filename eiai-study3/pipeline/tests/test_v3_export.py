@@ -184,3 +184,23 @@ def test_a_screened_out_visitor_appears_with_the_reason_and_nothing_else(tmp_pat
     x.export([write_jsonl(tmp_path / "e.jsonl", session(screened_out="age"))], tmp_path / "out")
     row = next(csv.DictReader((tmp_path / "out" / "participants_wide.csv").open(encoding="utf-8")))
     assert row["screened_out_reason"] == "age" and row["cell"] == "" and row["age_band"] == ""
+
+
+def test_supabase_csv_timestamps_and_nulls_are_read(tmp_path: Path) -> None:
+    # The real export writes Postgres text timestamps and the word null.
+    events = session()
+    csv_path = tmp_path / "supabase.csv"
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["event_id", "session_id", "participant_id", "seq",
+                                                    "client_ts", "received_at", "run_mode", "cell", "type", "payload"])
+        writer.writeheader()
+        for e in events:
+            pg = e["client_ts"].replace("T", " ").replace("Z", "+00")
+            writer.writerow({**e, "payload": json.dumps(e["payload"]), "cell": e["cell"] or "null",
+                             "client_ts": pg, "received_at": pg})
+    summary = x.export([csv_path], tmp_path / "out")
+    assert summary["sessions_written"] == 1
+    row = next(csv.DictReader((tmp_path / "out" / "participants_wide.csv").open(encoding="utf-8")))
+    assert int(row["module1_ms"]) > 0 and row["cell"] == "EI-A"
+    rows, _ = x.load_v3([csv_path])
+    assert rows[0]["cell"] is None

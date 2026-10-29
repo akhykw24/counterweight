@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -89,6 +90,22 @@ class ExportError(ValueError):
 # ---------------------------------------------------------------------------
 
 
+_PG_TS = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d+)?)([+-]\d{2})(?::?(\d{2}))?$")
+
+
+def _iso(value: Any) -> Any:
+    """Postgres text timestamps, as Supabase's CSV export writes them
+    (`2026-10-08 12:55:51.158+00`), into the ISO form the browser sends
+    (`2026-10-08T12:55:51.158+00:00`). Anything else passes through unchanged,
+    so a malformed value still fails loudly where it is used."""
+    if not isinstance(value, str):
+        return value
+    m = _PG_TS.match(value.strip())
+    if not m:
+        return value
+    return f"{m.group(1)}T{m.group(2)}{m.group(3)}:{m.group(4) or '00'}"
+
+
 def _normalise(row: dict[str, Any]) -> dict[str, Any]:
     payload = row.get("payload")
     if isinstance(payload, str):
@@ -100,10 +117,11 @@ def _normalise(row: dict[str, Any]) -> dict[str, Any]:
         "participant_id": row.get("participant_id") or None,
         "session_id": str(row["session_id"]),
         "seq": int(seq) if seq not in (None, "") else None,
-        "client_ts": row.get("client_ts"),
-        "received_at": row.get("received_at") or None,
+        "client_ts": _iso(row.get("client_ts")),
+        "received_at": _iso(row.get("received_at")) or None,
         "run_mode": row.get("run_mode") or "live",
-        "cell": row.get("cell") or None,
+        # Supabase's CSV writes SQL NULL as the word null.
+        "cell": None if row.get("cell") in (None, "", "null") else row.get("cell"),
         "type": row["type"],
         "payload": payload or {},
     }
