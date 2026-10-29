@@ -561,7 +561,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 |---|---|---|---|---|
 | `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"questionnaire_item"` | yes |  |  |
-| `payload.instrument` | `pre` \| `tutor` \| `ncs6` \| `demographics` | yes |  | Which questionnaire an item belongs to: P1-P6, T/R/E, NCS-6, D1-D4. |
+| `payload.instrument` | `pre` \| `trust` \| `tutor` \| `ncs6` \| `demographics` | yes |  | Which questionnaire an item belongs to: P1-P3 (and P4-P6 in the pilot), trust: P4-P6 after the funnel, T/R/E, NCS-6, D1-D4. |
 | `payload.item_id` | string | yes |  |  |
 | `payload.value` | integer \| string | yes |  |  |
 
@@ -963,4 +963,4 @@ Funnelled suspicion probe, administered in order without backtracking.
 | `StudyLanguage (v3)` | `English`, `Russian`, `Kazakh`, `Other` | Main language of the participant's studies or work (screening S3). Covariate only. |
 | `ScreenedOutReason (v3)` | `age`, `language` | Why a visitor was turned away. |
 | `AllocationMethod (v3)` | `pilot_rotation`, `forced_test`, `main_sequence`, `test_sequence` | pilot_rotation: position in the pilot rotation. forced_test: `cell=` on a test link. main_sequence: the next slot of the committed main-study sequence, handed out by the server (the single public link). test_sequence: the same, from the separate test sequence. |
-| `QuestionnaireInstrument (v3)` | `pre`, `tutor`, `ncs6`, `demographics` | Which questionnaire an item belongs to: P1-P6, T/R/E, NCS-6, D1-D4. |
+| `QuestionnaireInstrument (v3)` | `pre`, `trust`, `tutor`, `ncs6`, `demographics` | Which questionnaire an item belongs to: P1-P3 (and P4-P6 in the pilot), trust: P4-P6 after the funnel, T/R/E, NCS-6, D1-D4. |

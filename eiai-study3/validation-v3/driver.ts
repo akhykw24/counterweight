@@ -47,7 +47,7 @@ export async function consentAndScreen(page: Page, age = "30", level = "B2"): Pr
 }
 
 export async function preMeasures(page: Page): Promise<void> {
-  for (const id of ["P1", "P2", "P4", "P5", "P6"]) await page.locator(tid(`${id}-4`)).click();
+  for (const id of ["P1", "P2"]) await page.locator(tid(`${id}-4`)).click();
   await page.locator(tid("P3-3")).click();
   await page.locator(tid("pre-submit")).click();
 }
@@ -109,7 +109,7 @@ export async function ratePage(page: Page, screen: string, point = 5): Promise<v
 
 export async function afterModules(page: Page, pilotFlow: boolean): Promise<void> {
   for (let i = 0; i < 4; i += 1) await ratePage(page, "quiz");
-  for (let i = 0; i < 2; i += 1) await ratePage(page, "tutor", 4);
+  // The funnel comes straight after the quiz (order revised after the pilot).
   for (const id of ["F1", "F2", "F3"]) {
     await page.locator(tid(`funnel-${id}-text`)).fill(id === "F1" ? "How people learn from an AI tutor." : "");
     await page.locator(tid("funnel-next")).click();
@@ -117,7 +117,9 @@ export async function afterModules(page: Page, pilotFlow: boolean): Promise<void
   }
   await page.locator(tid("funnel-F4-2")).click();
   await page.locator(tid("funnel-next")).click();
+  for (let i = 0; i < 2; i += 1) await ratePage(page, "tutor", 4);
   await ratePage(page, "quality", 4);
+  await ratePage(page, "trust", 4);
   await page.locator(tid("D1-4")).click();
   await page.locator(tid("D2-text")).fill("Kazakhstan");
   await page.locator(tid("D3-1")).click();

@@ -126,7 +126,14 @@ export const TUTOR_PAGES: string[][] = [
   instruments.tutor.items.filter((i) => !i.uses_stem).map((i) => i.item_id),
 ];
 
-export const PRE_ITEM_IDS = instruments.pre_measures.map((p) => p.item_id);
+/**
+ * P1-P3 before the training; P4-P6 (trust in AI) after the funnel. Split by
+ * id, not by position, so the texts stay exactly as approved.
+ */
+export const TRUST_ITEM_IDS = ["P4", "P5", "P6"];
+export const PRE_ITEM_IDS = instruments.pre_measures.map((p) => p.item_id).filter((id) => !TRUST_ITEM_IDS.includes(id));
+export const preMeasures = instruments.pre_measures.filter((p) => PRE_ITEM_IDS.includes(p.item_id));
+export const trustMeasures = instruments.pre_measures.filter((p) => TRUST_ITEM_IDS.includes(p.item_id));
 export const DEMOGRAPHICS_ITEM_IDS = instruments.demographics.map((d) => d.item_id);
 /** Choice questions must be answered (each offers a way to decline); D2 is free text. */
 export const DEMOGRAPHICS_REQUIRED = instruments.demographics

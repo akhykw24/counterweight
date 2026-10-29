@@ -35,7 +35,14 @@ export interface V3Input {
   /** NCS-6 item ids; empty means the screen is skipped. */
   ncsItemIds: readonly string[];
   /** Ids of the questionnaire items, in the fixed order. */
+  /** P1-P3: asked before the training. */
   preItemIds: readonly string[];
+  /**
+   * P4-P6, trust in AI: asked after the awareness funnel, not before the
+   * training. Asked first, they told participants the study was about trust
+   * in AI before they had seen anything (pilot, October 2026).
+   */
+  trustItemIds: readonly string[];
   tutorPages: readonly (readonly string[])[];
   demographicsRequired: readonly string[];
   demographicsItemIds: readonly string[];
@@ -76,6 +83,7 @@ export type V3MachineEvent =
   | { type: "SUBMIT_TUTOR_PAGE"; answers: Record<string, number> }
   | { type: "ANSWER_FUNNEL"; itemId: string; text: string }
   | { type: "SUBMIT_QUALITY"; ratings: Record<string, number> }
+  | { type: "SUBMIT_TRUST"; answers: Record<string, number> }
   | { type: "SUBMIT_NCS"; answers: Record<string, number> }
   | { type: "SUBMIT_DEMOGRAPHICS"; answers: Record<string, string> }
   | { type: "SUBMIT_PILOT"; answers: Record<string, string> }
@@ -251,6 +259,8 @@ export const v3Machine = setup({
     qualityComplete: ({ context, event }) =>
       event.type === "SUBMIT_QUALITY" &&
       (context.plan?.qualityItems ?? []).every((id) => isRating(event.ratings[id], 7)),
+    trustComplete: ({ context, event }) =>
+      event.type === "SUBMIT_TRUST" && context.trustItemIds.every((id) => isRating(event.answers[id], 7)),
     hasNcs: ({ context }) => context.ncsItemIds.length > 0,
     ncsComplete: ({ context, event }) =>
       event.type === "SUBMIT_NCS" && context.ncsItemIds.every((id) => isRating(event.answers[id], 7)),
@@ -493,7 +503,10 @@ export const v3Machine = setup({
           },
         ],
       },
-      always: { guard: ({ context }) => context.quizPage >= 4, target: "tutor" },
+      // The awareness funnel comes straight after the quiz, before any
+      // question that names warmth, trust or evidence: asked afterwards, F1-F3
+      // would measure what those questions told the participant.
+      always: { guard: ({ context }) => context.quizPage >= 4, target: "funnel" },
     },
 
     tutor: {
@@ -514,7 +527,7 @@ export const v3Machine = setup({
           ],
         },
       },
-      always: { guard: ({ context }) => context.tutorPage >= context.tutorPages.length, target: "funnel" },
+      always: { guard: ({ context }) => context.tutorPage >= context.tutorPages.length, target: "quality" },
     },
 
     funnel: {
@@ -535,14 +548,14 @@ export const v3Machine = setup({
           },
         ],
       },
-      always: { guard: ({ context }) => context.funnelIndex >= FUNNEL_IDS.length, target: "quality" },
+      always: { guard: ({ context }) => context.funnelIndex >= FUNNEL_IDS.length, target: "tutor" },
     },
 
     quality: {
       on: {
         SUBMIT_QUALITY: {
           guard: "qualityComplete",
-          target: "ncs",
+          target: "trust",
           actions: enqueueActions(({ context, event, enqueue }) => {
             const e = event as Extract<V3MachineEvent, { type: "SUBMIT_QUALITY" }>;
             (context.plan?.qualityItems ?? []).forEach((claimId, i) => {
@@ -559,6 +572,25 @@ export const v3Machine = setup({
                 },
               });
             });
+          }),
+        },
+      },
+    },
+
+    trust: {
+      always: { guard: ({ context }) => context.trustItemIds.length === 0, target: "ncs" },
+      on: {
+        SUBMIT_TRUST: {
+          guard: "trustComplete",
+          target: "ncs",
+          actions: enqueueActions(({ context, event, enqueue }) => {
+            const e = event as Extract<V3MachineEvent, { type: "SUBMIT_TRUST" }>;
+            for (const id of context.trustItemIds) {
+              enqueue({
+                type: "record",
+                params: { type: "questionnaire_item", payload: { instrument: "trust", item_id: id, value: e.answers[id] } },
+              });
+            }
           }),
         },
       },

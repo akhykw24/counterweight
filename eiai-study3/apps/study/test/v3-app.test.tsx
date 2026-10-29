@@ -32,7 +32,7 @@ function toLesson(pilotFlow = false, requestedCell: "EI-A" | "Neutral-B" = "EI-A
   click("english-B2");
   click("study-language-English");
   click("screening-submit");
-  for (const id of ["P1", "P2", "P4", "P5", "P6"]) click(`${id}-4`);
+  for (const id of ["P1", "P2"]) click(`${id}-4`);
   click("P3-2");
   click("pre-submit");
   return { events };
@@ -183,7 +183,7 @@ describe("allocation on the single public link", () => {
     click("english-C1");
     click("study-language-Kazakh");
     click("screening-submit");
-    for (const id of ["P1", "P2", "P4", "P5", "P6"]) click(`${id}-4`);
+    for (const id of ["P1", "P2"]) click(`${id}-4`);
     click("P3-2");
     click("pre-submit");
     return events;

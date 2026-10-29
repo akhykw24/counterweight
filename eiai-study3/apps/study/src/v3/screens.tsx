@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   fillToneChoice,
   instruments,
+  preMeasures,
+  trustMeasures,
   mission,
   missionHeading,
   quiz,
@@ -230,10 +232,10 @@ export function IneligibleScreen() {
 export function PreScreen({ onSubmit }: { onSubmit: (answers: Record<string, number | string>) => void }) {
   const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const set = (id: string, value: number | string) => setAnswers((a) => ({ ...a, [id]: value }));
-  const ready = instruments.pre_measures.every((p) => answers[p.item_id] !== undefined);
+  const ready = preMeasures.every((p) => answers[p.item_id] !== undefined);
   return (
     <section {...testId("screen-pre")}>
-      {instruments.pre_measures.map((p) => (
+      {preMeasures.map((p) => (
         <div className="question" key={p.item_id} {...testId(`q-${p.item_id}`)}>
           <p className="question-text">{p.text}</p>
           {"scale" in p && p.scale ? (
@@ -671,6 +673,19 @@ export function QualityScreen({
       intro={<p>{q.instruction}</p>}
       scale={q.scale}
       items={items.map((i) => ({ id: i.claimId, text: <blockquote className="quoted">{i.text}</blockquote> }))}
+      onSubmit={onSubmit}
+    />
+  );
+}
+
+/** P4-P6, after the funnel. Same wording and scale as approved; only the position moved. */
+export function TrustScreen({ onSubmit }: { onSubmit: (answers: Record<string, number>) => void }) {
+  const scale = trustMeasures[0]!.scale!;
+  return (
+    <RatingPage
+      screen="trust"
+      scale={scale}
+      items={trustMeasures.map((p) => ({ id: p.item_id, text: p.text }))}
       onSubmit={onSubmit}
     />
   );

@@ -7,6 +7,7 @@ import {
   DEMOGRAPHICS_REQUIRED,
   PILOT_ITEM_IDS,
   PRE_ITEM_IDS,
+  TRUST_ITEM_IDS,
   TUTOR_PAGES,
   design,
   task,
@@ -59,6 +60,7 @@ function start(overrides: Partial<v3.V3Input> = {}) {
     design: design(),
     ncsItemIds: [],
     preItemIds: PRE_ITEM_IDS,
+    trustItemIds: TRUST_ITEM_IDS,
     tutorPages: TUTOR_PAGES,
     demographicsRequired: DEMOGRAPHICS_REQUIRED,
     demographicsItemIds: DEMOGRAPHICS_ITEM_IDS,
@@ -109,9 +111,10 @@ function fullSession(
     const ratings = Object.fromEntries(v3.quizPageItems(ctx(actor)).map((id) => [id, 5]));
     actor.send({ type: "SUBMIT_QUIZ_PAGE", ratings });
   }
-  for (const page of TUTOR_PAGES) actor.send({ type: "SUBMIT_TUTOR_PAGE", answers: Object.fromEntries(page.map((id) => [id, 4])) });
   for (const id of v3.FUNNEL_IDS) actor.send({ type: "ANSWER_FUNNEL", itemId: id, text: id === "F4" ? "No" : "" });
+  for (const page of TUTOR_PAGES) actor.send({ type: "SUBMIT_TUTOR_PAGE", answers: Object.fromEntries(page.map((id) => [id, 4])) });
   actor.send({ type: "SUBMIT_QUALITY", ratings: Object.fromEntries(ctx(actor).plan!.qualityItems.map((c) => [c, 4])) });
+  actor.send({ type: "SUBMIT_TRUST", answers: { P4: 4, P5: 4, P6: 4 } });
   if (state(actor) === "ncs") {
     actor.send({ type: "SUBMIT_NCS", answers: Object.fromEntries(ctx(actor).ncsItemIds.map((id) => [id, 3])) });
   }
@@ -394,5 +397,32 @@ describe("the single public link (live) and plain test runs", () => {
     expect(state(actor)).toBe("quiz");
     expect(count(log, "lesson_item")).toBe(12);
     expect(count(log, "mission_answer")).toBe(12);
+  });
+});
+
+
+describe("order after the modules (revised after the pilot)", () => {
+  it("asks the awareness funnel before anything that names warmth, trust or evidence", () => {
+    const { actor, log } = start();
+    fullSession(actor);
+    const firstOf = (predicate: (e: Recorded) => boolean) => log.findIndex(predicate);
+    const lastFunnel = log.map((e) => e.type).lastIndexOf("funnel_answer");
+    const tutor = firstOf((e) => e.type === "questionnaire_item" && e.payload["instrument"] === "tutor");
+    const quality = firstOf((e) => e.type === "arg_quality_rating");
+    const trust = firstOf((e) => e.type === "questionnaire_item" && e.payload["instrument"] === "trust");
+    const lastQuiz = log.map((e) => e.type).lastIndexOf("quiz_rating");
+    expect(lastQuiz).toBeLessThan(firstOf((e) => e.type === "funnel_answer"));
+    expect(lastFunnel).toBeLessThan(tutor);
+    expect(tutor).toBeLessThan(quality);
+    expect(quality).toBeLessThan(trust);
+  });
+
+  it("asks only P1-P3 before the training, and P4-P6 after the funnel", () => {
+    const { actor, log } = start();
+    fullSession(actor);
+    const pre = log.filter((e) => e.type === "questionnaire_item" && e.payload["instrument"] === "pre");
+    const trust = log.filter((e) => e.type === "questionnaire_item" && e.payload["instrument"] === "trust");
+    expect(pre.map((e) => e.payload["item_id"])).toEqual(["P1", "P2", "P3"]);
+    expect(trust.map((e) => e.payload["item_id"])).toEqual(["P4", "P5", "P6"]);
   });
 });

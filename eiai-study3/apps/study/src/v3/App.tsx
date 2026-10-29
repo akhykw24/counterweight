@@ -7,6 +7,7 @@ import {
   DEMOGRAPHICS_REQUIRED,
   PILOT_ITEM_IDS,
   PRE_ITEM_IDS,
+  TRUST_ITEM_IDS,
   STIMULI_MANIFEST_HASH,
   TUTOR_PAGES,
   design,
@@ -32,6 +33,7 @@ import {
   QualityScreen,
   QuizScreen,
   ScreeningScreen,
+  TrustScreen,
   TutorScreen,
 } from "./screens";
 import {
@@ -123,6 +125,7 @@ export function V3App({
     design: design(),
     ncsItemIds: ncs6Items.map((i) => i.item_id),
     preItemIds: PRE_ITEM_IDS,
+    trustItemIds: TRUST_ITEM_IDS,
     tutorPages: TUTOR_PAGES,
     demographicsRequired: DEMOGRAPHICS_REQUIRED,
     demographicsItemIds: DEMOGRAPHICS_ITEM_IDS,
@@ -347,6 +350,9 @@ export function V3App({
           onSubmit={(ratings) => send({ type: "SUBMIT_QUALITY", ratings })}
         />
       );
+      break;
+    case "trust":
+      screen = <TrustScreen onSubmit={(answers) => send({ type: "SUBMIT_TRUST", answers })} />;
       break;
     case "ncs":
       screen = <NcsScreen items={ncs6Items} onSubmit={(answers) => send({ type: "SUBMIT_NCS", answers })} />;

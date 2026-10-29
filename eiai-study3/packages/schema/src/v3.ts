@@ -51,8 +51,8 @@ export const AllocationMethod = z
     "pilot_rotation: position in the pilot rotation. forced_test: `cell=` on a test link. main_sequence: the next slot of the committed main-study sequence, handed out by the server (the single public link). test_sequence: the same, from the separate test sequence.",
   );
 export const QuestionnaireInstrument = z
-  .enum(["pre", "tutor", "ncs6", "demographics"])
-  .describe("Which questionnaire an item belongs to: P1-P6, T/R/E, NCS-6, D1-D4.");
+  .enum(["pre", "trust", "tutor", "ncs6", "demographics"])
+  .describe("Which questionnaire an item belongs to: P1-P3 (and P4-P6 in the pilot), trust: P4-P6 after the funnel, T/R/E, NCS-6, D1-D4.");
 export const Confidence4 = z.int().min(1).max(4).describe("How sure are you? 1 Guessing, 2 Somewhat sure, 3 Sure, 4 Very sure.");
 export const Rating7 = z.int().min(1).max(7).describe("A 1-7 rating.");
 export const Milliseconds = z.int().nonnegative().describe("Milliseconds, measured on the client.");
