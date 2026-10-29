@@ -17,10 +17,13 @@ const session = await bootstrapV3();
 const saved = (session.snapshot as { context?: Partial<Record<string, unknown>> } | null)?.context;
 const runMode = (saved?.["runMode"] as typeof session.runMode | undefined) ?? session.runMode;
 
-// The single public link is the main study. VITE_V3_LIVE=closed at build time
-// shuts it -- for when recruitment is over -- without touching pilot or test
-// links.
-const liveClosed = (import.meta.env["VITE_V3_LIVE"] as string | undefined) === "closed";
+// The single public link is the main study, and it stays shut until the
+// researcher opens recruitment: a deploy made to let someone try a test link
+// must never start live data collection by itself. Open it with
+// VITE_V3_LIVE=open (or by changing this default on launch day). Pilot and
+// test links work either way.
+const LIVE_DEFAULT = "closed";
+const liveClosed = ((import.meta.env["VITE_V3_LIVE"] as string | undefined) ?? LIVE_DEFAULT) !== "open";
 
 createRoot(root).render(
   <StrictMode>
