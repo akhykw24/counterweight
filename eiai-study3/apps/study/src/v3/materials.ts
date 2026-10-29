@@ -140,6 +140,10 @@ export const DEMOGRAPHICS_REQUIRED = instruments.demographics
   .filter((d) => d.kind === "choice")
   .map((d) => d.item_id);
 export const PILOT_ITEM_IDS = instruments.pilot_feedback.map((p) => p.item_id);
+export const FUNNEL_ITEMS = instruments.funnel.map((f) => ({
+  id: f.item_id,
+  options: f.kind === "choice" && "options" in f ? (f.options as string[]) : null,
+}));
 
 export function design(): v3.Design {
   const modules = { 1: [] as string[], 2: [] as string[], 3: [] as string[] };

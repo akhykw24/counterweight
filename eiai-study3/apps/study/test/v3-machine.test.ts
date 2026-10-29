@@ -4,6 +4,7 @@ import { v3 } from "@eiai/fsm";
 import { V3Event } from "@eiai/schema";
 import {
   DEMOGRAPHICS_ITEM_IDS,
+  FUNNEL_ITEMS,
   DEMOGRAPHICS_REQUIRED,
   PILOT_ITEM_IDS,
   PRE_ITEM_IDS,
@@ -62,6 +63,7 @@ function start(overrides: Partial<v3.V3Input> = {}) {
     preItemIds: PRE_ITEM_IDS,
     trustItemIds: TRUST_ITEM_IDS,
     tutorPages: TUTOR_PAGES,
+    funnelItems: FUNNEL_ITEMS,
     demographicsRequired: DEMOGRAPHICS_REQUIRED,
     demographicsItemIds: DEMOGRAPHICS_ITEM_IDS,
     pilotItemIds: PILOT_ITEM_IDS,
@@ -111,7 +113,7 @@ function fullSession(
     const ratings = Object.fromEntries(v3.quizPageItems(ctx(actor)).map((id) => [id, 5]));
     actor.send({ type: "SUBMIT_QUIZ_PAGE", ratings });
   }
-  for (const id of v3.FUNNEL_IDS) actor.send({ type: "ANSWER_FUNNEL", itemId: id, text: id === "F4" ? "No" : "" });
+  for (const item of FUNNEL_ITEMS) actor.send({ type: "ANSWER_FUNNEL", itemId: item.id, text: item.options ? "No" : "" });
   for (const page of TUTOR_PAGES) actor.send({ type: "SUBMIT_TUTOR_PAGE", answers: Object.fromEntries(page.map((id) => [id, 4])) });
   actor.send({ type: "SUBMIT_QUALITY", ratings: Object.fromEntries(ctx(actor).plan!.qualityItems.map((c) => [c, 4])) });
   actor.send({ type: "SUBMIT_TRUST", answers: { P4: 4, P5: 4, P6: 4 } });
@@ -131,7 +133,7 @@ describe("a complete v3 session", () => {
     expect(count(log, "attention_check")).toBe(1);
     expect(count(log, "quiz_rating")).toBe(16);
     expect(count(log, "arg_quality_rating")).toBe(4);
-    expect(count(log, "funnel_answer")).toBe(4);
+    expect(count(log, "funnel_answer")).toBe(5);
     expect(count(log, "allocation")).toBe(1);
     expect(count(log, "session_completed")).toBe(1);
     expect(count(log, "debrief_viewed")).toBe(1);
@@ -424,5 +426,40 @@ describe("order after the modules (revised after the pilot)", () => {
     const trust = log.filter((e) => e.type === "questionnaire_item" && e.payload["instrument"] === "trust");
     expect(pre.map((e) => e.payload["item_id"])).toEqual(["P1", "P2", "P3"]);
     expect(trust.map((e) => e.payload["item_id"])).toEqual(["P4", "P5", "P6"]);
+  });
+});
+
+
+describe("the funnel (v3.1)", () => {
+  it("asks five questions, with the closed one last and required", () => {
+    expect(FUNNEL_ITEMS.map((f) => f.id)).toEqual(["F1", "F2", "F3", "F4", "F5"]);
+    expect(FUNNEL_ITEMS.filter((f) => f.options).map((f) => f.id)).toEqual(["F5"]);
+    const { actor, log } = start();
+    fullSession(actor);
+    expect(log.filter((e) => e.type === "funnel_answer").map((e) => e.payload["item_id"])).toEqual(FUNNEL_ITEMS.map((f) => f.id));
+  });
+
+  it("will not accept the closed question left blank", () => {
+    const { actor } = start();
+    throughScreening(actor);
+    actor.send({ type: "SUBMIT_PRE", answers: pre() });
+    actor.send({ type: "CONTINUE" });
+    for (let module = 1; module <= 3; module += 1) {
+      for (let i = 0; i < 4; i += 1) actor.send({ type: "LESSON_CONTINUE", dwellMs: 3000 });
+      while (state(actor) === "mission") {
+        const screen = v3.currentMissionScreen(ctx(actor))!;
+        if (screen === v3.ATTENTION) actor.send({ type: "ANSWER_ATTENTION", choice: "Olympus", correct: true, rtMs: 900 });
+        else actor.send({ type: "ANSWER_TASK", taskId: screen, role: "lesson", confidence: 3, rtMs: 1200 });
+      }
+      actor.send({ type: "CONTINUE" });
+    }
+    for (let page = 0; page < 4; page += 1) {
+      actor.send({ type: "SUBMIT_QUIZ_PAGE", ratings: Object.fromEntries(v3.quizPageItems(ctx(actor)).map((id) => [id, 5])) });
+    }
+    for (const id of ["F1", "F2", "F3", "F4"]) actor.send({ type: "ANSWER_FUNNEL", itemId: id, text: "" });
+    actor.send({ type: "ANSWER_FUNNEL", itemId: "F5", text: "" });
+    expect(state(actor)).toBe("funnel");
+    actor.send({ type: "ANSWER_FUNNEL", itemId: "F5", text: "Yes" });
+    expect(state(actor)).toBe("tutor");
   });
 });

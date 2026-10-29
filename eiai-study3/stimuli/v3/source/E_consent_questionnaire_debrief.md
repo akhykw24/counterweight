@@ -65,9 +65,10 @@ E3. I would like to learn other topics with a tutor like Nova.
 ## E5. A few questions about the study (one per screen, no going back)
 
 F1. In your own words, what do you think this study was about?  [open text]
-F2. Did you notice anything unusual about Nova or the training? If so, what?  [open text]
-F3. Do you think the study was testing something other than how well people learn? If so, what?  [open text]
-F4. Before today, did you hear any details about this study from other people?  Yes / No
+F2. While you were taking part, did you have any thoughts about what was being tested? If so, what were they?  [open text]
+F3. Did any part of the study seem connected to another part in a way that was not explained? If so, how?  [open text]
+F4. Did anything about the way Nova spoke affect how much you believed what it told you? If so, how?  [open text]
+F5. Before today, did you hear any details about this study from other people?  Yes / No
 
 ## E6. Nova's explanations
 

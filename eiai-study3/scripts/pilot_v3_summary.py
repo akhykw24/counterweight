@@ -228,7 +228,8 @@ def render(people: list[dict[str, Any]], report: dict[str, Any], mode: str) -> s
     for p in people:
         out.append(f"### {p['short_id']} ({fmt(p['cell'])})")
         out.append("")
-        for key in ("F1", "F2", "F3", "F4", "PF1", "PF2", "PF3"):
+        # F1-F4 in the pilot; v3.1 adds F5 (F4 there asks about Nova's way of speaking).
+        for key in ("F1", "F2", "F3", "F4", "F5", "PF1", "PF2", "PF3"):
             text = p["funnel"].get(key, p["feedback"].get(key))
             out.append(f"- **{key}**: {text if text not in (None, '') else '—'}")
         out.append("")

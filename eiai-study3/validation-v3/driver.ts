@@ -110,12 +110,12 @@ export async function ratePage(page: Page, screen: string, point = 5): Promise<v
 export async function afterModules(page: Page, pilotFlow: boolean): Promise<void> {
   for (let i = 0; i < 4; i += 1) await ratePage(page, "quiz");
   // The funnel comes straight after the quiz (order revised after the pilot).
-  for (const id of ["F1", "F2", "F3"]) {
+  for (const id of ["F1", "F2", "F3", "F4"]) {
     await page.locator(tid(`funnel-${id}-text`)).fill(id === "F1" ? "How people learn from an AI tutor." : "");
     await page.locator(tid("funnel-next")).click();
     await expect(page.locator(tid(`screen-funnel-${id}`))).toHaveCount(0);
   }
-  await page.locator(tid("funnel-F4-2")).click();
+  await page.locator(tid("funnel-F5-2")).click();
   await page.locator(tid("funnel-next")).click();
   for (let i = 0; i < 2; i += 1) await ratePage(page, "tutor", 4);
   await ratePage(page, "quality", 4);

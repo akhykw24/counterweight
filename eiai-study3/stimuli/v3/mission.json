@@ -25,20 +25,20 @@
       "task_id": "T1",
       "claim_id": "claim_01",
       "module": 1,
-      "title": "Pre-flight briefing",
-      "situation": "Your spacesuit will be fitted on Earth, but you'll wear it for the first time after three months in orbit. What should the suit technicians plan for?",
+      "title": "Back on Earth",
+      "situation": "Two days after landing from a six-month mission, the flight surgeon measures your height. What will they most likely find?",
       "options": [
         {
           "role": "lesson",
-          "text": "Extra length in the torso — you'll probably be a few centimeters taller by then."
+          "text": "About your height before launch — on Earth, gravity presses the spine back together."
         },
         {
           "role": "intuitive",
-          "text": "The same size — an adult's height doesn't change."
+          "text": "You are still several centimeters taller — height gained as an adult stays."
         },
         {
           "role": "distractor",
-          "text": "A larger size overall — muscles grow faster in weightlessness."
+          "text": "You are shorter than before launch — space shrinks the bones."
         }
       ]
     },
@@ -46,20 +46,20 @@
       "task_id": "T2",
       "claim_id": "claim_02",
       "module": 1,
-      "title": "Day 12 in orbit",
-      "situation": "You're choosing food for your personal supply on the next cargo ship. Based on your training, what's the smartest choice?",
+      "title": "After the mission",
+      "situation": "You land after a long stay in orbit. When should your favourite food start to taste normal again?",
       "options": [
         {
           "role": "lesson",
-          "text": "Strongly seasoned foods — flavors will seem weaker up here."
+          "text": "Within days, once body fluids move back down and your nose clears."
         },
         {
           "role": "intuitive",
-          "text": "Your usual favorite foods — they'll taste the same as at home."
+          "text": "Only after months, as the taste buds slowly recover."
         },
         {
           "role": "distractor",
-          "text": "Mostly sweets — sugar is the one taste that gets stronger in orbit."
+          "text": "Never fully — spaceflight permanently changes the sense of taste."
         }
       ]
     },
@@ -67,20 +67,20 @@
       "task_id": "T3",
       "claim_id": "claim_03",
       "module": 1,
-      "title": "Day 3 in orbit",
-      "situation": "During a video call, your family says: \"You look different!\" What change are they most likely noticing?",
+      "title": "Fixing the puffy face",
+      "situation": "Which of these would do most to reduce an astronaut's puffy face in orbit?",
       "options": [
         {
           "role": "lesson",
-          "text": "A rounder, puffier face — and thinner legs, if they could see them."
+          "text": "A suit that gently pulls blood and fluid down toward the legs."
         },
         {
           "role": "intuitive",
-          "text": "Nothing much — the body looks the same in orbit; you're just floating."
+          "text": "Eating less salt."
         },
         {
           "role": "distractor",
-          "text": "Much darker skin from the strong sunlight through the station's windows."
+          "text": "Sleeping in a warmer cabin."
         }
       ]
     },
@@ -88,20 +88,20 @@
       "task_id": "T4",
       "claim_id": "claim_04",
       "module": 1,
-      "title": "Month 6 in orbit",
-      "situation": "The flight doctor reviews your latest bone scans. What result should you expect?",
+      "title": "Protecting your bones",
+      "situation": "Which daily routine would best protect the bones of your hips and spine during a six-month mission?",
       "options": [
         {
           "role": "lesson",
-          "text": "A noticeable loss of bone mass in the hips and spine."
+          "text": "Heavy resistance exercise that loads the legs and spine."
         },
         {
           "role": "intuitive",
-          "text": "No real change — six months is too short for bones to change."
+          "text": "Taking calcium tablets every day."
         },
         {
           "role": "distractor",
-          "text": "Denser bones than before launch — floating protects them from wear."
+          "text": "Spending more time near the windows for sunlight."
         }
       ]
     },
@@ -109,20 +109,20 @@
       "task_id": "T5",
       "claim_id": "claim_05",
       "module": 2,
-      "title": "Day 20 aboard the station",
-      "situation": "In the science lab, you light a small candle inside a sealed experiment box. What will you most likely see?",
+      "title": "A breeze in the lab",
+      "situation": "In the station lab, a small fan blows air steadily across a candle flame. What will the flame most likely look like?",
       "options": [
         {
           "role": "lesson",
-          "text": "A round, bluish flame."
+          "text": "Stretched out in the direction the air is flowing."
         },
         {
           "role": "intuitive",
-          "text": "A normal tall, yellow flame, just like on Earth."
+          "text": "Perfectly round and blue, as always in orbit."
         },
         {
           "role": "distractor",
-          "text": "A green flame, because of the station's air filters."
+          "text": "Green, because of the fan's electric motor."
         }
       ]
     },
@@ -130,20 +130,20 @@
       "task_id": "T6",
       "claim_id": "claim_06",
       "module": 2,
-      "title": "Day 34 aboard the station",
-      "situation": "A crewmate gets emotional watching a video message from home. What happens to their tears?",
+      "title": "A drop on your fingertip",
+      "situation": "In orbit, you hold your finger pointing \"down\" with a drop of water on its tip. What happens?",
       "options": [
         {
           "role": "lesson",
-          "text": "They collect into a ball of water on the eye."
+          "text": "The drop stays on your finger — nothing pulls it away."
         },
         {
           "role": "intuitive",
-          "text": "They roll down the cheeks, the same as on Earth."
+          "text": "It drips off, just a little more slowly than on Earth."
         },
         {
           "role": "distractor",
-          "text": "They freeze instantly into tiny ice crystals."
+          "text": "It freezes into ice."
         }
       ]
     },
@@ -151,20 +151,20 @@
       "task_id": "T7",
       "claim_id": "claim_07",
       "module": 2,
-      "title": "Day 41 aboard the station",
-      "situation": "You want to photograph every sunrise you can see from the station during one 24-hour period. About how many photos will you take?",
+      "title": "A higher station",
+      "situation": "A future station circles Earth in a higher orbit, taking 180 minutes per orbit. About how many sunrises will its crew see in 24 hours?",
       "options": [
         {
           "role": "lesson",
-          "text": "About 16"
+          "text": "About 8"
         },
         {
           "role": "intuitive",
-          "text": "1 — one sunrise a day, like on Earth"
+          "text": "About 16, the same as on the ISS"
         },
         {
           "role": "distractor",
-          "text": "About 100"
+          "text": "1, as on Earth"
         }
       ]
     },
@@ -172,20 +172,20 @@
       "task_id": "T8",
       "claim_id": "claim_08",
       "module": 2,
-      "title": "Day 55 aboard the station",
-      "situation": "Mission control asks you to explain the station's water supply to a group of students. What's the most accurate description?",
+      "title": "A broken processor",
+      "situation": "The station's urine-processing unit breaks down and cannot be fixed for a month. What will that mean for the water supply?",
       "options": [
         {
           "role": "lesson",
-          "text": "Almost all of it — about 98% — is recovered and reused, including water from urine and sweat."
+          "text": "Much more water will have to be delivered by cargo ships."
         },
         {
           "role": "intuitive",
-          "text": "Most of it arrives fresh from Earth on cargo ships; only a small part is recycled."
+          "text": "Little change — most of the water comes from cargo ships anyway."
         },
         {
           "role": "distractor",
-          "text": "It is made by melting ice collected outside the station."
+          "text": "The crew will collect water from outside the station."
         }
       ]
     },
@@ -193,20 +193,20 @@
       "task_id": "T9",
       "claim_id": "claim_09",
       "module": 3,
-      "title": "Sol 47",
-      "situation": "You want to photograph tonight's sunset for mission control. What colors should you expect?",
+      "title": "Where to point the camera",
+      "situation": "At sunset on Mars, where in the sky should you point your camera to capture the blue light?",
       "options": [
         {
           "role": "lesson",
-          "text": "Blue tones."
+          "text": "Toward the setting Sun — the blue glows around it."
         },
         {
           "role": "intuitive",
-          "text": "Deep red and orange, like a sunset on Earth."
+          "text": "Anywhere — the whole sky turns blue."
         },
         {
           "role": "distractor",
-          "text": "Bright green across the whole sky."
+          "text": "Straight up, away from the Sun."
         }
       ]
     },
@@ -214,20 +214,20 @@
       "task_id": "T10",
       "claim_id": "claim_10",
       "module": 3,
-      "title": "Sol 214",
-      "situation": "A regional dust storm with winds of about 100 km/h is heading toward your base. What should your crew prioritize?",
+      "title": "A different power source",
+      "situation": "Your base on Mars runs on a nuclear generator instead of solar panels. How dangerous is a planet-wide dust storm for its power supply?",
       "options": [
         {
           "role": "lesson",
-          "text": "Plan to protect and clean the solar panels from dust."
+          "text": "Hardly at all — the danger was dust blocking sunlight, and wind on Mars is too weak to do damage."
         },
         {
           "role": "intuitive",
-          "text": "Anchor the habitat and rover — winds this strong could tip them over."
+          "text": "Very — winds that strong could knock the equipment over."
         },
         {
           "role": "distractor",
-          "text": "Evacuate to the rover — the storm will make the habitat lose air pressure."
+          "text": "Very — the storm will make the habitat lose air pressure."
         }
       ]
     },
@@ -235,20 +235,20 @@
       "task_id": "T11",
       "claim_id": "claim_11",
       "module": 3,
-      "title": "Sol 120",
-      "situation": "An outside microphone on your rover records a drill running a few meters away. Compared with the same drill on Earth, what will the recording sound like?",
+      "title": "How long until you hear it",
+      "situation": "On Mars, you see a boulder crash down a slope 480 meters away. About how long after seeing it will you hear it?",
       "options": [
         {
           "role": "lesson",
-          "text": "Quieter — sound travels on Mars, but more weakly and more slowly."
+          "text": "About 2 seconds"
         },
         {
           "role": "intuitive",
-          "text": "Completely silent — there's no air on Mars for sound to travel through."
+          "text": "About 1.4 seconds, as on Earth"
         },
         {
           "role": "distractor",
-          "text": "Louder — Mars's air carries sound better than Earth's."
+          "text": "You will not hear it at all — there is no air on Mars."
         }
       ]
     },
@@ -256,20 +256,20 @@
       "task_id": "T12",
       "claim_id": "claim_12",
       "module": 3,
-      "title": "Sol 305",
-      "situation": "A crewmate is injured, and you need advice from a doctor at mission control. What should you plan for?",
+      "title": "Asking for advice",
+      "situation": "Mars and Earth are at their closest. You radio mission control a question and wait for the answer. What is the shortest time before the answer can arrive?",
       "options": [
         {
           "role": "lesson",
-          "text": "A wait of several minutes — possibly more than 20 — for your message to reach Earth, and as long again for the reply."
+          "text": "About 6 minutes — the message travels both ways."
         },
         {
           "role": "intuitive",
-          "text": "A live conversation — radio signals reach Earth within seconds."
+          "text": "About 3 minutes."
         },
         {
           "role": "distractor",
-          "text": "No contact at all until the next cargo ship arrives."
+          "text": "A second or two."
         }
       ]
     }

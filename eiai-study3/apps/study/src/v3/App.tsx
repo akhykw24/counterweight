@@ -4,6 +4,7 @@ import { v3 } from "@eiai/fsm";
 import type { CellName } from "@eiai/schema";
 import {
   DEMOGRAPHICS_ITEM_IDS,
+  FUNNEL_ITEMS,
   DEMOGRAPHICS_REQUIRED,
   PILOT_ITEM_IDS,
   PRE_ITEM_IDS,
@@ -80,7 +81,7 @@ function screenKey(state: string, c: v3.V3Context): { key: string; module: numbe
     case "tutor":
       return { key: `tutor:${c.tutorPage + 1}`, module: null };
     case "funnel":
-      return { key: `funnel:${v3.FUNNEL_IDS[c.funnelIndex]}`, module: null };
+      return { key: `funnel:${v3.currentFunnelItem(c)?.id}`, module: null };
     default:
       return { key: state, module: null };
   }
@@ -127,6 +128,7 @@ export function V3App({
     preItemIds: PRE_ITEM_IDS,
     trustItemIds: TRUST_ITEM_IDS,
     tutorPages: TUTOR_PAGES,
+    funnelItems: FUNNEL_ITEMS,
     demographicsRequired: DEMOGRAPHICS_REQUIRED,
     demographicsItemIds: DEMOGRAPHICS_ITEM_IDS,
     pilotItemIds: PILOT_ITEM_IDS,
@@ -334,7 +336,7 @@ export function V3App({
       );
       break;
     case "funnel": {
-      const itemId = v3.FUNNEL_IDS[c.funnelIndex]!;
+      const itemId = v3.currentFunnelItem(c)!.id;
       screen = (
         <FunnelScreen key={itemId} itemId={itemId} onAnswer={(text) => send({ type: "ANSWER_FUNNEL", itemId, text })} />
       );

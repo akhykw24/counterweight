@@ -15,81 +15,81 @@ How sure are you?  [Guessing] [Somewhat sure] [Sure] [Very sure]   (coded 1–4)
 
 ### Module 1
 
-[T1 → claim 1] Pre-flight briefing
-Your spacesuit will be fitted on Earth, but you'll wear it for the first time after three months in orbit. What should the suit technicians plan for?
-- (lesson) Extra length in the torso — you'll probably be a few centimeters taller by then.
-- (intuitive) The same size — an adult's height doesn't change.
-- (distractor) A larger size overall — muscles grow faster in weightlessness.
+[T1 → claim 1] Back on Earth
+Two days after landing from a six-month mission, the flight surgeon measures your height. What will they most likely find?
+- (lesson) About your height before launch — on Earth, gravity presses the spine back together.
+- (intuitive) You are still several centimeters taller — height gained as an adult stays.
+- (distractor) You are shorter than before launch — space shrinks the bones.
 
-[T2 → claim 2] Day 12 in orbit
-You're choosing food for your personal supply on the next cargo ship. Based on your training, what's the smartest choice?
-- (lesson) Strongly seasoned foods — flavors will seem weaker up here.
-- (intuitive) Your usual favorite foods — they'll taste the same as at home.
-- (distractor) Mostly sweets — sugar is the one taste that gets stronger in orbit.
+[T2 → claim 2] After the mission
+You land after a long stay in orbit. When should your favourite food start to taste normal again?
+- (lesson) Within days, once body fluids move back down and your nose clears.
+- (intuitive) Only after months, as the taste buds slowly recover.
+- (distractor) Never fully — spaceflight permanently changes the sense of taste.
 
-[T3 → claim 3] Day 3 in orbit
-During a video call, your family says: "You look different!" What change are they most likely noticing?
-- (lesson) A rounder, puffier face — and thinner legs, if they could see them.
-- (intuitive) Nothing much — the body looks the same in orbit; you're just floating.
-- (distractor) Much darker skin from the strong sunlight through the station's windows.
+[T3 → claim 3] Fixing the puffy face
+Which of these would do most to reduce an astronaut's puffy face in orbit?
+- (lesson) A suit that gently pulls blood and fluid down toward the legs.
+- (intuitive) Eating less salt.
+- (distractor) Sleeping in a warmer cabin.
 
-[T4 → claim 4] Month 6 in orbit
-The flight doctor reviews your latest bone scans. What result should you expect?
-- (lesson) A noticeable loss of bone mass in the hips and spine.
-- (intuitive) No real change — six months is too short for bones to change.
-- (distractor) Denser bones than before launch — floating protects them from wear.
+[T4 → claim 4] Protecting your bones
+Which daily routine would best protect the bones of your hips and spine during a six-month mission?
+- (lesson) Heavy resistance exercise that loads the legs and spine.
+- (intuitive) Taking calcium tablets every day.
+- (distractor) Spending more time near the windows for sunlight.
 
 ### Module 2
 
-[T5 → claim 5] Day 20 aboard the station
-In the science lab, you light a small candle inside a sealed experiment box. What will you most likely see?
-- (lesson) A round, bluish flame.
-- (intuitive) A normal tall, yellow flame, just like on Earth.
-- (distractor) A green flame, because of the station's air filters.
+[T5 → claim 5] A breeze in the lab
+In the station lab, a small fan blows air steadily across a candle flame. What will the flame most likely look like?
+- (lesson) Stretched out in the direction the air is flowing.
+- (intuitive) Perfectly round and blue, as always in orbit.
+- (distractor) Green, because of the fan's electric motor.
 
-[T6 → claim 6] Day 34 aboard the station
-A crewmate gets emotional watching a video message from home. What happens to their tears?
-- (lesson) They collect into a ball of water on the eye.
-- (intuitive) They roll down the cheeks, the same as on Earth.
-- (distractor) They freeze instantly into tiny ice crystals.
+[T6 → claim 6] A drop on your fingertip
+In orbit, you hold your finger pointing "down" with a drop of water on its tip. What happens?
+- (lesson) The drop stays on your finger — nothing pulls it away.
+- (intuitive) It drips off, just a little more slowly than on Earth.
+- (distractor) It freezes into ice.
 
-[T7 → claim 7] Day 41 aboard the station
-You want to photograph every sunrise you can see from the station during one 24-hour period. About how many photos will you take?
-- (lesson) About 16
-- (intuitive) 1 — one sunrise a day, like on Earth
-- (distractor) About 100
+[T7 → claim 7] A higher station
+A future station circles Earth in a higher orbit, taking 180 minutes per orbit. About how many sunrises will its crew see in 24 hours?
+- (lesson) About 8
+- (intuitive) About 16, the same as on the ISS
+- (distractor) 1, as on Earth
 
-[T8 → claim 8] Day 55 aboard the station
-Mission control asks you to explain the station's water supply to a group of students. What's the most accurate description?
-- (lesson) Almost all of it — about 98% — is recovered and reused, including water from urine and sweat.
-- (intuitive) Most of it arrives fresh from Earth on cargo ships; only a small part is recycled.
-- (distractor) It is made by melting ice collected outside the station.
+[T8 → claim 8] A broken processor
+The station's urine-processing unit breaks down and cannot be fixed for a month. What will that mean for the water supply?
+- (lesson) Much more water will have to be delivered by cargo ships.
+- (intuitive) Little change — most of the water comes from cargo ships anyway.
+- (distractor) The crew will collect water from outside the station.
 
 ### Module 3
 
-[T9 → claim 9] Sol 47
-You want to photograph tonight's sunset for mission control. What colors should you expect?
-- (lesson) Blue tones.
-- (intuitive) Deep red and orange, like a sunset on Earth.
-- (distractor) Bright green across the whole sky.
+[T9 → claim 9] Where to point the camera
+At sunset on Mars, where in the sky should you point your camera to capture the blue light?
+- (lesson) Toward the setting Sun — the blue glows around it.
+- (intuitive) Anywhere — the whole sky turns blue.
+- (distractor) Straight up, away from the Sun.
 
-[T10 → claim 10] Sol 214
-A regional dust storm with winds of about 100 km/h is heading toward your base. What should your crew prioritize?
-- (lesson) Plan to protect and clean the solar panels from dust.
-- (intuitive) Anchor the habitat and rover — winds this strong could tip them over.
-- (distractor) Evacuate to the rover — the storm will make the habitat lose air pressure.
+[T10 → claim 10] A different power source
+Your base on Mars runs on a nuclear generator instead of solar panels. How dangerous is a planet-wide dust storm for its power supply?
+- (lesson) Hardly at all — the danger was dust blocking sunlight, and wind on Mars is too weak to do damage.
+- (intuitive) Very — winds that strong could knock the equipment over.
+- (distractor) Very — the storm will make the habitat lose air pressure.
 
-[T11 → claim 11] Sol 120
-An outside microphone on your rover records a drill running a few meters away. Compared with the same drill on Earth, what will the recording sound like?
-- (lesson) Quieter — sound travels on Mars, but more weakly and more slowly.
-- (intuitive) Completely silent — there's no air on Mars for sound to travel through.
-- (distractor) Louder — Mars's air carries sound better than Earth's.
+[T11 → claim 11] How long until you hear it
+On Mars, you see a boulder crash down a slope 480 meters away. About how long after seeing it will you hear it?
+- (lesson) About 2 seconds
+- (intuitive) About 1.4 seconds, as on Earth
+- (distractor) You will not hear it at all — there is no air on Mars.
 
-[T12 → claim 12] Sol 305
-A crewmate is injured, and you need advice from a doctor at mission control. What should you plan for?
-- (lesson) A wait of several minutes — possibly more than 20 — for your message to reach Earth, and as long again for the reply.
-- (intuitive) A live conversation — radio signals reach Earth within seconds.
-- (distractor) No contact at all until the next cargo ship arrives.
+[T12 → claim 12] Asking for advice
+Mars and Earth are at their closest. You radio mission control a question and wait for the answer. What is the shortest time before the answer can arrive?
+- (lesson) About 6 minutes — the message travels both ways.
+- (intuitive) About 3 minutes.
+- (distractor) A second or two.
 
 ## D2. Проверка внимания (модуль 2, случайная позиция, без шкалы уверенности)
 

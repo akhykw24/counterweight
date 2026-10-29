@@ -44,6 +44,7 @@ export interface V3Input {
    */
   trustItemIds: readonly string[];
   tutorPages: readonly (readonly string[])[];
+  funnelItems: readonly FunnelItem[];
   demographicsRequired: readonly string[];
   demographicsItemIds: readonly string[];
   pilotItemIds: readonly string[];
@@ -96,7 +97,20 @@ export interface RecordParams {
   cell?: CellName | null;
 }
 
-export const FUNNEL_IDS = ["F1", "F2", "F3", "F4"] as const;
+/**
+ * One awareness-funnel question. `options` is set for a closed question,
+ * which must be answered with one of them; an open one may be left blank.
+ * Supplied from the approved texts, so the number and kind of questions are
+ * the researcher's, not this file's.
+ */
+export interface FunnelItem {
+  id: string;
+  options: readonly string[] | null;
+}
+
+export function currentFunnelItem(context: V3Context): FunnelItem | null {
+  return context.funnelItems[context.funnelIndex] ?? null;
+}
 export const QUIZ_PAGE_SIZE = 4;
 const ELIGIBLE_LEVELS = new Set(["B1", "B2", "C1", "C2-native"]);
 const STUDY_LANGUAGES = new Set(["English", "Russian", "Kazakh", "Other"]);
@@ -251,11 +265,11 @@ export const v3Machine = setup({
     lastTutorPage: ({ context }) => context.tutorPage >= context.tutorPages.length - 1,
     funnelMatches: ({ context, event }) =>
       event.type === "ANSWER_FUNNEL" &&
-      event.itemId === FUNNEL_IDS[context.funnelIndex] &&
+      event.itemId === currentFunnelItem(context)?.id &&
       typeof event.text === "string" &&
       // F4 is Yes/No and must be answered; F1-F3 are optional free text.
-      (event.itemId !== "F4" || event.text === "Yes" || event.text === "No"),
-    lastFunnel: ({ context }) => context.funnelIndex >= FUNNEL_IDS.length - 1,
+      // A closed question needs one of its options; open ones are optional.
+      (currentFunnelItem(context)?.options == null || currentFunnelItem(context)!.options!.includes(event.text)),
     qualityComplete: ({ context, event }) =>
       event.type === "SUBMIT_QUALITY" &&
       (context.plan?.qualityItems ?? []).every((id) => isRating(event.ratings[id], 7)),
@@ -548,7 +562,7 @@ export const v3Machine = setup({
           },
         ],
       },
-      always: { guard: ({ context }) => context.funnelIndex >= FUNNEL_IDS.length, target: "tutor" },
+      always: { guard: ({ context }) => context.funnelIndex >= context.funnelItems.length, target: "tutor" },
     },
 
     quality: {

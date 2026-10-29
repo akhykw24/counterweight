@@ -208,16 +208,21 @@
     },
     {
       "item_id": "F2",
-      "text": "Did you notice anything unusual about Nova or the training? If so, what?",
+      "text": "While you were taking part, did you have any thoughts about what was being tested? If so, what were they?",
       "kind": "text"
     },
     {
       "item_id": "F3",
-      "text": "Do you think the study was testing something other than how well people learn? If so, what?",
+      "text": "Did any part of the study seem connected to another part in a way that was not explained? If so, how?",
       "kind": "text"
     },
     {
       "item_id": "F4",
+      "text": "Did anything about the way Nova spoke affect how much you believed what it told you? If so, how?",
+      "kind": "text"
+    },
+    {
+      "item_id": "F5",
       "text": "Before today, did you hear any details about this study from other people?",
       "kind": "choice",
       "options": [

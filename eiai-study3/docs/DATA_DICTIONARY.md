@@ -577,7 +577,7 @@ Envelope fields are omitted; see [Event envelope](#event-envelope).
 |---|---|---|---|---|
 | `run_mode` | `live` \| `pilot` \| `test` | yes |  | live = the real study; pilot = a pilot participant; test = a throwaway run. Only `live` enters the analysed sample; pipeline/exclusions.py removes the others before any statistic is computed. |
 | `type` | `"funnel_answer"` | yes |  |  |
-| `payload.item_id` | `F1` \| `F2` \| `F3` \| `F4` | yes |  |  |
+| `payload.item_id` | string | yes | pattern `^F[1-9]$` | F1-F4 in the pilot; F1-F5 from v3.1, where F4 asks about Nova's way of speaking and F5 is the closed question about hearing of the study beforehand. |
 | `payload.text` | string | yes | maxLen 5000 |  |
 
 #### `arg_quality_rating`

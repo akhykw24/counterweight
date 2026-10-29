@@ -205,7 +205,10 @@ export const V3QuestionnaireItem = defineV3("questionnaire_item", "One questionn
 });
 
 export const V3FunnelAnswer = defineV3("funnel_answer", "One awareness-funnel answer. Empty text is recorded as empty.", {
-  item_id: z.enum(["F1", "F2", "F3", "F4"]),
+  item_id: z
+    .string()
+    .regex(/^F[1-9]$/)
+    .describe("F1-F4 in the pilot; F1-F5 from v3.1, where F4 asks about Nova's way of speaking and F5 is the closed question about hearing of the study beforehand."),
   text: z.string().max(5000),
 });
 
