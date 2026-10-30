@@ -64,3 +64,10 @@ def test_no_pilot_data_is_a_report_not_a_crash(tmp_path: Path) -> None:
 def test_rehearsal_data_can_be_summarised_on_request(tmp_path: Path) -> None:
     path = write_jsonl(tmp_path / "e.jsonl", session(mode="test"))
     assert summary.summarise([path], mode="test", out=tmp_path / "S.md")["participants"] == 1
+
+
+def test_since_keeps_only_the_later_pilot(tmp_path: Path) -> None:
+    # The fixture's sessions start in 2026-09; a cutoff after that keeps none.
+    path = write_jsonl(tmp_path / "e.jsonl", session())
+    assert summary.summarise([path], out=tmp_path / "a.md", since="2026-01-01")["participants"] == 1
+    assert summary.summarise([path], out=tmp_path / "b.md", since="2027-01-01")["participants"] == 0

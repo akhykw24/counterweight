@@ -236,11 +236,19 @@ def render(people: list[dict[str, Any]], report: dict[str, Any], mode: str) -> s
     return "\n".join(out)
 
 
-def summarise(paths: Iterable[Path], mode: str = "pilot", out: Path = OUT) -> dict[str, Any]:
+def summarise(paths: Iterable[Path], mode: str = "pilot", out: Path = OUT, since: str | None = None) -> dict[str, Any]:
     events, report = v3_export.load_v3(paths, mode)
     by_session: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for e in events:
         by_session[e["session_id"]].append(e)
+    if since:
+        # Keeps sessions that started on or after this date (YYYY-MM-DD), so a
+        # second pilot is not averaged with the first one's older materials.
+        cutoff = v3_export.epoch_ms(f"{since}T00:00:00+00:00")
+        by_session = defaultdict(list, {
+            s: evs for s, evs in by_session.items()
+            if min(v3_export.epoch_ms(e["client_ts"]) for e in evs) >= cutoff
+        })
     people = [
         participant(s, sorted(evs, key=lambda e: e["seq"]))
         for s, evs in sorted(by_session.items())
@@ -256,9 +264,10 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument("--events", nargs="+", required=True)
     parser.add_argument("--mode", choices=v3_export.RUN_MODES, default="pilot")
     parser.add_argument("--out", default=str(OUT))
+    parser.add_argument("--since", default=None, help="only sessions started on or after YYYY-MM-DD")
     args = parser.parse_args(list(argv) if argv is not None else None)
     try:
-        result = summarise([Path(p) for p in args.events], args.mode, Path(args.out))
+        result = summarise([Path(p) for p in args.events], args.mode, Path(args.out), args.since)
     except (v3_export.ExportError, FileNotFoundError) as error:
         print(f"summary failed: {error}", file=sys.stderr)
         return 1
