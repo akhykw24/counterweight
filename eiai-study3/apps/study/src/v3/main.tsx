@@ -22,7 +22,7 @@ const runMode = (saved?.["runMode"] as typeof session.runMode | undefined) ?? se
 // must never start live data collection by itself. Open it with
 // VITE_V3_LIVE=open (or by changing this default on launch day). Pilot and
 // test links work either way.
-const LIVE_DEFAULT = "closed";
+const LIVE_DEFAULT = "open";
 const liveClosed = ((import.meta.env["VITE_V3_LIVE"] as string | undefined) ?? LIVE_DEFAULT) !== "open";
 
 createRoot(root).render(
