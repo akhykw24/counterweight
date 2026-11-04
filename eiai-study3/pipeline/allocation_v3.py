@@ -205,19 +205,20 @@ revoke all on function public.v3_allocation_status() from public, anon, authenti
 grant execute on function public.claim_v3_slot(uuid, text) to service_role;
 grant execute on function public.v3_allocation_status() to service_role;
 
--- A plain temporary table, dropped explicitly: `on commit drop` would vanish
--- straight after its own statement in an editor that commits each statement.
-drop table if exists pg_temp.v3_expected;
-create temporary table v3_expected (stratum text, idx integer, cell text);
-insert into v3_expected (stratum, idx, cell) values
-{(","+chr(10)).join(rows)};
-
-insert into public.v3_allocation_slots (stratum, idx, cell)
-select stratum, idx, cell from v3_expected
-on conflict (stratum, idx) do nothing;
-
+-- Loading and checking run inside ONE statement (this DO block). The Supabase
+-- editor may send a file statement by statement over pooled connections, and
+-- a temporary table created by one statement is then invisible to the next:
+-- the first version of this file failed in the editor with 'relation
+-- "v3_expected" does not exist'. Inside a single block the table, the check
+-- and the insert share one connection and one transaction, however the file
+-- is sent. Nothing is changed if the check fails.
 do $$
 begin
+    drop table if exists pg_temp.v3_expected;
+    create temporary table v3_expected (stratum text, idx integer, cell text);
+    insert into v3_expected (stratum, idx, cell) values
+{(","+chr(10)).join(rows)};
+
     if exists (
         select 1
         from public.v3_allocation_slots s
@@ -226,10 +227,14 @@ begin
     ) then
         raise exception 'v3_allocation_slots holds a different sequence from this file; nothing was changed';
     end if;
+
+    insert into public.v3_allocation_slots (stratum, idx, cell)
+    select e.stratum, e.idx, e.cell from v3_expected e
+    on conflict (stratum, idx) do nothing;
+
+    drop table v3_expected;
 end;
 $$;
-
-drop table if exists pg_temp.v3_expected;
 
 notify pgrst, 'reload schema';
 

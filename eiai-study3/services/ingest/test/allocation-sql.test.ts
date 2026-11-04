@@ -157,3 +157,90 @@ describe("access", () => {
     await db.exec("reset role");
   });
 });
+
+/**
+ * Top-level statements of a SQL file, respecting quotes, dollar quotes and
+ * comments: the unit the Supabase editor may send one at a time.
+ */
+function statements(sql: string): string[] {
+  const out: string[] = [];
+  let current = "";
+  let i = 0;
+  let quote: string | null = null;
+  while (i < sql.length) {
+    const rest = sql.slice(i);
+    if (quote) {
+      if (rest.startsWith(quote)) {
+        current += quote;
+        i += quote.length;
+        quote = null;
+        continue;
+      }
+      current += sql[i];
+      i += 1;
+      continue;
+    }
+    if (rest.startsWith("--")) {
+      const end = sql.indexOf("\n", i);
+      i = end < 0 ? sql.length : end + 1;
+      current += "\n";
+      continue;
+    }
+    const dollar = /^\$[A-Za-z_]*\$/.exec(rest);
+    if (dollar) {
+      quote = dollar[0];
+      current += quote;
+      i += quote.length;
+      continue;
+    }
+    if (sql[i] === "'") {
+      quote = "'";
+      current += "'";
+      i += 1;
+      continue;
+    }
+    if (sql[i] === ";") {
+      if (current.trim()) out.push(current.trim());
+      current = "";
+      i += 1;
+      continue;
+    }
+    current += sql[i];
+    i += 1;
+  }
+  if (current.trim()) out.push(current.trim());
+  return out;
+}
+
+async function runStatementByStatement(pg: PGlite, sql: string): Promise<void> {
+  for (const statement of statements(sql)) {
+    // A pooled editor may run each statement on a different backend, where
+    // the previous statement's temporary tables do not exist.
+    await pg.exec("discard temp");
+    await pg.exec(statement);
+  }
+}
+
+describe("004 as the Supabase editor runs it: statement by statement", () => {
+  it("loads the whole sequence even when temporary tables do not survive between statements", async () => {
+    const pg = new PGlite();
+    await pg.exec("create role anon; create role authenticated; create role service_role;");
+    for (const name of ["001_events.sql", "002_v3_envelope.sql", "003_run_mode.sql"]) await pg.exec(migration(name));
+    await runStatementByStatement(pg, migration("004_v3_allocation.sql"));
+    const status = await pg.query<{ total: number }>("select sum(total)::int as total from public.v3_allocation_status()");
+    expect(status.rows[0]!.total).toBe(1200);
+  });
+
+  it("can be run again after a half-finished first attempt", async () => {
+    const pg = new PGlite();
+    await pg.exec("create role anon; create role authenticated; create role service_role;");
+    for (const name of ["001_events.sql", "002_v3_envelope.sql", "003_run_mode.sql"]) await pg.exec(migration(name));
+    // What the editor left behind: everything before the load succeeded.
+    const parts = statements(migration("004_v3_allocation.sql"));
+    const load = parts.findIndex((s) => s.includes("v3_expected"));
+    for (const s of parts.slice(0, load)) await pg.exec(s);
+    await runStatementByStatement(pg, migration("004_v3_allocation.sql"));
+    const status = await pg.query<{ total: number }>("select sum(total)::int as total from public.v3_allocation_status()");
+    expect(status.rows[0]!.total).toBe(1200);
+  });
+});
