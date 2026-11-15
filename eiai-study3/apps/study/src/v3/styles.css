@@ -1,26 +1,53 @@
-/* v3: chat lesson, option lists and rating scales. Works down to 320px wide. */
+/*
+ * v3 visual theme: "mission control". Presentation only.
+ *
+ * Identical in all four versions, so it cannot differ between conditions.
+ * Nothing here changes a text, the order of screens, or a timing: the typing
+ * indicator and the 2 s before Continue live in screens.tsx and are untouched.
+ * Entrance animations are kept short (under 0.35 s) and are switched off for
+ * people who ask their system for reduced motion.
+ *
+ * Introduced in app_version 0.3.1, which every session_started event records,
+ * so sessions before and after the change can be told apart in the analysis.
+ */
 
-.v3 header { margin-bottom: 1.25rem; }
-.v3 h1 { font-size: 1.25rem; }
-.v3 h2 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
+.v3 {
+  --fg: #e9edf8;
+  --muted: #a3aecb;
+  --line: rgba(255, 255, 255, 0.14);
+  --accent: #8aa8ff;
+  --accent-2: #b48cff;
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-strong: rgba(255, 255, 255, 0.1);
+  --ok: #6ee7b7;
+  color: var(--fg);
+}
 
-.progress { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.25rem; }
-.mission-heading { font-size: 0.9rem; color: var(--muted); margin: 0 0 0.75rem; }
+/* The page behind the study: deep space, a faint nebula, two layers of stars. */
+body:has(.v3) {
+  background-color: #070b1a;
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 120px 80px, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1.5px 1.5px at 200px 150px, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(1px 1px at 60px 190px, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1px 1px at 260px 40px, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 85% -10%, rgba(124, 92, 255, 0.28), transparent 70%),
+    radial-gradient(ellipse 60% 45% at -10% 110%, rgba(56, 132, 255, 0.22), transparent 70%);
+  background-size: 300px 220px, 300px 220px, 300px 220px, 300px 220px, 300px 220px, 100% 100%, 100% 100%;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* --- layout (unchanged from 0.3.0) -------------------------------------- */
 
 .chat { display: flex; flex-direction: column; gap: 0.75rem; }
-.bubble {
-  background: #eef3fb; border: 1px solid #d5e0f2; border-radius: 14px 14px 14px 4px;
-  padding: 0.75rem 0.95rem; max-width: 100%;
-}
+.bubble { padding: 0.75rem 0.95rem; max-width: 100%; }
 .bubble p { margin: 0 0 0.5rem; line-height: 1.55; }
 .bubble p:last-child { margin-bottom: 0; }
-.bubble .tone-line { font-style: italic; color: #33415c; }
-.speaker { display: block; font-size: 0.75rem; font-weight: 600; color: var(--accent); margin-bottom: 0.25rem; }
+.speaker { display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; }
 .typing { display: inline-flex; gap: 0.3rem; width: fit-content; padding: 0.8rem 1rem; }
-.typing span {
-  width: 0.45rem; height: 0.45rem; border-radius: 50%; background: #8aa2c8;
-  animation: blink 1s infinite ease-in-out;
-}
+.typing span { width: 0.45rem; height: 0.45rem; border-radius: 50%; animation: blink 1s infinite ease-in-out; }
 .typing span:nth-child(2) { animation-delay: 0.15s; }
 .typing span:nth-child(3) { animation-delay: 0.3s; }
 @keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
@@ -32,24 +59,185 @@
 .choices { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .choices.stacked { flex-direction: column; margin-bottom: 1rem; }
 .option { text-align: left; line-height: 1.4; min-height: 2.75rem; }
-.option.selected, .point.selected { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); background: #f2f7ff; }
 
 .scale-points { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .point { min-width: 2.6rem; min-height: 2.6rem; padding: 0.3rem; text-align: center; }
-.scale-anchors { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; max-width: 22rem; }
+.scale-anchors { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.8rem; margin-top: 0.3rem; max-width: 22rem; }
 
-.check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 0.6rem 0; color: var(--fg); font-size: 1rem; }
+.check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 0.6rem 0; font-size: 1rem; }
 .check input { margin-top: 0.3rem; width: 1.1rem; height: 1.1rem; }
-.notice { background: #fff8e5; border: 1px solid #f0d890; border-radius: 8px; padding: 0.6rem 0.8rem; }
+.notice { padding: 0.6rem 0.8rem; }
 
-textarea { font: inherit; width: 100%; padding: 0.5rem 0.6rem; border: 1px solid var(--line); border-radius: 6px; }
-.quoted { margin: 0; padding: 0.6rem 0.8rem; border-left: 3px solid var(--line); background: #fafbfc; line-height: 1.5; }
+textarea { font: inherit; width: 100%; padding: 0.5rem 0.6rem; }
+.quoted { margin: 0; padding: 0.6rem 0.8rem; line-height: 1.5; }
 .flawed li, .plain-list li { margin-bottom: 0.75rem; line-height: 1.5; }
-.score { font-size: 1.1rem; font-weight: 600; }
-.primary { min-height: 2.75rem; min-width: 7rem; }
+.score { font-weight: 600; }
 
 @media (max-width: 480px) {
   .app { padding: 0.5rem 0.9rem 3rem; }
-  .point { min-width: 2.35rem; min-height: 2.5rem; }
-  .v3 h1 { font-size: 1.15rem; }
 }
+
+/* --- header ------------------------------------------------------------- */
+
+.v3 header {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+  justify-content: flex-start;
+  gap: 0.65rem;
+}
+.v3 .brand { font-size: 1rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); }
+.v3 .orb {
+  width: 1.9rem; height: 1.9rem; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0 8%, #b9c8ff 18%, #6f7dff 45%, #3b2a8f 80%);
+  box-shadow: 0 0 14px rgba(138, 168, 255, 0.55);
+  animation: orb-glow 3.2s ease-in-out infinite;
+}
+@keyframes orb-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(138, 168, 255, 0.45); }
+  50% { box-shadow: 0 0 20px rgba(180, 140, 255, 0.75); }
+}
+.v3 .header-tag { margin-left: auto; font-size: 0.72rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+
+/* --- typography ---------------------------------------------------------- */
+
+.v3 h1 { font-size: 1.3rem; line-height: 1.35; color: #fff; }
+.v3 h2 { font-size: 1.05rem; margin: 1.6rem 0 0.5rem; color: #fff; }
+.v3 p { color: var(--fg); }
+.v3 label, .v3 .hint, .v3 .anchor { color: var(--muted); }
+
+/* Every screen rises in when it first appears. Sections are remounted per
+   screen, so this runs once per screen and never while someone is reading. */
+.v3 main > section {
+  animation: rise 0.32s ease-out both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* --- progress ------------------------------------------------------------ */
+
+.progress-wrap { margin: 0 0 0.9rem; }
+.v3 .progress { font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.4rem; }
+.progress-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; }
+.progress-bar span { height: 0.3rem; border-radius: 99px; background: var(--surface-strong); }
+.progress-bar span.done { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.progress-bar span.current {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 10px rgba(138, 168, 255, 0.6);
+}
+.v3 .mission-heading {
+  font-size: 0.88rem; color: var(--muted); margin: 0 0 1rem;
+  padding: 0.55rem 0.8rem; border: 1px dashed var(--line); border-radius: 10px;
+}
+
+/* --- Nova's messages --------------------------------------------------------- */
+
+.v3 .chat { display: flex; flex-direction: column; gap: 0.8rem; }
+.v3 .bubble {
+  background: linear-gradient(180deg, rgba(138, 168, 255, 0.14), rgba(138, 168, 255, 0.07));
+  border: 1px solid rgba(138, 168, 255, 0.3);
+  border-radius: 16px 16px 16px 4px;
+  padding: 0.85rem 1rem;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  animation: pop 0.25s ease-out both;
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.v3 .bubble p { color: var(--fg); line-height: 1.6; }
+.v3 .bubble .tone-line { color: #cdd6ff; font-style: italic; border-top: 1px solid var(--line); padding-top: 0.5rem; }
+.v3 .speaker { color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.7rem; }
+.v3 .typing { background: rgba(138, 168, 255, 0.1); }
+.v3 .typing span { background: var(--accent); }
+
+/* --- controls ------------------------------------------------------------- */
+
+.v3 button {
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: background 0.15s, border-color 0.15s, transform 0.08s;
+}
+.v3 button:hover:not(:disabled) { background: var(--surface-strong); border-color: rgba(138, 168, 255, 0.5); }
+.v3 button:active:not(:disabled) { transform: scale(0.98); }
+.v3 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.v3 .primary {
+  color: #0b1020;
+  font-weight: 650;
+  border: none;
+  background: linear-gradient(90deg, #9fb6ff, #c3a2ff);
+  box-shadow: 0 6px 20px rgba(138, 120, 255, 0.35);
+  min-height: 2.9rem;
+  min-width: 8rem;
+  margin-top: 0.75rem;
+}
+.v3 .primary:hover:not(:disabled) { background: linear-gradient(90deg, #b3c5ff, #d1b6ff); }
+.v3 .primary:disabled { opacity: 0.35; box-shadow: none; }
+
+.v3 .option.selected, .v3 .point.selected {
+  border-color: var(--accent);
+  background: rgba(138, 168, 255, 0.2);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 14px rgba(138, 168, 255, 0.25);
+}
+.v3 .choices.stacked .option { padding: 0.75rem 0.95rem; }
+
+.v3 input[type="text"], .v3 input:not([type]), .v3 input[inputmode], .v3 textarea {
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.v3 input:focus, .v3 textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.v3 .check { color: var(--fg); }
+.v3 .check input { accent-color: var(--accent); }
+
+.v3 .question {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+}
+.v3 .question-text { color: var(--fg); }
+
+.v3 .notice { color: #ffe9b3; background: rgba(255, 196, 70, 0.12); border: 1px solid rgba(255, 196, 70, 0.4); border-radius: 10px; }
+.v3 .quoted { color: var(--fg); background: var(--surface); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; }
+
+/* --- debrief score -------------------------------------------------------- */
+
+.v3 .score {
+  font-size: 1.15rem;
+  text-align: center;
+  padding: 1.1rem 1rem;
+  margin: 0.5rem 0 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(138, 168, 255, 0.4);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(180, 140, 255, 0.25), transparent 70%),
+    var(--surface);
+  box-shadow: 0 0 30px rgba(138, 168, 255, 0.2);
+}
+.v3 .withdraw { color: #ffb4b4; border-color: rgba(255, 140, 140, 0.45); }
+
+/* --- layout ------------------------------------------------------------- */
+
+.v3 .chat, .v3 .choices, .v3 .scale-points { gap: 0.55rem; }
+.v3 .scale-anchors { color: var(--muted); }
+.v3 .point { min-width: 2.7rem; min-height: 2.7rem; }
+
+@media (max-width: 480px) {
+  .v3 .point { min-width: 2.4rem; min-height: 2.5rem; }
+  .v3 .question { padding: 0.8rem 0.85rem; }
+  .v3 h1 { font-size: 1.18rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3 main > section, .v3 .bubble, .v3 .orb { animation: none; }
+  .v3 button { transition: none; }
+}
+
+/* The approved debrief numbers its own list items ("1.", "2."). */
+.v3 .plain-list { list-style: none; padding-left: 0; }

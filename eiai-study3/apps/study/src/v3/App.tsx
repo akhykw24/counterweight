@@ -46,7 +46,11 @@ import {
   type V3Recorder,
 } from "./telemetry";
 
-export const APP_VERSION = "0.3.0";
+/**
+ * Recorded in every session_started event. 0.3.1 changes the visual theme
+ * only (same texts, order and timings), so sessions can be split at it.
+ */
+export const APP_VERSION = "0.3.1";
 
 export interface V3AppProps {
   recorder?: V3Recorder;
@@ -393,6 +397,7 @@ export function V3App({
   return (
     <div className="app v3" data-state={name}>
       <header>
+        <span className="orb" aria-hidden="true" />
         <span className="brand">Nova</span>
       </header>
       <main>{screen}</main>

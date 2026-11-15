@@ -117,6 +117,24 @@ function Primary({
   );
 }
 
+/**
+ * "Module X of 3" -- the approved wording, unchanged -- with a three-segment
+ * bar beside it. The bar is decoration (aria-hidden) and shows only the
+ * module, never anything about versions.
+ */
+export function ModuleProgress({ module }: { module: number }) {
+  return (
+    <div className="progress-wrap">
+      <p className="progress" {...testId("progress")}>Module {module} of 3</p>
+      <div className="progress-bar" aria-hidden="true">
+        {[1, 2, 3].map((n) => (
+          <span key={n} className={n < module ? "done" : n === module ? "current" : undefined} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Consent and screening
 // ---------------------------------------------------------------------------
@@ -371,7 +389,7 @@ export function LessonScreen({
   }, [phase, index]);
   return (
     <section className="chat" {...testId("screen-lesson")}>
-      <p className="progress" {...testId("progress")}>Module {module} of 3</p>
+      <ModuleProgress module={module} />
       <h1 {...testId("lesson-heading")}>{mission.lesson_headings[String(module)]}</h1>
       {messages.slice(0, index).map((m, i) => (
         <NovaBubble key={m.claimId} id={`lesson-message-${i + 1}`} lines={m.lines} />
@@ -422,7 +440,7 @@ export function MissionTaskScreen({
   const ordered = optionOrder.map((r) => t.options.find((o) => o.role === r)!);
   return (
     <section {...testId("screen-mission-task")} data-task={taskId}>
-      <p className="progress" {...testId("progress")}>Module {module} of 3</p>
+      <ModuleProgress module={module} />
       <p className="mission-heading">{missionHeading(module)}</p>
       <h1>{t.title}</h1>
       <p>{t.situation}</p>
@@ -488,7 +506,7 @@ export function AttentionScreen({
   const sent = useRef(false);
   return (
     <section {...testId("screen-attention")}>
-      <p className="progress" {...testId("progress")}>Module {module} of 3</p>
+      <ModuleProgress module={module} />
       <p className="mission-heading">{missionHeading(module)}</p>
       <h1>{a.title}</h1>
       <p>{a.instruction}</p>
